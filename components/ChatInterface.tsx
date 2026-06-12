@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
-import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2 } from "lucide-react";
+import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -154,6 +154,16 @@ export function ChatInterface() {
     }
   };
 
+  const clearChat = async () => {
+    setMessages([]);
+    try {
+      await fetch(`/api/chat?sessionId=${sessionId}`, { method: "DELETE" });
+      toast.success("Chat history cleared");
+    } catch (error) {
+      console.error("Failed to clear chat", error);
+    }
+  };
+
   const quickQuestions = [
     "What's for dinner today?",
     "Any upcoming exams?",
@@ -167,14 +177,24 @@ export function ChatInterface() {
           <h2 className="font-semibold tracking-tight">CampusFlow Assistant</h2>
           <p className="text-xs text-muted-foreground">Ask anything about your campus</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={() => setTtsEnabled(!ttsEnabled)}
-          title={ttsEnabled ? "Disable Voice" : "Enable Voice"}
-        >
-          {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={clearChat}
+            className="text-muted-foreground"
+          >
+            <Trash2 className="w-4 h-4 mr-2" /> Clear Chat
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => setTtsEnabled(!ttsEnabled)}
+            title={ttsEnabled ? "Disable Voice" : "Enable Voice"}
+          >
+            {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-muted-foreground" />}
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">

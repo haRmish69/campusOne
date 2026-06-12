@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { UploadCloud, FileText, Loader2, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -127,16 +128,59 @@ export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndp
     }
   };
 
+  const handleWhatsAppUpload = async (file: File) => {
+    if (!file.name.endsWith(".txt")) {
+      toast.error("Unsupported file type", { description: "Please upload a .txt file exported from WhatsApp." });
+      return;
+    }
+
+    toast.info("Reading WhatsApp Export...");
+    setIsUploading(true);
+    setUploadStatus("Reading file...");
+
+    try {
+      const text = await file.text();
+      setUploadStatus("Analyzing chat logs in batches...");
+      const toastId = toast.loading("Processing WhatsApp Chat...", { description: "Extracting genuine notices..." });
+
+      const res = await fetch("/api/whatsapp/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileContent: text })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Import failed");
+
+      toast.success(`Import Complete!`, {
+        id: toastId,
+        description: `Scanned ${data.totalMessages} messages. Imported ${data.noticesImported} notices.`,
+        duration: 5000
+      });
+      router.refresh();
+      onSuccess?.();
+    } catch (error: any) {
+      console.error(error);
+      toast.error("WhatsApp Import Failed", { description: error.message || "An unexpected error occurred." });
+    } finally {
+      setIsUploading(false);
+      setUploadStatus("");
+    }
+  };
+
   return (
     <Card className="w-full shadow-sm">
       <CardContent className="pt-6">
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="upload" disabled={isUploading}>
               <ImageIcon className="w-4 h-4 mr-2" /> Upload Image/PDF
             </TabsTrigger>
             <TabsTrigger value="text" disabled={isUploading}>
               <FileText className="w-4 h-4 mr-2" /> Paste Text
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" disabled={isUploading}>
+              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp Import
             </TabsTrigger>
           </TabsList>
           
@@ -194,6 +238,49 @@ export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndp
                   "Extract Notice"
                 )}
               </Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="whatsapp">
+            <div 
+              className={`border-2 border-dashed border-green-500/30 bg-green-500/5 rounded-lg p-12 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[250px]
+                ${isDragging ? "border-green-500 bg-green-500/10" : "hover:bg-green-500/10"}
+                ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={async (e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const file = e.dataTransfer.files[0];
+                if (file) handleWhatsAppUpload(file);
+              }}
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".txt";
+                input.onchange = (e: any) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleWhatsAppUpload(file);
+                };
+                input.click();
+              }}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
+                  <h3 className="text-lg font-medium text-green-700">Scanning Chat Export...</h3>
+                  <p className="text-sm text-green-600/80 mt-2">{uploadStatus || "This may take a minute for large chats."}</p>
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="w-10 h-10 text-green-500 mb-4" />
+                  <h3 className="text-lg font-medium text-green-700">Import WhatsApp Export</h3>
+                  <p className="text-sm text-green-600/80 mt-2 max-w-[280px] mx-auto mb-6">
+                    Open WhatsApp → Chat → Export Chat → Without Media → upload the .txt file here.
+                  </p>
+                  <Button variant="outline" size="sm" type="button" className="pointer-events-none border-green-500/30 text-green-600">Select .txt File</Button>
+                </>
+              )}
             </div>
           </TabsContent>
         </Tabs>

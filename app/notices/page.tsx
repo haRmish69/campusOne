@@ -1,5 +1,6 @@
 import { FileUpload } from "@/components/FileUpload";
 import { NoticeCard } from "@/components/NoticeCard";
+import { SyncEmailButton } from "@/components/SyncEmailButton";
 import { prisma } from "@/lib/prisma";
 import { Notice } from "@prisma/client";
 
@@ -37,7 +38,10 @@ export default async function NoticesPage() {
       <div className="flex flex-col space-y-12">
         <div className="space-y-6">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Notice</h2>
+            <div className="flex justify-between items-center mb-6 max-w-2xl">
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--color-midnight-navy)]">Add Notice</h2>
+              <SyncEmailButton />
+            </div>
             <div className="max-w-2xl">
               <FileUpload />
             </div>

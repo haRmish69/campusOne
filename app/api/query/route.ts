@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const queryVector = await embedText(question);
 
     // 3. Search Vector Store
-    const results = await searchAcrossTables(queryVector, userId, 5);
+    const results = await searchAcrossTables(queryVector, userId, 60);
 
     // 4. Build context
     const contextParts = results.map(r => {

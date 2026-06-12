@@ -49,6 +49,21 @@ export default async function DashboardPage() {
     return "Good evening";
   };
 
+  // --- PocketBuddy Mini Logic ---
+  const currentStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const currentEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  const currentExpenses = await prisma.expense.findMany({
+    where: { date: { gte: currentStartDate, lte: currentEndDate } },
+  });
+  const currentTotal = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const existingInsight = await prisma.wellnessInsight.findFirst({
+    where: { date: { gte: todayStart } },
+    orderBy: { date: "desc" },
+  });
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl space-y-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -97,6 +112,36 @@ export default async function DashboardPage() {
                 ))}
               </div>
             )}
+          </section>
+
+          {/* PocketBuddy Mini */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold tracking-tight">PocketBuddy Mini</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Link href="/expenses" className="block">
+                <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-paper)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-sm-2)] transition-shadow">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">This Month's Spend</h3>
+                  <div className="text-3xl font-bold text-[var(--color-midnight-navy)]">₹{currentTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
+                </div>
+              </Link>
+              <Link href="/wellness" className="block">
+                <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-paper)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-sm-2)] transition-shadow">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Burnout Risk</h3>
+                  {existingInsight ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-3xl font-bold ${existingInsight.score > 70 ? 'text-red-600' : 'text-emerald-600'}`}>{existingInsight.score}/100</span>
+                      <span className={`text-sm font-medium ${existingInsight.score > 70 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {existingInsight.score > 70 ? 'High' : 'Low'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-lg font-medium text-muted-foreground mt-2">Not checked in today</div>
+                  )}
+                </div>
+              </Link>
+            </div>
           </section>
 
           {/* Upcoming Deadlines */}

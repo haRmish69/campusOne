@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +17,12 @@ export function Sidebar() {
     { href: "/mess", label: "Mess Menu", icon: Utensils },
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
+  ];
+
+  const pocketBuddyLinks = [
+    { href: "/expenses", label: "Expenses", icon: Wallet },
+    { href: "/budget", label: "Budget", icon: PieChart },
+    { href: "/wellness", label: "Wellness", icon: Heart },
   ];
 
   if (pathname === "/") return null;
@@ -34,6 +40,32 @@ export function Sidebar() {
       
       <nav className="flex-1 p-2 md:p-4 flex flex-row md:flex-col gap-1 md:gap-2 justify-around md:justify-start overflow-x-auto md:overflow-y-auto w-full items-center md:items-stretch">
         {links.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname === link.href;
+          
+          return (
+            <Link 
+              key={link.href} 
+              href={link.href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 shrink-0 ${
+                isActive 
+                  ? "bg-[var(--color-fog)] text-[var(--color-midnight-navy)] font-semibold shadow-sm" 
+                  : "text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] hover:text-[var(--color-midnight-navy)]"
+              }`}
+            >
+              <Icon className="w-6 h-6 md:w-5 md:h-5 shrink-0" />
+              <span className="hidden md:inline">{link.label}</span>
+            </Link>
+          );
+        })}
+
+        <div className="hidden md:flex items-center gap-2 px-3 py-2 mt-2 mb-1 w-full">
+          <div className="h-px bg-border/60 flex-1"></div>
+          <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">PocketBuddy</span>
+          <div className="h-px bg-border/60 flex-1"></div>
+        </div>
+
+        {pocketBuddyLinks.map((link) => {
           const Icon = link.icon;
           const isActive = pathname === link.href;
           

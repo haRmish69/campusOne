@@ -3,14 +3,14 @@ import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 
-const PROMPT = `Extract the following fields from the mess menu. Return ONLY a JSON object.
-Fields to extract:
-- day (string): "Monday", "Tuesday", etc.
-- meal (string): "breakfast", "lunch", or "dinner"
-- items (string): Comma-separated list of food items
-- isVeg (boolean): true if the menu is strictly vegetarian, false if it contains non-veg items like chicken, fish, egg, or meat.
+const PROMPT = `Extract ALL meals for ALL days from the mess menu. Return ONLY a JSON ARRAY of objects.
+Each object must have these fields:
+- day (string): The full day name (e.g., "Monday", "Tuesday", "Wednesday").
+- meal (string): The meal type (e.g., "Breakfast", "Lunch", "Evening Snack", "Dinner").
+- items (string): Comma-separated list of all food items served for that meal.
+- isVeg (boolean): true if the meal is strictly vegetarian, false if it contains non-veg items like chicken, fish, egg, or meat.
 
-If the day or meal is not explicitly stated, infer it from context or return "Unknown".`;
+Return ONLY the JSON array, no markdown or extra text.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,22 +32,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    const { day, meal, items, isVeg } = extractedData;
-    
-    const embedString = `${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`;
-    const embedding = await embedText(embedString);
+    // Wrap in array if single object returned
+    const menus = Array.isArray(extractedData) ? extractedData : [extractedData];
 
-    const menu = await prisma.messMenu.create({
-      data: {
-        day: day || "Unknown",
-        meal: meal || "Unknown",
-        items: items || "Unknown",
-        isVeg: typeof isVeg === "boolean" ? isVeg : true,
-        embedding,
-      }
-    });
+    // Wipe old mess menus to avoid duplication
+    await prisma.messMenu.deleteMany();
 
-    return NextResponse.json({ success: true, menu: { ...menu, embedding: undefined } });
+    const createdMenus = [];
+
+    for (const menuObj of menus) {
+      const { day, meal, items, isVeg } = menuObj;
+      
+      const embedString = `${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`;
+      const embedding = await embedText(embedString);
+
+      const menu = await prisma.messMenu.create({
+        data: {
+          day: day || "Unknown",
+          meal: meal || "Unknown",
+          items: items || "Unknown",
+          isVeg: typeof isVeg === "boolean" ? isVeg : true,
+          embedding,
+        }
+      });
+      createdMenus.push({ ...menu, embedding: undefined });
+    }
+
+    return NextResponse.json({ success: true, count: createdMenus.length, menus: createdMenus });
   } catch (error: any) {
     console.error("Mess Ingest Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

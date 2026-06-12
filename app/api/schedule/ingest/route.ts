@@ -43,6 +43,11 @@ export async function POST(req: NextRequest) {
     // Normalize: if Gemini returned a single object instead of an array, wrap it
     const classes = Array.isArray(extractedData) ? extractedData : [extractedData];
 
+    // Delete existing schedules for this user before ingesting the new ones
+    await prisma.classSchedule.deleteMany({
+      where: { userId }
+    });
+
     const createdSchedules = [];
 
     for (const cls of classes) {

@@ -26,3 +26,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get("sessionId");
+
+    if (!sessionId) {
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+    }
+
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    await prisma.chatMessage.deleteMany({
+      where: { sessionId, userId }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Chat Delete Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

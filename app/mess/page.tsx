@@ -21,6 +21,39 @@ export default async function MessPage() {
 
   const menus = menusRaw as MessMenu[];
 
+  // Group by days
+  const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  
+  const groupedMenus = daysOrder.map(day => {
+    const menusForDay = menus.filter(m => m.day.toLowerCase() === day.toLowerCase());
+    
+    // Sort chronologically
+    const getMealWeight = (mealName: string) => {
+      const m = mealName.toLowerCase();
+      if (m.includes("first breakfast")) return 1;
+      if (m.includes("second breakfast")) return 2;
+      if (m.includes("third breakfast")) return 3;
+      if (m.includes("breakfast")) return 4;
+      if (m.includes("lunch")) return 5;
+      if (m.includes("snack") || m.includes("tea")) return 6;
+      if (m.includes("dinner")) return 7;
+      return 8;
+    };
+    
+    menusForDay.sort((a, b) => getMealWeight(a.meal) - getMealWeight(b.meal));
+
+    return {
+      day,
+      menus: menusForDay
+    };
+  }).filter(group => group.menus.length > 0);
+
+  const knownDays = daysOrder.map(d => d.toLowerCase());
+  const unknownMenus = menus.filter(m => !knownDays.includes(m.day.toLowerCase()));
+  if (unknownMenus.length > 0) {
+    groupedMenus.push({ day: "Other / Unknown", menus: unknownMenus });
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-10">
@@ -30,16 +63,18 @@ export default async function MessPage() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="flex flex-col space-y-12">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight mb-4">Add Menu</h2>
-            <FileUpload apiEndpoint="/api/mess/ingest" />
+            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Menu</h2>
+            <div className="max-w-2xl">
+              <FileUpload apiEndpoint="/api/mess/ingest" />
+            </div>
           </div>
         </div>
         
-        <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold tracking-tight mb-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-8 text-[var(--color-midnight-navy)]">
             Current Menus <span className="text-muted-foreground text-sm font-normal ml-2">({menus.length})</span>
           </h2>
           
@@ -49,9 +84,19 @@ export default async function MessPage() {
               <p className="text-sm text-muted-foreground mt-1">Upload today's menu to get started.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {menus.map((menu) => (
-                <MessCard key={menu.id} menu={menu} />
+            <div className="space-y-10">
+              {groupedMenus.map((group) => (
+                <div key={group.day} className="relative">
+                  <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-[var(--color-midnight-navy)]">
+                    <span className="w-2 h-2 rounded-full bg-primary/60"></span>
+                    {group.day}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {group.menus.map((menu) => (
+                      <MessCard key={menu.id} menu={menu} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}

@@ -8,23 +8,23 @@ generator client {
 }
 
 model Notice {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
-  body           String   @db.Text
-  category       String   // "placement" | "exam" | "event" | "hostel" | "general"
+  body           String    @db.Text
+  category       String // "placement" | "exam" | "event" | "hostel" | "general"
   eventDate      DateTime?
   venue          String?
   actionRequired String?
   source         String?
   embedding      Json
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 }
 
 model MessMenu {
   id        String   @id @default(cuid())
-  day       String   // "Monday" | "Tuesday" | ... | "Sunday"
-  meal      String   // "breakfast" | "lunch" | "dinner"
-  items     String   @db.Text  // comma-separated list of dishes
+  day       String // "Monday" | "Tuesday" | ... | "Sunday"
+  meal      String // "breakfast" | "lunch" | "dinner"
+  items     String   @db.Text // comma-separated list of dishes
   isVeg     Boolean  @default(true)
   embedding Json
   createdAt DateTime @default(now())
@@ -36,7 +36,7 @@ model Deadline {
   subject    String
   dueDate    DateTime
   userId     String?
-  type       String   // "exam" | "assignment" | "project" | "other"
+  type       String // "exam" | "assignment" | "project" | "other"
   isComplete Boolean  @default(false)
   notes      String?
   embedding  Json
@@ -47,18 +47,18 @@ model ChatMessage {
   id        String   @id @default(cuid())
   sessionId String
   userId    String?
-  role      String   // "user" | "assistant"
+  role      String // "user" | "assistant"
   content   String   @db.Text
   createdAt DateTime @default(now())
 }
 
 model ClassSchedule {
   id        String   @id @default(cuid())
-  day       String   // "Monday" | "Tuesday" | ... | "Sunday"
+  day       String // "Monday" | "Tuesday" | ... | "Sunday"
   subject   String
   userId    String?
-  startTime String   // 24hr format "HH:MM" e.g. "09:00"
-  endTime   String   // 24hr format "HH:MM" e.g. "10:00"
+  startTime String // 24hr format "HH:MM" e.g. "09:00"
+  endTime   String // 24hr format "HH:MM" e.g. "10:00"
   room      String?
   faculty   String?
   embedding Json
@@ -67,9 +67,48 @@ model ClassSchedule {
 
 model StudyPlan {
   id          String   @id @default(cuid())
-  deadlineId  String   // references Deadline.id — no enforced FK
+  deadlineId  String // references Deadline.id — no enforced FK
   userId      String?
   title       String
-  planText    String   @db.Text  // day-by-day plan as markdown
+  planText    String   @db.Text // day-by-day plan as markdown
   generatedAt DateTime @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String // "food", "travel", "academics", "rent",
+  // "subscriptions", "entertainment", "other"
+  description String
+  date        DateTime @default(now())
+  source      String // "manual", "receipt", "sms"
+  embedding   Json
+  createdAt   DateTime @default(now())
+}
+
+model Budget {
+  id             String   @id @default(cuid())
+  month          String // "2026-06" format
+  totalLimit     Float
+  categoryLimits Json // { food: 3000, travel: 1000, ... }
+  createdAt      DateTime @default(now())
+}
+
+model WellnessLog {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  mood        Int
+  sleepHours  Float?
+  stressLevel Int
+  notes       String?  @db.Text
+  embedding   Json?
+  createdAt   DateTime @default(now())
+}
+
+model WellnessInsight {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  score       Int
+  message     String   @db.Text
+  createdAt   DateTime @default(now())
 }

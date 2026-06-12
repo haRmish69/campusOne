@@ -6,7 +6,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-const MODEL = "gemini-3.5-flash";
+const MODEL = "gemini-2.5-flash-lite";
 
 // Retry wrapper to handle 429 rate limits automatically
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -128,6 +128,30 @@ export async function extractKeywords(text: string): Promise<string[]> {
   }
 }
 
+export async function categorizeExpense(description: string, amount: number): Promise<string> {
+  const allowedCategories = ["food", "travel", "academics", "rent", "subscriptions", "entertainment", "other"];
+  try {
+    const prompt = `Categorize this student expense into ONE of: food, travel, academics, rent, subscriptions, entertainment, other. Expense: '${description}', amount: ${amount}. Return ONLY the category word, nothing else.`;
+    
+    const response = await withRetry(() => ai.models.generateContent({
+      model: MODEL,
+      contents: prompt,
+    }));
+    let rawText = (response.text ?? "").trim().toLowerCase();
+    
+    // strip out any punctuation just in case
+    rawText = rawText.replace(/[^a-z]/g, '');
+    
+    if (allowedCategories.includes(rawText)) {
+      return rawText;
+    }
+    return "other";
+  } catch (error) {
+    console.error("Gemini API Error (categorizeExpense):", error);
+    return "other";
+  }
+}
+
 export async function answerQuestion(question: string, context: string, history: {role: string, content: string}[]): Promise<string> {
   const contents = history.map(h => ({
     role: h.role === "assistant" ? ("model" as const) : ("user" as const),
@@ -141,7 +165,7 @@ export async function answerQuestion(question: string, context: string, history:
   const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
     config: {
-      systemInstruction: "You are CampusFlow, a helpful AI assistant for college students.\nAnswer ONLY from the provided context. If the context does not contain enough information to answer, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points."
+      systemInstruction: `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`
     },
     contents,
   }));
@@ -161,7 +185,7 @@ export async function answerQuestionStream(question: string, context: string, hi
   const response = await withRetry(() => ai.models.generateContentStream({
     model: MODEL,
     config: {
-      systemInstruction: "You are CampusFlow, a helpful AI assistant for college students.\nAnswer ONLY from the provided context. If the context does not contain enough information to answer, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points."
+      systemInstruction: `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`
     },
     contents,
   }));
