@@ -33,6 +33,9 @@ Expense, Budget, WellnessLog, WellnessInsight
 - [x] Phase 4B: Wellness Check-in + Burnout Detection
 - [x] Phase 5B: Unified Dashboard + Cross-Module Chat (RAG)
 - [x] Phase 6B: QA Checkpoint
+- [x] Phase 7B: Proactive Cross-Domain Insights (Skipping meals detection)
+- [x] Phase 8B: SOS / Overwhelmed Mode (Task Reprioritization & Breathing Animation)
+- [x] Phase 9B: Smart Savings Engine (Budget Contextual AI)
 
 ## Architecture Decisions Log
 - [2026-06-12] Adopted Calendly-inspired light theme (`DESIGN.md`) instead of default dark theme.

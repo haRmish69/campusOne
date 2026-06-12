@@ -116,9 +116,22 @@ export default async function DashboardPage() {
 
           {/* PocketBuddy Mini */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold tracking-tight">PocketBuddy Mini</h2>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-semibold tracking-tight">PocketBuddy Insights</h2>
             </div>
+
+            {existingInsight && (
+              <div className="mb-6 p-6 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+                <div className="absolute top-0 -left-4 w-32 h-32 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+                <div className="relative">
+                  <h3 className="font-semibold text-indigo-900 mb-2">Proactive Check-in</h3>
+                  <p className="text-indigo-800 leading-relaxed">{existingInsight.message}</p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link href="/expenses" className="block">
                 <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-paper)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-sm-2)] transition-shadow">

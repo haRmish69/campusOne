@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { SOSButton } from "@/components/SOSButton";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -84,6 +85,14 @@ export function Sidebar() {
             </Link>
           );
         })}
+        
+        {/* SOS Button */}
+        <div className="mt-auto px-2 pb-2 w-full hidden md:block">
+           <SOSButton />
+        </div>
+        <div className="md:hidden flex items-center justify-center px-3 py-2 shrink-0">
+           <SOSButton />
+        </div>
         
         {/* Mobile Auth Button */}
         <div className="md:hidden flex items-center justify-center px-3 py-2.5 shrink-0">

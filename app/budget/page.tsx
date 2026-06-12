@@ -4,6 +4,8 @@ import { BudgetStatus } from "@/components/BudgetStatus";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { SmartSavings } from "@/components/SmartSavings";
+
 export const dynamic = "force-dynamic";
 
 export default async function BudgetPage() {
@@ -73,6 +75,7 @@ export default async function BudgetPage() {
       </div>
 
       <div className="flex flex-col gap-8 mb-10">
+        <SmartSavings />
         <BudgetSetup currentBudget={currentBudget} month={month} />
         <BudgetStatus categoryStatus={categoryStatus} />
       </div>

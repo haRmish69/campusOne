@@ -74,13 +74,19 @@ export async function GET(req: NextRequest) {
     const expenses = await prisma.expense.findMany({
       where: { date: { gte: sevenDaysAgo } },
     });
+    const foodWeeklyExpense = expenses.filter(e => e.category === "food" || e.category.toLowerCase().includes("food") || e.category.toLowerCase().includes("dining")).reduce((sum, e) => sum + e.amount, 0);
     const totalWeeklyExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     // Prepare prompt
     const prompt = `Student's last 14 days mood/sleep/stress: ${JSON.stringify(wellnessLogs)}.
 Upcoming academic load (next 7 days): ${JSON.stringify(academicLoad)}.
-Recent expenses (last 7 days): Total ₹${totalWeeklyExpense}.
-Identify any signs of burnout. If high stress correlates with low sleep or high academic load, gently point it out and suggest 2 realistic self-care actions. Keep it under 3 sentences.
+Recent expenses (last 7 days): Total ₹${totalWeeklyExpense}, Food ₹${foodWeeklyExpense}.
+
+Act as "PocketBuddy", a caring AI assistant.
+Identify any signs of burnout or unhealthy patterns across these domains. 
+CRITICAL RULE: If the student has high stress or upcoming exams BUT their food expenses are abnormally low or zero, gently suggest they might be skipping meals and offer a quick budget-friendly meal idea!
+If they are doing well, offer a quick word of encouragement.
+Keep your response supportive, conversational, and under 3 sentences.
 Return ONLY JSON: { "score": number (1-100, 100=highest risk), "message": string }. No markdown.`;
 
     const response = await withRetry(() => ai.models.generateContent({
