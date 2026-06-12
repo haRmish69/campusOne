@@ -1,0 +1,75 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Notice {
+  id             String   @id @default(cuid())
+  title          String
+  body           String   @db.Text
+  category       String   // "placement" | "exam" | "event" | "hostel" | "general"
+  eventDate      DateTime?
+  venue          String?
+  actionRequired String?
+  source         String?
+  embedding      Json
+  createdAt      DateTime @default(now())
+}
+
+model MessMenu {
+  id        String   @id @default(cuid())
+  day       String   // "Monday" | "Tuesday" | ... | "Sunday"
+  meal      String   // "breakfast" | "lunch" | "dinner"
+  items     String   @db.Text  // comma-separated list of dishes
+  isVeg     Boolean  @default(true)
+  embedding Json
+  createdAt DateTime @default(now())
+}
+
+model Deadline {
+  id         String   @id @default(cuid())
+  title      String
+  subject    String
+  dueDate    DateTime
+  userId     String?
+  type       String   // "exam" | "assignment" | "project" | "other"
+  isComplete Boolean  @default(false)
+  notes      String?
+  embedding  Json
+  createdAt  DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String?
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model ClassSchedule {
+  id        String   @id @default(cuid())
+  day       String   // "Monday" | "Tuesday" | ... | "Sunday"
+  subject   String
+  userId    String?
+  startTime String   // 24hr format "HH:MM" e.g. "09:00"
+  endTime   String   // 24hr format "HH:MM" e.g. "10:00"
+  room      String?
+  faculty   String?
+  embedding Json
+  createdAt DateTime @default(now())
+}
+
+model StudyPlan {
+  id          String   @id @default(cuid())
+  deadlineId  String   // references Deadline.id — no enforced FK
+  userId      String?
+  title       String
+  planText    String   @db.Text  // day-by-day plan as markdown
+  generatedAt DateTime @default(now())
+}
