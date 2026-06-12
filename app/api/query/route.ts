@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { embedText } from "@/lib/embeddings";
 import { searchAcrossTables } from "@/lib/vectorStore";
-import { answerQuestionStream } from "@/lib/gemini";
+import { answerQuestion } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
@@ -46,29 +46,32 @@ export async function POST(req: NextRequest) {
     
     const context = contextParts.join("\n\n");
 
-    // 5. Generate stream
-    const stream = await answerQuestionStream(question, context, history || []);
+    // 5. Generate response
+    const fullResponse = await answerQuestion(question, context, history || []);
 
+    // 6. Save assistant message to DB
+    await prisma.chatMessage.create({
+      data: {
+        role: "assistant",
+        content: fullResponse,
+        sessionId,
+        userId
+      }
+    });
+
+    // 7. Stream the response to client in small chunks for a typing effect
     const encoder = new TextEncoder();
+    const words = fullResponse.split(" ");
+    
     const readable = new ReadableStream({
       async start(controller) {
-        let fullResponse = "";
         try {
-          for await (const chunk of stream) {
-            const text = chunk.text();
-            fullResponse += text;
-            controller.enqueue(encoder.encode(text));
+          for (let i = 0; i < words.length; i++) {
+            const word = (i === 0 ? "" : " ") + words[i];
+            controller.enqueue(encoder.encode(word));
+            // Small delay for typing effect
+            await new Promise(resolve => setTimeout(resolve, 15));
           }
-          
-          // Save assistant message to DB
-          await prisma.chatMessage.create({
-            data: {
-              role: "assistant",
-              content: fullResponse,
-              sessionId,
-              userId
-            }
-          });
         } catch (e) {
           console.error("Stream error:", e);
           controller.error(e);

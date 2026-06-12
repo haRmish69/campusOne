@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-export function FileUpload({ apiEndpoint = "/api/ingest" }: { apiEndpoint?: string }) {
+export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndpoint?: string; onSuccess?: () => void }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
   const [textInput, setTextInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -27,23 +28,34 @@ export function FileUpload({ apiEndpoint = "/api/ingest" }: { apiEndpoint?: stri
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      toast.error("Please upload an image or PDF file.");
+      toast.error("Unsupported file type", {
+        description: "Please upload an image (JPG, PNG) or PDF file.",
+      });
       return;
     }
 
+    toast.info(`File selected: ${file.name}`, {
+      description: `Size: ${(file.size / 1024).toFixed(1)} KB. Starting upload...`,
+    });
+
     setIsUploading(true);
+    setUploadStatus("Reading file...");
     
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const base64 = e.target?.result as string;
+        setUploadStatus("Sending to AI for processing...");
         await submitNotice("image", base64);
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to read file");
+      toast.error("Failed to read file", {
+        description: "The file may be corrupted. Please try another file.",
+      });
       setIsUploading(false);
+      setUploadStatus("");
     }
   };
 
@@ -61,15 +73,25 @@ export function FileUpload({ apiEndpoint = "/api/ingest" }: { apiEndpoint?: stri
 
   const handleTextSubmit = async () => {
     if (!textInput.trim()) {
-      toast.error("Please enter some text");
+      toast.error("Empty text", {
+        description: "Please paste or type some text before submitting.",
+      });
       return;
     }
+    toast.info("Processing text...", { description: "Sending to AI for extraction." });
     setIsUploading(true);
+    setUploadStatus("Sending to AI for processing...");
     await submitNotice("text", textInput);
   };
 
   const submitNotice = async (type: "image" | "text", data: string) => {
+    const toastId = toast.loading("AI is extracting data...", {
+      description: "This may take a few seconds. Please wait.",
+    });
+
     try {
+      setUploadStatus("AI is analyzing your content...");
+
       const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,17 +101,26 @@ export function FileUpload({ apiEndpoint = "/api/ingest" }: { apiEndpoint?: stri
       const json = await res.json();
       
       if (!res.ok) {
-        throw new Error(json.error || "Failed to process notice");
+        throw new Error(json.error || "Failed to process");
       }
 
-      toast.success("Notice saved successfully!");
+      const itemCount = json.count || 1;
+      toast.success(`Successfully saved ${itemCount} item${itemCount > 1 ? "s" : ""}!`, {
+        id: toastId,
+        description: "Your data has been extracted and stored.",
+      });
       setTextInput("");
       router.refresh();
+      onSuccess?.();
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "An error occurred");
+      toast.error("Upload failed", {
+        id: toastId,
+        description: error.message || "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setIsUploading(false);
+      setUploadStatus("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -130,7 +161,7 @@ export function FileUpload({ apiEndpoint = "/api/ingest" }: { apiEndpoint?: stri
                 <>
                   <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
                   <h3 className="text-lg font-medium">Processing with AI...</h3>
-                  <p className="text-sm text-muted-foreground mt-2">Extracting details from your file</p>
+                  <p className="text-sm text-muted-foreground mt-2">{uploadStatus || "Extracting details from your file"}</p>
                 </>
               ) : (
                 <>

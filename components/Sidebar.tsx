@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
@@ -23,13 +22,12 @@ export function Sidebar() {
   if (pathname === "/") return null;
 
   return (
-    <aside className="fixed bottom-0 left-0 w-full z-50 md:relative md:w-64 bg-card border-t md:border-t-0 md:border-r border-border/60 flex flex-col shrink-0 md:h-full md:flex">
+    <aside className="fixed bottom-0 left-0 w-full z-50 md:relative md:w-[240px] md:min-w-[240px] bg-card border-t md:border-t-0 md:border-r border-border/60 flex flex-col shrink-0 md:h-full md:flex">
       <div className="p-6 border-b border-border/40 hidden md:block">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold tracking-tighter text-primary">
+          <h1 className="text-2xl font-bold tracking-tighter text-midnight-navy">
             CampusFlow
           </h1>
-          <ThemeToggle />
         </div>
         <p className="text-xs text-muted-foreground">AI Student Assistant</p>
       </div>
@@ -45,8 +43,8 @@ export function Sidebar() {
               href={link.href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 shrink-0 ${
                 isActive 
-                  ? "bg-primary text-primary-foreground font-medium shadow-sm" 
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-[var(--color-fog)] text-[var(--color-midnight-navy)] font-semibold shadow-sm" 
+                  : "text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] hover:text-[var(--color-midnight-navy)]"
               }`}
             >
               <Icon className="w-6 h-6 md:w-5 md:h-5 shrink-0" />

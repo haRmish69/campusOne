@@ -4,14 +4,16 @@ import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
-const PROMPT = `Extract the following fields for a class schedule from the text. Return ONLY a JSON object.
-Fields to extract:
-- subject (string): Name or code of the course (e.g., "CS101", "Introduction to Physics")
+const PROMPT = `Extract ALL classes from the timetable. Return a JSON ARRAY of objects (even if there is only one class).
+Each object should have these fields:
+- subject (string): Name or code of the course (e.g., "CS301: Operating Systems", "PHY101: Physics")
 - faculty (string): Name of the professor or instructor. null if unknown.
 - day (string): The full day name (e.g., "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday").
-- startTime (string): Time in 24-hour HH:MM format.
-- endTime (string): Time in 24-hour HH:MM format.
-- room (string): Room or building where the class is held. null if unknown.`;
+- startTime (string): Time in HH:MM format (24-hour).
+- endTime (string): Time in HH:MM format (24-hour).
+- room (string): Room or building where the class is held. null if unknown.
+
+Return ONLY the JSON array, no markdown.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,25 +40,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    const { subject, faculty, day, startTime, endTime, room } = extractedData;
-    
-    const embedString = `${subject || "Class"} taught by ${faculty || "Unknown"} on ${day || "Unknown"} from ${startTime || "00:00"} to ${endTime || "00:00"} at ${room || "Unknown"}`;
-    const embedding = await embedText(embedString);
+    // Normalize: if Gemini returned a single object instead of an array, wrap it
+    const classes = Array.isArray(extractedData) ? extractedData : [extractedData];
 
-    const schedule = await prisma.classSchedule.create({
-      data: {
-        subject: subject || "Unknown Subject",
-        faculty: faculty || null,
-        day: day || "Monday",
-        startTime: startTime || "00:00",
-        endTime: endTime || "00:00",
-        room: room || null,
-        userId,
-        embedding,
-      }
-    });
+    const createdSchedules = [];
 
-    return NextResponse.json({ success: true, schedule: { ...schedule, embedding: undefined } });
+    for (const cls of classes) {
+      const { subject, faculty, day, startTime, endTime, room } = cls;
+      
+      const embedString = `class schedule timetable ${subject || "Class"} taught by ${faculty || "Unknown"} on ${day || "Unknown"} from ${startTime || "00:00"} to ${endTime || "00:00"} at ${room || "Unknown"}`;
+      const embedding = await embedText(embedString);
+
+      const schedule = await prisma.classSchedule.create({
+        data: {
+          subject: subject || "Unknown Subject",
+          faculty: faculty || null,
+          day: day || "Monday",
+          startTime: startTime || "00:00",
+          endTime: endTime || "00:00",
+          room: room || null,
+          userId,
+          embedding,
+        }
+      });
+      createdSchedules.push({ ...schedule, embedding: undefined });
+    }
+
+    return NextResponse.json({ success: true, count: createdSchedules.length, schedules: createdSchedules });
   } catch (error: any) {
     console.error("Schedule Ingest Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

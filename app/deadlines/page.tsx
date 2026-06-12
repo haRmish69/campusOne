@@ -79,18 +79,20 @@ export default function DeadlinesPage() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="flex flex-col space-y-12">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight mb-4">Add Deadline</h2>
-            <FileUpload apiEndpoint="/api/deadlines/ingest" />
+            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Deadline</h2>
+            <div className="max-w-2xl">
+              <FileUpload apiEndpoint="/api/deadlines/ingest" onSuccess={fetchDeadlines} />
+            </div>
           </div>
         </div>
         
-        <div className="lg:col-span-2">
+        <div>
           <Tabs defaultValue="upcoming" className="w-full">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold tracking-tight">Your Tracker</h2>
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--color-midnight-navy)]">Your Tracker</h2>
               <TabsList>
                 <TabsTrigger value="upcoming">Upcoming ({upcoming.length})</TabsTrigger>
                 <TabsTrigger value="completed">Completed ({completed.length})</TabsTrigger>

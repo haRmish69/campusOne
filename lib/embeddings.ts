@@ -5,13 +5,14 @@ export async function embedText(text: string): Promise<number[]> {
     return Array(200).fill(0);
   }
   
-  const truncated = text.substring(0, 2000);
-  let keywords: string[] = [];
-  try {
-    keywords = await extractKeywords(truncated);
-  } catch (e) {
-    keywords = [];
-  }
+  const truncated = text.substring(0, 2000).toLowerCase();
+  
+  // Extract words locally instead of using AI to save API quota
+  const words = truncated.match(/\b[a-z]{4,}\b/g) || [];
+  
+  // Simple stopword removal
+  const stopwords = new Set(["this", "that", "with", "from", "your", "have", "will", "they", "their", "what", "when", "where"]);
+  const keywords = words.filter(w => !stopwords.has(w));
 
   const vector = new Float32Array(200).fill(0);
   

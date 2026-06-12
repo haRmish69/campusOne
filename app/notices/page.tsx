@@ -34,16 +34,18 @@ export default async function NoticesPage() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="flex flex-col space-y-12">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight mb-4">Add Notice</h2>
-            <FileUpload />
+            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Notice</h2>
+            <div className="max-w-2xl">
+              <FileUpload />
+            </div>
           </div>
         </div>
         
-        <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold tracking-tight mb-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-8 text-[var(--color-midnight-navy)]">
             Recent Notices <span className="text-muted-foreground text-sm font-normal ml-2">({notices.length})</span>
           </h2>
           
@@ -53,7 +55,7 @@ export default async function NoticesPage() {
               <p className="text-sm text-muted-foreground mt-1">Upload your first notice to see it here.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {notices.map((notice) => (
                 <NoticeCard key={notice.id} notice={notice} />
               ))}

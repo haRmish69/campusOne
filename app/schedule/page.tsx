@@ -129,16 +129,18 @@ export default function SchedulePage() {
         </div>
       )}
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-1 space-y-6">
-          <div className="sticky top-6">
-            <h2 className="text-xl font-semibold tracking-tight mb-4">Add Classes</h2>
-            <FileUpload apiEndpoint="/api/schedule/ingest" />
+      <div className="flex flex-col space-y-12">
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Classes</h2>
+            <div className="max-w-2xl">
+              <FileUpload apiEndpoint="/api/schedule/ingest" onSuccess={fetchSchedule} />
+            </div>
           </div>
         </div>
         
-        <div className="lg:col-span-3">
-          <h2 className="text-xl font-semibold tracking-tight mb-6">Your Week</h2>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight mb-8 text-[var(--color-midnight-navy)]">Your Week</h2>
           
           {isLoading ? (
             <div className="text-center py-12">Loading schedule...</div>
@@ -155,7 +157,7 @@ export default function SchedulePage() {
                     <span className="w-2 h-2 rounded-full bg-primary/60"></span>
                     {group.day}
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[16px]">
                     {group.classes.map(c => (
                       <ClassCard key={c.id} classItem={c} onDelete={handleDelete} />
                     ))}

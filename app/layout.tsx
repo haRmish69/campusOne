@@ -4,7 +4,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Sidebar } from "@/components/Sidebar";
 import { VoiceFAB } from "@/components/VoiceFAB";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
@@ -35,14 +34,12 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <body className="h-full flex flex-col md:flex-row bg-background">
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <Sidebar />
             <main className="flex-1 overflow-y-auto relative pb-20 md:pb-0">
               {children}
             </main>
             <VoiceFAB />
             <Toaster />
-          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

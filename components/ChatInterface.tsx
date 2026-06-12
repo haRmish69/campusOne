@@ -116,7 +116,10 @@ export function ChatInterface() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to fetch response");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+        throw new Error(errorData.error || `Server error: ${res.status}`);
+      }
       if (!res.body) throw new Error("No body returned");
 
       const reader = res.body.getReader();
@@ -140,9 +143,11 @@ export function ChatInterface() {
       
       speak(fullResponse);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("An error occurred while fetching the response.");
+      toast.error("Chat Error", {
+        description: error.message || "An unexpected error occurred.",
+      });
       setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
     } finally {
       setIsLoading(false);
@@ -172,7 +177,7 @@ export function ChatInterface() {
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
+      <div className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-20">
             <Bot className="w-12 h-12 mb-4 opacity-20" />
@@ -184,7 +189,7 @@ export function ChatInterface() {
                   variant="outline" 
                   size="sm" 
                   onClick={() => sendMessage(undefined, q)}
-                  className="rounded-full px-4 text-xs h-8"
+                  className="rounded-[4px] px-6 py-4 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-slate-blue)] hover:text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-midnight-navy)] transition-colors shadow-sm"
                 >
                   {q}
                 </Button>
@@ -224,29 +229,33 @@ export function ChatInterface() {
           ))}
           <div ref={scrollRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="p-4 bg-card border-t">
-        <form onSubmit={sendMessage} className="flex gap-2">
+      <div className="p-6 bg-[var(--color-paper)] border-t border-[var(--color-mist-border)]">
+        <form onSubmit={sendMessage} className="flex gap-3">
           <Button 
             type="button" 
             variant={isListening ? "destructive" : "outline"}
             size="icon"
             onClick={handleVoice}
-            className={`shrink-0 ${isListening ? "animate-pulse" : ""}`}
+            className={`shrink-0 h-[60px] w-[60px] rounded-[4px] border-[var(--color-mist-border)] ${isListening ? "animate-pulse" : ""}`}
             title="Voice Input"
           >
-            <Mic className="w-4 h-4" />
+            <Mic className="w-5 h-5" />
           </Button>
           <Input 
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Ask a question..."
+            placeholder="Ask a question about your campus..."
             disabled={isLoading || isListening}
-            className="flex-1"
+            className="flex-1 h-[60px] px-6 text-[16px] rounded-[4px] border-[var(--color-mist-border)] shadow-[var(--shadow-sm)] focus-visible:ring-[var(--color-signal-blue)]"
           />
-          <Button type="submit" disabled={!input.trim() || isLoading || isListening}>
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          <Button 
+            type="submit" 
+            disabled={!input.trim() || isLoading || isListening}
+            className="h-[60px] px-8 rounded-[4px] bg-[var(--color-signal-blue)] hover:opacity-90 text-white shadow-[var(--shadow-sm-3)]"
+          >
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </Button>
         </form>
       </div>

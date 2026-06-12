@@ -62,19 +62,16 @@ export default async function DashboardPage() {
         </div>
         
         <Link href="/chat">
-          <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm h-11 px-6">
+          <Button className="gap-2 bg-[var(--color-signal-blue)] hover:opacity-90 text-white shadow-[var(--shadow-sm-3)] h-11 px-6 rounded-[4px]">
             <Sparkles className="w-4 h-4" />
             Ask CampusFlow
           </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="flex flex-col space-y-12">
         
-        {/* Left Column: Deadlines & Classes */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Today's Classes */}
+        {/* Today's Classes */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold tracking-tight flex items-center gap-2">
@@ -86,16 +83,16 @@ export default async function DashboardPage() {
             </div>
             
             {filteredClasses.length === 0 ? (
-              <div className="p-6 border border-dashed rounded-lg bg-muted/10 text-center">
-                <p className="text-muted-foreground">No classes scheduled for today! 🎉</p>
+              <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-fog)] text-center">
+                <p className="text-[var(--color-slate-blue)]">No classes scheduled for today! 🎉</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
                 {filteredClasses.map(c => (
-                  <div key={c.id} className="p-4 border rounded-lg bg-card shadow-sm flex flex-col gap-1 hover:border-primary/50 transition-colors">
-                    <span className="font-semibold text-lg">{c.subject}</span>
-                    <span className="text-sm text-muted-foreground">{c.startTime} - {c.endTime}</span>
-                    <span className="text-sm text-amber-500/80">{c.room}</span>
+                  <div key={c.id} className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-paper)] shadow-[var(--shadow-sm)] flex flex-col gap-1 hover:shadow-[var(--shadow-sm-2)] transition-shadow">
+                    <span className="font-semibold text-[18px] text-[var(--color-midnight-navy)]">{c.subject}</span>
+                    <span className="text-[14px] text-[var(--color-slate-blue)]">{c.startTime} - {c.endTime}</span>
+                    <span className="text-[14px] text-amber-600 font-medium">{c.room}</span>
                   </div>
                 ))}
               </div>
@@ -112,8 +109,8 @@ export default async function DashboardPage() {
             </div>
             
             {deadlines.length === 0 ? (
-              <div className="p-6 border border-dashed rounded-lg bg-muted/10 text-center">
-                <p className="text-muted-foreground">No upcoming deadlines. You're all caught up!</p>
+              <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-fog)] text-center">
+                <p className="text-[var(--color-slate-blue)]">No upcoming deadlines. You're all caught up!</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
@@ -127,11 +124,8 @@ export default async function DashboardPage() {
             )}
           </section>
           
-        </div>
-
         {/* Right Column: Notices */}
-        <div className="space-y-6">
-          <section>
+        <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold tracking-tight">Recent Notices</h2>
               <Link href="/notices" className="text-sm text-primary hover:underline flex items-center gap-1">
@@ -140,11 +134,11 @@ export default async function DashboardPage() {
             </div>
             
             {notices.length === 0 ? (
-              <div className="p-6 border border-dashed rounded-lg bg-muted/10 text-center">
-                <p className="text-muted-foreground">No recent notices.</p>
+              <div className="p-6 border border-[var(--color-mist-border)] rounded-[8px] bg-[var(--color-fog)] text-center">
+                <p className="text-[var(--color-slate-blue)]">No recent notices.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {notices.map((notice: any) => (
                   <NoticeCard 
                     key={notice.id} 
@@ -154,7 +148,6 @@ export default async function DashboardPage() {
               </div>
             )}
           </section>
-        </div>
 
       </div>
     </div>
