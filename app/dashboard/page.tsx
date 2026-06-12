@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 
+import { CampusPulse } from "@/components/CampusPulse";
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
@@ -15,7 +17,7 @@ export default async function DashboardPage() {
   const todayName = days[new Date().getDay()];
   const now = new Date();
 
-  const [notices, deadlines, todaysClasses] = await Promise.all([
+  const [notices, deadlines, todaysClasses, profile] = await Promise.all([
     prisma.notice.findMany({
       orderBy: { createdAt: "desc" },
       take: 3,
@@ -35,7 +37,8 @@ export default async function DashboardPage() {
         OR: [{ userId }, { userId: null }]
       },
       orderBy: { startTime: "asc" },
-    })
+    }),
+    userId ? prisma.userProfile.findUnique({ where: { userId } }) : Promise.resolve(null)
   ]);
 
   const filteredClasses = todaysClasses
@@ -69,7 +72,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {greeting()}, Student! 👋
+            {greeting()}, {profile?.name || "Student"}! 👋
           </h1>
           <p className="text-muted-foreground">
             Here is a quick overview of your campus life today.
@@ -85,6 +88,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-col space-y-12">
+        <CampusPulse />
         
         {/* Today's Classes */}
           <section>

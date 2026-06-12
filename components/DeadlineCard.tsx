@@ -5,6 +5,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarClock, FileText, BookOpen, PenTool, LayoutTemplate, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface DeadlineCardProps {
   deadline: Deadline;
@@ -47,7 +48,7 @@ export function DeadlineCard({ deadline, onToggleComplete, onDelete }: DeadlineC
 
   return (
     <Card className={`overflow-hidden border transition-all duration-200 group relative ${isComplete ? 'opacity-60 bg-muted/50 border-border/40' : 'bg-card border-border/60 hover:shadow-md'}`}>
-      <div className="flex p-4 gap-4 items-start pr-10">
+      <div className="flex p-6 gap-5 items-start pr-12">
         <div className="pt-1">
           <Checkbox 
             checked={isComplete} 
@@ -82,6 +83,17 @@ export function DeadlineCard({ deadline, onToggleComplete, onDelete }: DeadlineC
             <p className={`text-sm mt-3 pt-3 border-t line-clamp-2 ${isComplete ? 'text-muted-foreground/70' : 'text-muted-foreground'}`}>
               {deadline.notes}
             </p>
+          )}
+
+          {!isComplete && deadline.type === "exam" && diffDays <= 7 && (
+            <div className="mt-4 pt-3 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+              <Link href={`/peer-learning?topic=${encodeURIComponent(deadline.subject)}`}>
+                <Button variant="outline" size="sm" className="w-full text-blue-600 border-blue-200 hover:bg-blue-50">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Find Peer to Study
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

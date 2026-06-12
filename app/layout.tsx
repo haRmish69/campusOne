@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Sidebar } from "@/components/Sidebar";
 import { VoiceFAB } from "@/components/VoiceFAB";
 import { ClerkProvider } from "@clerk/nextjs";
+import OnboardingModal from "@/components/OnboardingModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
             </main>
             <VoiceFAB />
             <Toaster />
+            <OnboardingModal />
         </body>
       </html>
     </ClerkProvider>

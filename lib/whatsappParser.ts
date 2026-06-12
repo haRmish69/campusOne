@@ -22,7 +22,7 @@ export function parseWhatsAppExport(rawText: string): ParsedWhatsAppMessage[] {
   const regexIOS = /^\[(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}, \d{1,2}:\d{2}(?::\d{2})?(?:\s?[aApP][mM])?)\]\s*(.+?):\s*(.*)$/;
 
   for (const line of lines) {
-    let match = line.match(regexAndroid) || line.match(regexIOS);
+    const match = line.match(regexAndroid) || line.match(regexIOS);
     
     if (match) {
       // New message started, push the old one if it exists
@@ -95,7 +95,7 @@ function parseDateString(dateStr: string): Date | null {
     
     // Split date components
     const dateSeparator = datePart.includes('/') ? '/' : '-';
-    let parts = datePart.split(dateSeparator);
+    const parts = datePart.split(dateSeparator);
     if (parts.length !== 3) return new Date();
     
     let day, month, year;

@@ -152,7 +152,7 @@ export async function categorizeExpense(description: string, amount: number): Pr
   }
 }
 
-export async function answerQuestion(question: string, context: string, history: {role: string, content: string}[]): Promise<string> {
+export async function answerQuestion(question: string, context: string, history: {role: string, content: string}[], profileContext: string = ""): Promise<string> {
   const contents = history.map(h => ({
     role: h.role === "assistant" ? ("model" as const) : ("user" as const),
     parts: [{ text: h.content }]
@@ -162,17 +162,21 @@ export async function answerQuestion(question: string, context: string, history:
     parts: [{ text: `Context:\n${context}\n\nQuestion: ${question}` }]
   });
 
+  const baseInstruction = `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`;
+  
+  const systemInstruction = profileContext ? `${baseInstruction}\n\n${profileContext}` : baseInstruction;
+
   const response = await withRetry(() => ai.models.generateContent({
     model: MODEL,
     config: {
-      systemInstruction: `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`
+      systemInstruction
     },
     contents,
   }));
   return response.text ?? "";
 }
 
-export async function answerQuestionStream(question: string, context: string, history: {role: string, content: string}[]) {
+export async function answerQuestionStream(question: string, context: string, history: {role: string, content: string}[], profileContext: string = "") {
   const contents = history.map(h => ({
     role: h.role === "assistant" ? ("model" as const) : ("user" as const),
     parts: [{ text: h.content }]
@@ -182,10 +186,14 @@ export async function answerQuestionStream(question: string, context: string, hi
     parts: [{ text: `Context:\n${context}\n\nQuestion: ${question}` }]
   });
 
+  const baseInstruction = `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`;
+  
+  const systemInstruction = profileContext ? `${baseInstruction}\n\n${profileContext}` : baseInstruction;
+
   const response = await withRetry(() => ai.models.generateContentStream({
     model: MODEL,
     config: {
-      systemInstruction: `You are CampusFlow (including the PocketBuddy financial and wellness assistant), a helpful AI assistant for college students.\nToday is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.\nAnswer ONLY from the provided context, which may include class schedules, notices, deadlines, mess menus, expenses, and wellness logs.\nIf the user asks about today's schedule/menu and the context contains weekly data but nothing for today, simply tell them they have nothing scheduled for today (e.g., "You don't have any classes today"). If they ask about their spending or stress levels, use the retrieved expense and wellness context to answer intelligently. Otherwise, if the data is completely missing from the context, say exactly: 'I don't have that information in my campus data.'\nNever invent facts. Be warm, concise, and helpful. Format lists with bullet points.`
+      systemInstruction
     },
     contents,
   }));

@@ -17,7 +17,17 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    // 1. Save user message to DB
+    // 1. Fetch User Profile for Hyper-Personalized RAG
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId }
+    });
+
+    let profileContext = "";
+    if (profile && profile.profileComplete) {
+      profileContext = `You are a peer helping a fellow student. The user attends ${profile.instituteName || "college"}, studies ${profile.major || "their major"}, and graduates in ${profile.gradYear || "the future"}. When answering, filter RAG results mentally: prioritize rules or notices for ${profile.instituteName || "their college"}. Tailor academic advice for a ${profile.major || "student"} major.`;
+    }
+
+    // 2. Save user message to DB
     await prisma.chatMessage.create({
       data: {
         role: "user",
@@ -27,13 +37,13 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // 2. Embed question
+    // 3. Embed question
     const queryVector = await embedText(question);
 
-    // 3. Search Vector Store
+    // 4. Search Vector Store
     const results = await searchAcrossTables(queryVector, userId, 60);
 
-    // 4. Build context
+    // 5. Build context
     const contextParts = results.map(r => {
       let tag = "";
       if (r.type === "notice") tag = "[NOTICE]";
@@ -46,10 +56,10 @@ export async function POST(req: NextRequest) {
     
     const context = contextParts.join("\n\n");
 
-    // 5. Generate response
-    const fullResponse = await answerQuestion(question, context, history || []);
+    // 6. Generate response
+    const fullResponse = await answerQuestion(question, context, history || [], profileContext);
 
-    // 6. Save assistant message to DB
+    // 7. Save assistant message to DB
     await prisma.chatMessage.create({
       data: {
         role: "assistant",

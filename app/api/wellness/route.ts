@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { embedText } from "@/lib/embeddings";
 
+import { auth } from "@clerk/nextjs/server";
+
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const body = await req.json();
     const { mood, sleepHours, stressLevel, notes, date } = body;
 
@@ -16,6 +19,19 @@ export async function POST(req: NextRequest) {
       embedding = await embedText(`[WELLNESS] ${notes}`);
     }
 
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
+    }
+
     const logDate = date ? new Date(date) : new Date();
 
     const log = await prisma.wellnessLog.create({
@@ -26,6 +42,8 @@ export async function POST(req: NextRequest) {
         stressLevel: parseInt(stressLevel),
         notes: notes || null,
         embedding: embedding ? JSON.stringify(embedding) : undefined,
+        instituteName,
+        major,
       },
     });
 

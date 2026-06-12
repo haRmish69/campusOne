@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Validate category
     const validCategories = ["placement", "exam", "event", "hostel", "general"];
-    let category = validCategories.includes(parsed.category?.toLowerCase()) 
+    const category = validCategories.includes(parsed.category?.toLowerCase()) 
       ? parsed.category.toLowerCase() 
       : "general";
 

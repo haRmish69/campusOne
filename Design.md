@@ -1,239 +1,209 @@
-# Calendly.com — Style Reference
-> Quiet professional calendar on frosted paper
+# Cal.com — Style Reference
+> Monochrome Utility, Human Touch. A system that prioritizes clarity and function with a stark black-and-white palette, but softens it with friendly typography and rounded forms.
 
 **Theme:** light
 
-Calendly's design system is a quiet, professional canvas built on white surfaces and near-black text, with a signature dark navy (#0b3558) that gives headlines weight without resorting to pure black. A single vivid blue (#006bff) acts as the lone functional accent, reserved for CTAs and interactive moments, while the rest of the palette stays deliberately desaturated. The brand's most distinctive move is decorative gradient shapes—pink, violet, and warm yellow blobs—layered behind product UI mockups to add warmth and depth to an otherwise austere interface. Typography is a single custom family (Gilroy) at generous sizes with confident weights, and components are lightweight: 4px button radii, soft blue-gray shadows, and hairline borders that feel precise rather than playful.
+The design feels like a pragmatic, high-precision instrument. It's built on a strict and disciplined monochrome palette of black, white, and echelon grays, where color is intentionally excluded from the core UI to emphasize function. The custom font, 'Cal Sans', defines the visual identity with its geometric yet open letterforms, giving headlines a technical but approachable character. Nearly all interactive elements are either solid black or pill-shaped outlines, creating a binary system of action. Cards are the fundamental building block, using soft 8-12px radii and extremely subtle shadows to create a quiet, layered topology on a light gray background.
 
 ## Tokens — Colors
 
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Midnight Navy | `#0b3558` | `--color-midnight-navy` | Headlines, primary brand text, logo wordmark, dark headings — the signature voice of the brand |
-| Signal Blue | `#006bff` | `--color-signal-blue` | Violet supporting accent for decorative details and low-frequency emphasis. Do not promote it to the primary CTA color |
-| Slate Blue | `#476788` | `--color-slate-blue` | Secondary body text, muted descriptions, icon strokes, nav links in body context |
-| Carbon | `#0a0a0a` | `--color-carbon` | Primary body text, button text on light surfaces, high-emphasis copy |
-| Paper | `#ffffff` | `--color-paper` | Light supporting surface for subtle backgrounds and section separation. Do not promote it to the primary CTA color |
-| Mist | `#f8f9fb` | `--color-mist` | Page canvas background, footer surface, subtle section differentiation |
-| Fog | `#e7edf6` | `--color-fog` | Soft surface fills, badge backgrounds, subtle hover states, input fills |
-| Mist Border | `#d4e0ed` | `--color-mist-border` | Hairline dividers, card borders, input borders, subtle structural lines |
-| Silver | `#e6e6e6` | `--color-silver` | Secondary borders, icon containers, low-emphasis structural lines |
-| Steel Blue | `#a6bbd1` | `--color-steel-blue` | Muted helper text, placeholder text, tertiary icon strokes |
-| Info Blue | `#004eba` | `--color-info-blue` | Blue supporting accent for decorative details and low-frequency emphasis. Use as a supporting accent, not as a status color |
-| Magenta Bloom | `#e55cff` | `--color-magenta-bloom` | Decorative gradient shape behind product mockups, illustration accent — non-functional, atmospheric only |
-| Ultraviolet | `#8247f5` | `--color-ultraviolet` | Decorative gradient shape accent, illustration secondary tone — non-functional |
-| Amber Spark | `#ffa600` | `--color-amber-spark` | Decorative gradient accent in illustration compositions — non-functional |
-| Cyan Pop | `#0099ff` | `--color-cyan-pop` | Decorative gradient accent in product mockup backdrops — non-functional |
+| Ink | `#101010` | `--color-ink` | Primary CTAs, primary text, active states. Used as the strongest dark tone, providing maximum contrast and visual weight for key actions. |
+| Action Blue | `#0099ff` | `--color-action-blue` | Tertiary links, informational banner text. A rare, functional splash of color reserved for secondary calls to action and informational highlights. |
+| White | `#ffffff` | `--color-white` | Card backgrounds, text on dark buttons. |
+| Paper | `#f4f4f4` | `--color-paper` | Main page background. |
+| Graphite | `#242424` | `--color-graphite` | Headlines, primary body text. |
+| Slate | `#6b7280` | `--color-slate` | Secondary text, descriptive copy, disabled states. |
+| Stone | `#898989` | `--color-stone` | Placeholder text, decorative UI elements. |
+| Silver | `#e5e7eb` | `--color-silver` | Borders, dividers, subtle backgrounds. |
+| Info Banner BG | `#eff6fe` | `--color-info-banner-bg` | Background for the top-of-page informational banner. |
+| Google Blue | `#4285f4` | `--color-google-blue` | Integration logos only. |
+| Google Yellow | `#fbbc04` | `--color-google-yellow` | Integration logos only. |
+| Google Green | `#34a853` | `--color-google-green` | Integration logos only. |
+| Google Red | `#ea4335` | `--color-google-red` | Integration logos only. |
 
 ## Tokens — Typography
 
-### Gilroy — Single-family type system used for all text. Weights 600-700 for headlines create confident, geometric authority; 400-500 for body keeps reading comfortable. Gilroy's rounded geometric forms give the brand warmth without sacrificing professionalism. · `--font-gilroy`
-- **Substitute:** Manrope or DM Sans
-- **Weights:** 400, 500, 600, 700
-- **Sizes:** 12px, 14px, 16px, 18px, 20px, 24px, 28px, 38px, 50px, 68px, 80px
-- **Line height:** 1.00, 1.10, 1.20, 1.21, 1.40, 1.50, 1.60, 1.64, 1.71, 2.00
-- **Role:** Single-family type system used for all text. Weights 600-700 for headlines create confident, geometric authority; 400-500 for body keeps reading comfortable. Gilroy's rounded geometric forms give the brand warmth without sacrificing professionalism.
+### Cal Sans — Primary headline font. Its geometric forms and slightly wide stance give the brand a unique, technical-yet-friendly voice. Used exclusively for headings to establish hierarchy. · `--font-cal-sans`
+- **Substitute:** Poppins, Gilroy
+- **Weights:** 600
+- **Sizes:** 20px, 24px, 48px, 64px
+- **Line height:** 1.10 - 1.30
+- **Letter spacing:** +0.01em tracking adds airiness at display sizes.
+- **Role:** Primary headline font. Its geometric forms and slightly wide stance give the brand a unique, technical-yet-friendly voice. Used exclusively for headings to establish hierarchy.
+
+### Cal Sans UI Variable Light — Primary body and UI text font. The light weight and tight negative tracking create a clean, modern text block that is readable without being loud. · `--font-cal-sans-ui-variable-light`
+- **Substitute:** Inter Light
+- **Weights:** 300
+- **Sizes:** 14px, 16px, 18px
+- **Line height:** 1.40 - 1.50
+- **Letter spacing:** Tight negative tracking from -0.19px to -0.24px for a compact feel.
+- **Role:** Primary body and UI text font. The light weight and tight negative tracking create a clean, modern text block that is readable without being loud.
+
+### Inter — Secondary UI and body font. Used for smaller text, labels, and inside complex components like the calendar widget where utmost clarity is required. · `--font-inter`
+- **Substitute:** system-ui, -apple-system, sans-serif
+- **Weights:** 400, 500, 600
+- **Sizes:** 10px, 12px, 14px, 16px
+- **Line height:** 1.14 - 1.43
+- **Role:** Secondary UI and body font. Used for smaller text, labels, and inside complex components like the calendar widget where utmost clarity is required.
+
+### Matter — Tertiary UI text for captions and metadata where a highly legible, neutral choice is needed. · `--font-matter`
+- **Substitute:** Inter
+- **Weights:** 400
+- **Sizes:** 10px, 12px, 14px
+- **Line height:** 1.14 - 1.50
+- **Role:** Tertiary UI text for captions and metadata where a highly legible, neutral choice is needed.
 
 ### Type Scale
 
 | Role | Size | Line Height | Letter Spacing | Token |
 |------|------|-------------|----------------|-------|
-| micro | 12px | 1.5 | — | `--text-micro` |
-| caption | 14px | 1.5 | — | `--text-caption` |
-| body-sm | 16px | 1.6 | — | `--text-body-sm` |
-| body | 18px | 1.64 | — | `--text-body` |
-| body-lg | 20px | 1.6 | — | `--text-body-lg` |
-| subheading | 24px | 1.4 | — | `--text-subheading` |
-| heading-sm | 28px | 1.4 | — | `--text-heading-sm` |
-| heading | 38px | 1.21 | — | `--text-heading` |
-| heading-lg | 50px | 1.2 | — | `--text-heading-lg` |
-| display | 68px | 1.1 | — | `--text-display` |
+| caption | 12px | 1.4 | -0.24px | `--text-caption` |
+| body-sm | 14px | 1.5 | -0.2px | `--text-body-sm` |
+| body | 16px | 1.5 | -0.19px | `--text-body` |
+| subheading | 18px | 1.4 | -0.2px | `--text-subheading` |
+| heading-sm | 20px | 1.3 | 0.2px | `--text-heading-sm` |
+| heading | 24px | 1.3 | 0.24px | `--text-heading` |
+| heading-lg | 48px | 1.1 | 0.48px | `--text-heading-lg` |
+| display | 64px | 1.1 | 0.64px | `--text-display` |
 
 ## Tokens — Spacing & Shapes
 
-**Base unit:** 8px
-
-**Density:** comfortable
+**Density:** compact
 
 ### Spacing Scale
 
 | Name | Value | Token |
 |------|-------|-------|
+| 4 | 4px | `--spacing-4` |
+| 5 | 5px | `--spacing-5` |
+| 6 | 6px | `--spacing-6` |
 | 8 | 8px | `--spacing-8` |
+| 10 | 10px | `--spacing-10` |
+| 12 | 12px | `--spacing-12` |
 | 16 | 16px | `--spacing-16` |
+| 20 | 20px | `--spacing-20` |
 | 24 | 24px | `--spacing-24` |
+| 28 | 28px | `--spacing-28` |
 | 32 | 32px | `--spacing-32` |
 | 40 | 40px | `--spacing-40` |
 | 48 | 48px | `--spacing-48` |
-| 56 | 56px | `--spacing-56` |
-| 64 | 64px | `--spacing-64` |
-| 72 | 72px | `--spacing-72` |
-| 96 | 96px | `--spacing-96` |
+| 80 | 80px | `--spacing-80` |
 
 ### Border Radius
 
 | Element | Value |
 |---------|-------|
-| cards | 8px |
-| badges | 50px |
-| inputs | 4px |
-| buttons | 4px |
-| productMockups | 16px |
+| tags | 9999px |
+| cards | 12px |
+| inputs | 8px |
+| buttons | 9999px (pills), 8px (rectangular) |
 
 ### Shadows
 
 | Name | Value | Token |
 |------|-------|-------|
-| sm | `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 1...` | `--shadow-sm` |
-| sm-2 | `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 1...` | `--shadow-sm-2` |
-| sm-3 | `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 1...` | `--shadow-sm-3` |
+| sm | `rgba(36, 36, 36, 0.7) 0px 1px 5px -4px, rgba(36, 36, 36, ...` | `--shadow-sm` |
+| subtle | `rgba(255, 255, 255, 0.15) 0px 2px 0px 0px inset` | `--shadow-subtle` |
+| sm-2 | `rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, ...` | `--shadow-sm-2` |
+| sm-3 | `rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, ...` | `--shadow-sm-3` |
+| sm-4 | `rgba(34, 42, 53, 0.05) 0px 4px 8px 0px` | `--shadow-sm-4` |
+| subtle-2 | `rgb(255, 255, 255) 0px 2px 0px 0px inset` | `--shadow-subtle-2` |
+| subtle-3 | `rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0...` | `--shadow-subtle-3` |
 
 ### Layout
 
 - **Page max-width:** 1200px
-- **Section gap:** 80px
+- **Section gap:** 96px
 - **Card padding:** 24px
-- **Element gap:** 16px
 
 ## Components
 
 ### Primary CTA Button
-**Role:** Main conversion action
+**Role:** The main call-to-action on the page.
 
-Filled vivid blue (#006bff) background, white text in Gilroy 600 at 16px. 4px border-radius, padding 8px 24px. Subtle blue-tinted shadow (three-layer, very soft). Used for 'Get started', 'Sign up for free', and all primary conversion moments.
+A pill-shaped button. Background: Ink (#101010). Text: White (#ffffff). Font: Cal Sans UI at 14-16px. Radius: 9999px. Padding: ~12px 24px.
 
-### Ghost Nav Button
-**Role:** Secondary nav action (Login)
+### Secondary Ghost Button
+**Role:** A secondary call-to-action, often next to the primary.
 
-Transparent background with #0b3558 navy text at 14px Gilroy 500. No border. Sits inline with the primary CTA in the navigation bar. 4px radius for consistency.
+A pill-shaped outline button. Background: transparent or Paper (#f4f4f4). Text: Graphite (#242424). Border: 1px solid Silver (#e5e7eb). Radius: 9999px. Padding: ~12px 24px.
 
-### OAuth Provider Button
-**Role:** Third-party sign-in
+### Header CTA Button
+**Role:** The main call-to-action in the sticky header.
 
-White background, full-width or large, 4px radius. Contains a 24px brand-colored provider logo (Google/M/Microsoft) on the left and dark text label. Dark navy (#0b3558) text at 16px Gilroy 500. No shadow; 1px solid #d4e0ed border or no border depending on context.
+A rectangular button. Background: Ink (#101010). Text: White (#ffffff). Font: Cal Sans UI at 14px. Radius: 8px. Padding: ~8px 16px.
 
-### Product UI Card
-**Role:** Showcase of product interface
+### Tag Button
+**Role:** Small, non-critical buttons for categorizing or filtering content.
 
-White (#ffffff) surface representing a screenshot or mock of the Calendly product. 16px border-radius, generous blue-tinted shadow. Typically floats over a decorative gradient shape backdrop. The card itself is the visual hero—its content (calendar, booking form, event list) communicates the product.
+A small pill button. Background: Paper (#f4f4f4) or Silver (#e5e7eb). Text: Graphite (#242424). Radius: 9999px. Padding: ~4px 12px.
 
-### Decorative Gradient Shape
-**Role:** Atmospheric backdrop behind product cards
+### Scheduling Widget Card
+**Role:** The hero component showcasing the product's core functionality.
 
-Large, soft-edged organic blob shape using gradients of magenta (#e55cff), ultraviolet (#8247f5), amber (#ffa600), and cyan (#0099ff). Sits behind product UI cards at reduced opacity. No functional purpose—pure visual atmosphere. Edges are blurred or feathered, creating a watercolor effect.
+Background: White (#ffffff). Padding: 16px. Radius: 12px. Shadow: `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px`. Contains an interactive calendar UI.
 
-### Feature List Item
-**Role:** Feature highlight with icon and description
+### Navigation Link
+**Role:** Links in the main site header.
 
-Horizontal layout: colored icon (#006bff or #0b3558, 24px) on the left, bold title in Gilroy 600 at 18-20px in #0b3558, supporting description in Gilroy 400 at 14-16px in #476788. Stacked vertically with 24-32px row gap. Active item shows blue underline or accent bar.
-
-### Info Badge
-**Role:** Status or category indicator
-
-Pill-shaped (50px border-radius), small height (~24px), #004eba background or #e7edf6 soft blue background depending on prominence. White or #0b3558 text at 12px Gilroy 600. Padding 4px 12px. Used sparingly for tags and status labels.
-
-### Navigation Bar
-**Role:** Top-level site navigation
-
-White background, full-width, 64-72px height. Calendly logo (navy icon + wordmark) left-aligned, centered menu items (Product, Solutions, Resources, Pricing) with 14px Gilroy 500 in #0b3558, right-aligned actions (Login ghost + Get started filled CTA). Bottom hairline border in #e6e6e6.
-
-### Headline Block
-**Role:** Section heading
-
-Large display text in Gilroy 700 at 50-68px in #0b3558. Often left-aligned in hero sections, centered in feature sections. Line-height tight (1.1-1.2) for impact. The dark navy color—not pure black—is the signature choice that distinguishes Calendly from generic SaaS.
-
-### Social Proof Stat
-**Role:** Trust indicator with large number
-
-Centered layout, large number in Gilroy 700 at 38-50px in #0a0a0a or #0b3558, followed by supporting text at 16px in #476788. Used for 'Trusted by more than 100,000 organizations' type statements. High contrast, minimal decoration.
-
-### Tabbed Feature Section
-**Role:** Multi-feature showcase with tabbed navigation
-
-Two-column layout: left column holds a vertical list of feature titles (each with icon + bold title + muted description), right column holds a product UI card or illustration. Active tab shows blue accent. 80px section gap. White background.
+Text-only link. Color: Graphite (#242424). Font: Cal Sans UI at 14-16px. No underline.
 
 ## Do's and Don'ts
 
 ### Do
-- Use #0b3558 navy for all headlines—never pure black (#000000) for display text
-- Reserve #006bff exclusively for primary CTAs and active states; never use it for body text or decorations
-- Apply 4px border-radius to all buttons and inputs for a precise, professional feel
-- Layer product UI cards over soft gradient shapes (magenta, violet, amber, cyan) to add visual warmth
-- Use blue-tinted shadows (rgba(71, 103, 136, ...)) instead of neutral gray shadows to keep elevation on-brand
-- Set body text to Gilroy 400-500 at 16-18px with #0a0a0a for primary copy and #476788 for secondary
-- Maintain 80px section gaps between major content blocks; 24-32px between items within a section
+- Use 'Cal Sans' weight 600 exclusively for headings (size 20px and above).
+- Employ a strict monochrome palette (Ink, Graphite, Slate, Paper, White) for 99% of the UI.
+- Use pill-shaped buttons (9999px radius) for all primary and secondary page CTAs.
+- Apply a 12px border radius to all content cards and large containers.
+- Use subtle, diffuse shadows (`rgba(36, 36, 36, 0.05) 0px 4px 8px 0px`) for elevation.
+- Set body copy in 'Cal Sans UI Variable Light' with tight negative letter-spacing.
+- Reserve the single 'Action Blue' (#0099ff) for secondary links or informational highlights.
 
 ### Don't
-- Don't use pure black (#000000) for headlines—always use #0b3558 navy to maintain the brand voice
-- Don't apply gradients to text, buttons, or backgrounds—gradients are reserved for decorative shape backdrops only
-- Don't use border-radius above 16px on cards or above 4px on buttons—the system is geometric, not pillowy
-- Don't introduce additional accent colors; #006bff is the only functional chromatic color in the system
-- Don't use solid drop shadows with high opacity—shadows must be soft, multi-layered, and blue-tinted
-- Don't mix font families—Gilroy is used for all text from micro captions to 80px displays
-- Don't use the decorative gradient colors (#e55cff, #8247f5, #ffa600, #0099ff) for UI elements—they are atmospheric only
-
-## Surfaces
-
-| Level | Name | Value | Purpose |
-|-------|------|-------|---------|
-| 0 | Canvas | `#f8f9fb` | Page background, base layer |
-| 1 | Card | `#ffffff` | Standard surface for product UI mockups, content cards, navigation |
-| 2 | Soft Fill | `#e7edf6` | Muted surface for badges, secondary panels, subtle differentiation |
-| 3 | Action | `#006bff` | Primary interactive surface for CTAs and active states |
+- Do not introduce any new colors to the core UI; confine color to logos and the single blue accent.
+- Do not use sharp corners on buttons or cards.
+- Do not use font weights heavier than 600.
+- Do not use traditional outlined buttons; use either solid 'Ink' or 'ghost' pill buttons.
+- Do not use gradients on any buttons or card backgrounds.
+- Do not use borders on cards; use shadows for separation.
+- Do not set body text in 'Cal Sans'; it is for headlines only.
 
 ## Elevation
 
-- **Product UI Card:** `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.08) 0px 30px 50px 0px`
-- **Link Card / Embedded Content:** `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 4px 10px 0px, rgba(71, 103, 136, 0.05) 0px 10px 20px 0px`
-- **Primary Button:** `rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.06) 0px 15px 30px 0px`
+- **Feature Card, Scheduling Widget:** `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px`
+- **Hover/Focus Card:** `rgba(36, 36, 36, 0.7) 0px 1px 5px -4px, rgba(36, 36, 36, 0.05) 0px 4px 8px 0px`
 
 ## Imagery
 
-The visual language centers on product UI mockups—realistic representations of the Calendly interface (calendar grids, booking forms, event lists) rendered as white cards. These cards are the heroes of the page, always floating over decorative gradient shapes: soft, organic blobs in magenta, ultraviolet, amber, and cyan that bleed off edges and create watercolor-like backdrops. There is no photography of people, no lifestyle imagery, no abstract 3D renders. Icons are flat, single-color, 24px, in navy or blue. The overall effect is product-as-hero: the interface itself communicates the value, while gradient shapes provide visual energy without competing for attention.
+The visual language is entirely product-centric and informational. Imagery consists solely of clean, isolated product UI screenshots and the logos of integration partners. There is no lifestyle photography, illustration, or abstract graphics. This choice reinforces the brand's focus on its functional capabilities, letting the product itself be the hero. All visual elements are presented within contained cards, never full-bleed, maintaining the page's orderly, grid-based structure.
 
 ## Layout
 
-Max-width 1200px centered container with generous 80px section gaps. The page follows a consistent rhythm: hero is a 2-column split (text left at 50% width, product mockup right with gradient backdrop), followed by centered headline + subhead + CTA blocks, then alternating 2-column feature sections (text left/product right or text right/product left). The hero is not full-viewport but occupies the top 80% of the first screen. Navigation is a sticky top bar at 64-72px height. Social proof stats appear as centered text below the hero. Content density is spacious and editorial—each section breathes with white space rather than packing information. Cards in grids use 2-3 columns with 24-32px gaps.
+The site uses a centered layout within a max-width of 1200px, creating generous breathing room on either side. Sections are clearly demarcated by 96px of vertical space, establishing a calm, deliberate rhythm. The hero combines a large headline stack with a prominent product UI visual. Content below follows a predictable pattern of centered headlines followed by 3-column feature card grids or alternating text-and-visual blocks. This simple, highly structured approach emphasizes clarity and ease of navigation.
 
 ## Agent Prompt Guide
 
-**Quick Color Reference**
-- text: #0a0a0a
-- background: #f8f9fb
-- surface: #ffffff
-- border: #d4e0ed
-- accent: #0b3558
-- primary action: no distinct CTA color
+### Quick Color Reference
+- **Page Background:** `#f4f4f4` (Paper)
+- **Card Background:** `#ffffff` (White)
+- **Headline Text:** `#242424` (Graphite)
+- **Body Text:** `#242424` (Graphite)
+- **Primary CTA:** `#101010` (Ink) background, `#ffffff` (White) text
+- **Borders/Dividers:** `#e5e7eb` (Silver)
 
-**3-5 Example Component Prompts**
-
-1. **Hero Headline Block**: Render a 68px Gilroy 700 headline in #0b3558 with 1.1 line-height, left-aligned, max-width 600px. Below it, an 18px Gilroy 400 subtext in #476788. To the right, a product UI card (white #ffffff, 16px radius, blue-tinted shadow) floating over a magenta-to-violet gradient blob.
-
-No distinct primary action color was observed; use the extracted neutral button treatments instead of inventing a filled CTA color.
-
-3. **OAuth Provider Button**: Create a full-width white button, 4px radius, 1px solid #d4e0ed border, padding 12px 24px. Left-aligned 24px Google logo, 16px Gilroy 500 text in #0b3558 reading 'Sign up with Google'.
-
-4. **Feature List Item**: Build a vertical list item with a 24px #006bff icon on the left, 20px Gilroy 600 title in #0b3558, and 14px Gilroy 400 description in #476788 below. 24px row gap between items. Active item has a 2px blue left border.
-
-5. **Info Badge**: Render a pill-shaped badge (50px border-radius) with #004eba background, white text in Gilroy 600 at 12px, padding 4px 12px, height ~24px.
-
-## Signature Choices
-
-Three choices define this system and should not be altered:
-
-1. **Navy headlines over black**: Every site uses black for headlines. Calendly uses #0b3558—a deep, slightly desaturated navy. This is the first thing a designer would notice and the hardest to replicate by accident. Never substitute #000000 for display text.
-
-2. **Decorative gradient backdrops**: The magenta/violet/amber/cyan blobs behind product cards are not decoration afterthoughts—they are the brand's visual signature. They appear behind every major product visualization on the site. An AI agent should generate them as soft-edged organic shapes with feathered or blurred edges, not as hard geometric forms.
-
-3. **Blue-tinted shadows**: The shadow color rgba(71, 103, 136, ...) is not neutral gray. This subtle blue cast makes elevation feel part of the brand rather than generic. Use it consistently for all elevated surfaces—cards, buttons, modals.
+### Example Component Prompts
+1.  **Hero Section:** "Create a hero section with a `#f4f4f4` background. On the left, add a headline 'The better way to schedule' using 'Cal Sans' at 64px, weight 600, color `#242424`, and line-height 1.1. Below it, add body text using 'Cal Sans UI' at 18px, color `#6b7280'. On the right, place a large card with a white background, 12px radius, and a subtle shadow `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px` to represent a scheduling widget."
+2.  **Primary CTA Button:** "Create a button with the text 'Get started'. Make it pill-shaped with a `9999px` radius. Use a `#101010` background color and `#ffffff` text color. The font should be 'Cal Sans UI' at 16px. Use padding of 12px top/bottom and 24px left/right."
+3.  **Feature Card:** "Create a feature card with a `#ffffff` background, `24px` padding, a `12px` border radius, and a `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px` box shadow. Inside, add a small numbered tag, a heading 'Connect your calendar' in 'Cal Sans' at 20px, and body text 'We'll handle all the cross-referencing' in 'Cal Sans UI' at 16px."
 
 ## Similar Brands
 
-- **Notion** — Same clean light canvas with white surfaces, generous spacing, and minimal accent color usage; both favor single-font type systems and lightweight component weights
-- **Typeform** — Similar use of colorful gradient shapes behind product mockups; both use white product UI as the visual hero with atmospheric color backdrops
-- **Linear** — Shared precision in spacing, restrained palette, and confident type weights; both favor 4-8px radii and hairline borders over decorative shadows
-- **Doodle** — Direct scheduling-tool competitor with comparable light-mode layout, centered headline blocks, and product-screenshot hero patterns
-- **Intercom** — Similar editorial layout rhythm with alternating text/product sections, generous white space, and blue accent for CTAs
+- **Calendly** — Direct competitor with a similar clean, utility-focused scheduling UI, but uses more color.
+- **Linear** — Shares the disciplined monochrome palette, precision typography, and subtle shadows.
+- **Vercel** — Similar use of a geometric sans-serif for headlines (Geist) against a stark black-and-white UI.
+- **Pitch** — Employs a custom slab-serif for identity and relies on a clean, card-based layout with a primarily B&W palette.
 
 ## Quick Start
 
@@ -242,97 +212,104 @@ Three choices define this system and should not be altered:
 ```css
 :root {
   /* Colors */
-  --color-midnight-navy: #0b3558;
-  --color-signal-blue: #006bff;
-  --color-slate-blue: #476788;
-  --color-carbon: #0a0a0a;
-  --color-paper: #ffffff;
-  --color-mist: #f8f9fb;
-  --color-fog: #e7edf6;
-  --color-mist-border: #d4e0ed;
-  --color-silver: #e6e6e6;
-  --color-steel-blue: #a6bbd1;
-  --color-info-blue: #004eba;
-  --color-magenta-bloom: #e55cff;
-  --color-ultraviolet: #8247f5;
-  --color-amber-spark: #ffa600;
-  --color-cyan-pop: #0099ff;
+  --color-ink: #101010;
+  --color-action-blue: #0099ff;
+  --color-white: #ffffff;
+  --color-paper: #f4f4f4;
+  --color-graphite: #242424;
+  --color-slate: #6b7280;
+  --color-stone: #898989;
+  --color-silver: #e5e7eb;
+  --color-info-banner-bg: #eff6fe;
+  --color-google-blue: #4285f4;
+  --color-google-yellow: #fbbc04;
+  --color-google-green: #34a853;
+  --color-google-red: #ea4335;
 
   /* Typography — Font Families */
-  --font-gilroy: 'Gilroy', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-cal-sans: 'Cal Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-cal-sans-ui-variable-light: 'Cal Sans UI Variable Light', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-matter: 'Matter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Typography — Scale */
-  --text-micro: 12px;
-  --leading-micro: 1.5;
-  --text-caption: 14px;
-  --leading-caption: 1.5;
-  --text-body-sm: 16px;
-  --leading-body-sm: 1.6;
-  --text-body: 18px;
-  --leading-body: 1.64;
-  --text-body-lg: 20px;
-  --leading-body-lg: 1.6;
-  --text-subheading: 24px;
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.24px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.2px;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --tracking-body: -0.19px;
+  --text-subheading: 18px;
   --leading-subheading: 1.4;
-  --text-heading-sm: 28px;
-  --leading-heading-sm: 1.4;
-  --text-heading: 38px;
-  --leading-heading: 1.21;
-  --text-heading-lg: 50px;
-  --leading-heading-lg: 1.2;
-  --text-display: 68px;
+  --tracking-subheading: -0.2px;
+  --text-heading-sm: 20px;
+  --leading-heading-sm: 1.3;
+  --tracking-heading-sm: 0.2px;
+  --text-heading: 24px;
+  --leading-heading: 1.3;
+  --tracking-heading: 0.24px;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 1.1;
+  --tracking-heading-lg: 0.48px;
+  --text-display: 64px;
   --leading-display: 1.1;
+  --tracking-display: 0.64px;
 
   /* Typography — Weights */
+  --font-weight-light: 300;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
-  --font-weight-bold: 700;
 
   /* Spacing */
-  --spacing-unit: 8px;
+  --spacing-4: 4px;
+  --spacing-5: 5px;
+  --spacing-6: 6px;
   --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
   --spacing-16: 16px;
+  --spacing-20: 20px;
   --spacing-24: 24px;
+  --spacing-28: 28px;
   --spacing-32: 32px;
   --spacing-40: 40px;
   --spacing-48: 48px;
-  --spacing-56: 56px;
-  --spacing-64: 64px;
-  --spacing-72: 72px;
-  --spacing-96: 96px;
+  --spacing-80: 80px;
 
   /* Layout */
   --page-max-width: 1200px;
-  --section-gap: 80px;
+  --section-gap: 96px;
   --card-padding: 24px;
-  --element-gap: 16px;
 
   /* Border Radius */
   --radius-md: 4px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
-  --radius-3xl: 24px;
-  --radius-full: 50px;
+  --radius-3xl: 29px;
+  --radius-full: 100px;
+  --radius-full-2: 120px;
+  --radius-full-3: 1000px;
+  --radius-full-4: 9999px;
 
   /* Named Radii */
-  --radius-cards: 8px;
-  --radius-badges: 50px;
-  --radius-inputs: 4px;
-  --radius-buttons: 4px;
-  --radius-productmockups: 16px;
+  --radius-tags: 9999px;
+  --radius-cards: 12px;
+  --radius-inputs: 8px;
+  --radius-buttons: 9999px (pills), 8px (rectangular);
 
   /* Shadows */
-  --shadow-sm: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 4px 10px 0px, rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
-  --shadow-sm-2: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.08) 0px 30px 50px 0px;
-  --shadow-sm-3: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
-
-  /* Surfaces */
-  --surface-canvas: #f8f9fb;
-  --surface-card: #ffffff;
-  --surface-soft-fill: #e7edf6;
-  --surface-action: #006bff;
+  --shadow-sm: rgba(36, 36, 36, 0.7) 0px 1px 5px -4px, rgba(36, 36, 36, 0.05) 0px 4px 8px 0px;
+  --shadow-subtle: rgba(255, 255, 255, 0.15) 0px 2px 0px 0px inset;
+  --shadow-sm-2: rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, 0.1) 0px 0px 0px 1px, rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-sm-3: rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, 0.08) 0px 0px 0px 1px, rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-sm-4: rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-subtle-2: rgb(255, 255, 255) 0px 2px 0px 0px inset;
+  --shadow-subtle-3: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 0px 2px 0px;
 }
 ```
 
@@ -341,70 +318,86 @@ Three choices define this system and should not be altered:
 ```css
 @theme {
   /* Colors */
-  --color-midnight-navy: #0b3558;
-  --color-signal-blue: #006bff;
-  --color-slate-blue: #476788;
-  --color-carbon: #0a0a0a;
-  --color-paper: #ffffff;
-  --color-mist: #f8f9fb;
-  --color-fog: #e7edf6;
-  --color-mist-border: #d4e0ed;
-  --color-silver: #e6e6e6;
-  --color-steel-blue: #a6bbd1;
-  --color-info-blue: #004eba;
-  --color-magenta-bloom: #e55cff;
-  --color-ultraviolet: #8247f5;
-  --color-amber-spark: #ffa600;
-  --color-cyan-pop: #0099ff;
+  --color-ink: #101010;
+  --color-action-blue: #0099ff;
+  --color-white: #ffffff;
+  --color-paper: #f4f4f4;
+  --color-graphite: #242424;
+  --color-slate: #6b7280;
+  --color-stone: #898989;
+  --color-silver: #e5e7eb;
+  --color-info-banner-bg: #eff6fe;
+  --color-google-blue: #4285f4;
+  --color-google-yellow: #fbbc04;
+  --color-google-green: #34a853;
+  --color-google-red: #ea4335;
 
   /* Typography */
-  --font-gilroy: 'Gilroy', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-cal-sans: 'Cal Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-cal-sans-ui-variable-light: 'Cal Sans UI Variable Light', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-matter: 'Matter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Typography — Scale */
-  --text-micro: 12px;
-  --leading-micro: 1.5;
-  --text-caption: 14px;
-  --leading-caption: 1.5;
-  --text-body-sm: 16px;
-  --leading-body-sm: 1.6;
-  --text-body: 18px;
-  --leading-body: 1.64;
-  --text-body-lg: 20px;
-  --leading-body-lg: 1.6;
-  --text-subheading: 24px;
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.24px;
+  --text-body-sm: 14px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.2px;
+  --text-body: 16px;
+  --leading-body: 1.5;
+  --tracking-body: -0.19px;
+  --text-subheading: 18px;
   --leading-subheading: 1.4;
-  --text-heading-sm: 28px;
-  --leading-heading-sm: 1.4;
-  --text-heading: 38px;
-  --leading-heading: 1.21;
-  --text-heading-lg: 50px;
-  --leading-heading-lg: 1.2;
-  --text-display: 68px;
+  --tracking-subheading: -0.2px;
+  --text-heading-sm: 20px;
+  --leading-heading-sm: 1.3;
+  --tracking-heading-sm: 0.2px;
+  --text-heading: 24px;
+  --leading-heading: 1.3;
+  --tracking-heading: 0.24px;
+  --text-heading-lg: 48px;
+  --leading-heading-lg: 1.1;
+  --tracking-heading-lg: 0.48px;
+  --text-display: 64px;
   --leading-display: 1.1;
+  --tracking-display: 0.64px;
 
   /* Spacing */
+  --spacing-4: 4px;
+  --spacing-5: 5px;
+  --spacing-6: 6px;
   --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
   --spacing-16: 16px;
+  --spacing-20: 20px;
   --spacing-24: 24px;
+  --spacing-28: 28px;
   --spacing-32: 32px;
   --spacing-40: 40px;
   --spacing-48: 48px;
-  --spacing-56: 56px;
-  --spacing-64: 64px;
-  --spacing-72: 72px;
-  --spacing-96: 96px;
+  --spacing-80: 80px;
 
   /* Border Radius */
   --radius-md: 4px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
-  --radius-3xl: 24px;
-  --radius-full: 50px;
+  --radius-3xl: 29px;
+  --radius-full: 100px;
+  --radius-full-2: 120px;
+  --radius-full-3: 1000px;
+  --radius-full-4: 9999px;
 
   /* Shadows */
-  --shadow-sm: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 4px 10px 0px, rgba(71, 103, 136, 0.05) 0px 10px 20px 0px;
-  --shadow-sm-2: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.08) 0px 30px 50px 0px;
-  --shadow-sm-3: rgba(71, 103, 136, 0.04) 0px 4px 5px 0px, rgba(71, 103, 136, 0.03) 0px 8px 15px 0px, rgba(71, 103, 136, 0.06) 0px 15px 30px 0px;
+  --shadow-sm: rgba(36, 36, 36, 0.7) 0px 1px 5px -4px, rgba(36, 36, 36, 0.05) 0px 4px 8px 0px;
+  --shadow-subtle: rgba(255, 255, 255, 0.15) 0px 2px 0px 0px inset;
+  --shadow-sm-2: rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, 0.1) 0px 0px 0px 1px, rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-sm-3: rgba(19, 19, 22, 0.7) 0px 1px 5px -4px, rgba(34, 42, 53, 0.08) 0px 0px 0px 1px, rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-sm-4: rgba(34, 42, 53, 0.05) 0px 4px 8px 0px;
+  --shadow-subtle-2: rgb(255, 255, 255) 0px 2px 0px 0px inset;
+  --shadow-subtle-3: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 0px 2px 0px;
 }
 ```

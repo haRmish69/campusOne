@@ -3,6 +3,8 @@ import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 
+import { auth } from "@clerk/nextjs/server";
+
 const PROMPT = `Extract ALL meals for ALL days from the mess menu. Return ONLY a JSON ARRAY of objects.
 Each object must have these fields:
 - day (string): The full day name (e.g., "Monday", "Tuesday", "Wednesday").
@@ -14,6 +16,7 @@ Return ONLY the JSON array, no markdown or extra text.`;
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const { type, data } = await req.json();
 
     if (!type || !data) {
@@ -35,6 +38,19 @@ export async function POST(req: NextRequest) {
     // Wrap in array if single object returned
     const menus = Array.isArray(extractedData) ? extractedData : [extractedData];
 
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
+    }
+
     // Wipe old mess menus to avoid duplication
     await prisma.messMenu.deleteMany();
 
@@ -53,6 +69,8 @@ export async function POST(req: NextRequest) {
           items: items || "Unknown",
           isVeg: typeof isVeg === "boolean" ? isVeg : true,
           embedding,
+          instituteName,
+          major,
         }
       });
       createdMenus.push({ ...menu, embedding: undefined });

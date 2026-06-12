@@ -17,30 +17,36 @@ model Notice {
   actionRequired String?
   source         String?
   embedding      Json
+  instituteName  String?
+  major          String?
   createdAt      DateTime  @default(now())
 }
 
 model MessMenu {
-  id        String   @id @default(cuid())
-  day       String // "Monday" | "Tuesday" | ... | "Sunday"
-  meal      String // "breakfast" | "lunch" | "dinner"
-  items     String   @db.Text // comma-separated list of dishes
-  isVeg     Boolean  @default(true)
-  embedding Json
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  day           String // "Monday" | "Tuesday" | ... | "Sunday"
+  meal          String // "breakfast" | "lunch" | "dinner"
+  items         String   @db.Text // comma-separated list of dishes
+  isVeg         Boolean  @default(true)
+  embedding     Json
+  instituteName String?
+  major         String?
+  createdAt     DateTime @default(now())
 }
 
 model Deadline {
-  id         String   @id @default(cuid())
-  title      String
-  subject    String
-  dueDate    DateTime
-  userId     String?
-  type       String // "exam" | "assignment" | "project" | "other"
-  isComplete Boolean  @default(false)
-  notes      String?
-  embedding  Json
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  title         String
+  subject       String
+  dueDate       DateTime
+  userId        String?
+  type          String // "exam" | "assignment" | "project" | "other"
+  isComplete    Boolean  @default(false)
+  notes         String?
+  embedding     Json
+  instituteName String?
+  major         String?
+  createdAt     DateTime @default(now())
 }
 
 model ChatMessage {
@@ -53,16 +59,18 @@ model ChatMessage {
 }
 
 model ClassSchedule {
-  id        String   @id @default(cuid())
-  day       String // "Monday" | "Tuesday" | ... | "Sunday"
-  subject   String
-  userId    String?
-  startTime String // 24hr format "HH:MM" e.g. "09:00"
-  endTime   String // 24hr format "HH:MM" e.g. "10:00"
-  room      String?
-  faculty   String?
-  embedding Json
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  day           String // "Monday" | "Tuesday" | ... | "Sunday"
+  subject       String
+  userId        String?
+  startTime     String // 24hr format "HH:MM" e.g. "09:00"
+  endTime       String // 24hr format "HH:MM" e.g. "10:00"
+  room          String?
+  faculty       String?
+  embedding     Json
+  instituteName String?
+  major         String?
+  createdAt     DateTime @default(now())
 }
 
 model StudyPlan {
@@ -95,14 +103,36 @@ model Budget {
 }
 
 model WellnessLog {
-  id          String   @id @default(cuid())
-  date        DateTime @default(now())
-  mood        Int
-  sleepHours  Float?
-  stressLevel Int
-  notes       String?  @db.Text
-  embedding   Json?
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  date          DateTime @default(now())
+  mood          Int
+  sleepHours    Float?
+  stressLevel   Int
+  notes         String?  @db.Text
+  embedding     Json?
+  instituteName String?
+  major         String?
+  createdAt     DateTime @default(now())
+}
+
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  name            String?
+  instituteName   String?
+  major           String?
+  gradYear        Int?
+  gender          String?
+  profileComplete Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Phase 11 fields
+  branch          String?
+  year            Int?
+  whatsappNumber  String?
+  contactOptIn    Boolean  @default(false)
+  onboardingDone  Boolean  @default(false)
 }
 
 model WellnessInsight {
@@ -110,5 +140,55 @@ model WellnessInsight {
   date        DateTime @default(now())
   score       Int
   message     String   @db.Text
+  createdAt   DateTime @default(now())
+}
+
+model ExpertiseSeed {
+  id          String   @id @default(cuid())
+  profileId   String
+  topic       String
+  source      String
+  confidence  Int      @default(1)
+  embedding   Json
+  createdAt   DateTime @default(now())
+
+  @@unique([profileId, topic, source])
+}
+
+model LearningRequest {
+  id          String   @id @default(cuid())
+  requesterId String
+  topic       String
+  description String?  @db.Text
+  isAnonymous Boolean  @default(true)
+  status      String   @default("open")
+  embedding   Json
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+}
+
+model LearningMatch {
+  id                String    @id @default(cuid())
+  requestId         String
+  requesterId       String
+  helperId          String
+  status            String    @default("pending")
+  requesterAccepted Boolean   @default(true)
+  helperAccepted    Boolean   @default(false)
+  requesterSeen     Boolean   @default(false)
+  helperSeen        Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  respondedAt       DateTime?
+
+  @@unique([requestId, helperId])
+}
+
+model PeerNotification {
+  id          String   @id @default(cuid())
+  profileId   String
+  type        String
+  referenceId String
+  message     String
+  isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
 }

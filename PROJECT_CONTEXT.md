@@ -37,12 +37,39 @@ Expense, Budget, WellnessLog, WellnessInsight
 - [x] Phase 8B: SOS / Overwhelmed Mode (Task Reprioritization & Breathing Animation)
 - [x] Phase 9B: Smart Savings Engine (Budget Contextual AI)
 
+## Module 3: Hyper-Personalized Peer Network
+### Goal
+Transition the app from a single-player tool to an institute-aware, hyper-personalized peer platform. Capture full academic profiles to supercharge the AI context and enable crowdsourced analytics and study group matchmaking.
+
+### Phases
+- [x] PRE-PHASE 10: Auth & Identity Check (Blocker Gate)
+- [x] Phase 10: `UserProfile` Schema Update + Onboarding Modal
+- [x] Phase 11: Hyper-Contextual RAG (injecting profile into AI memory)
+- [x] Phase 12: The Campus Pulse (Crowdsourced Sentiment Aggregation)
+- [x] Phase 13: Study Group Matchmaker (Weighted by profile similarity)
+- [x] Phase 14: Demo Seed Data Generator (Env-gated)
+- [x] Phase 14B: QA Tester Checkpoint
+
+## Module 4: Peer Learning Ecosystem
+### Goal
+Build the full Peer Learning Ecosystem with passive expertise inference, smart matching, request/accept state machine, and contact reveal. Elevate "Find Study Peers" to a marquee feature.
+
+### Phases
+- [ ] Phase 11: Peer Learning Ecosystem (Schema, Inference Engine, Matcher, API, UI)
+
+## Module 3 — Identity Decision
+The current identity mechanism is **Clerk Authentication**. 
+The application actively uses `auth()` from `@clerk/nextjs` to retrieve `userId`.
+Therefore, the new model must be named `UserProfile`, and it must use `userId` (String) as the unique reference field to link to Clerk's identity system. All subsequent phases must use this `userId` to query the `UserProfile`.
+
 ## Architecture Decisions Log
 - [2026-06-12] Adopted Calendly-inspired light theme (`DESIGN.md`) instead of default dark theme.
 - [2026-06-12] Storing embeddings as JSON arrays in MySQL for in-memory cosine similarity to optimize for 35-hour hackathon speed.
 - [2026-06-12] Downgraded Prisma to v5.x to support `url = env("DATABASE_URL")` natively in `schema.prisma`.
 - [2026-06-13] Added WhatsApp Importer parsing logic. Decided to fallback to MM/DD/YYYY only if first part is clearly > 12, otherwise default to non-US DD/MM/YYYY for dates to handle varied WhatsApp export formats. Deduplication is handled via exact title match.
 - [2026-06-13] Added PocketBuddy Module navigation with a subtle uppercase divider in the Sidebar to cleanly separate core campus features from personal financial/wellness tools without cluttering the UI.
+- [2026-06-13] Completed Module 3: Hyper-Personalized Peer Network integration. Fixed LLM ingestion runtime bugs for Deadlines (date fallback logic and case-insensitive enum parsing). 
+- [2026-06-13] Reverted "Modern Web Design" CSS overrides to preserve the intended Calendly-inspired light theme while keeping the newly integrated features (`CampusPulse`, `StudyGroupMatcher`, `OnboardingModal`).
 
 ## Completed Phases
 - [x] Phase 0: Context File Setup

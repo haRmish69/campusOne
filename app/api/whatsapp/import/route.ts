@@ -4,6 +4,8 @@ import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 
+import { auth } from "@clerk/nextjs/server";
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const MODEL = "gemini-2.5-flash-lite"; // same experimental model we switched to
 
@@ -38,6 +40,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const { fileContent } = await req.json();
     if (!fileContent) {
       return NextResponse.json({ error: "No file content provided" }, { status: 400 });
@@ -46,6 +49,19 @@ export async function POST(req: NextRequest) {
     const messages = parseWhatsAppExport(fileContent);
     if (messages.length === 0) {
       return NextResponse.json({ error: "No valid messages found in the export" }, { status: 400 });
+    }
+
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
     }
 
     const BATCH_SIZE = 20;
@@ -113,6 +129,8 @@ Messages to analyze:
                   actionRequired: noticeData.actionRequired || null,
                   source: "whatsapp",
                   embedding,
+                  instituteName,
+                  major,
                   createdAt: noticeData.originalTimestamp ? new Date(noticeData.originalTimestamp) : new Date()
                 }
               });

@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
       where: { userId }
     });
 
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
+    }
+
     const createdSchedules = [];
 
     for (const cls of classes) {
@@ -66,6 +79,8 @@ export async function POST(req: NextRequest) {
           room: room || null,
           userId,
           embedding,
+          instituteName,
+          major,
         }
       });
       createdSchedules.push({ ...schedule, embedding: undefined });

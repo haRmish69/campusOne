@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { SOSButton } from "@/components/SOSButton";
+import { NotificationBell } from "@/components/peer/NotificationBell";
+import { Users } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -18,6 +20,7 @@ export function Sidebar() {
     { href: "/mess", label: "Mess Menu", icon: Utensils },
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
+    { href: "/peer-learning", label: "Study Peers", icon: Users },
   ];
 
   const pocketBuddyLinks = [
@@ -30,13 +33,14 @@ export function Sidebar() {
 
   return (
     <aside className="fixed bottom-0 left-0 w-full z-50 md:relative md:w-[240px] md:min-w-[240px] bg-card border-t md:border-t-0 md:border-r border-border/60 flex flex-col shrink-0 md:h-full md:flex">
-      <div className="p-6 border-b border-border/40 hidden md:block">
-        <div className="flex items-center justify-between mb-1">
+      <div className="p-6 border-b border-border/40 hidden md:flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-bold tracking-tighter text-midnight-navy">
             CampusFlow
           </h1>
+          <p className="text-xs text-muted-foreground mt-1">AI Student Assistant</p>
         </div>
-        <p className="text-xs text-muted-foreground">AI Student Assistant</p>
+        <NotificationBell />
       </div>
       
       <nav className="flex-1 p-2 md:p-4 flex flex-row md:flex-col gap-1 md:gap-2 justify-around md:justify-start overflow-x-auto md:overflow-y-auto w-full items-center md:items-stretch">
@@ -96,7 +100,17 @@ export function Sidebar() {
         
         {/* Mobile Auth Button */}
         <div className="md:hidden flex items-center justify-center px-3 py-2.5 shrink-0">
-          {isLoaded && isSignedIn && <UserButton showName />}
+          {isLoaded && isSignedIn && (
+            <UserButton showName>
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Profile"
+                  labelIcon={<User className="w-4 h-4" />}
+                  href="/profile"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
+          )}
           {isLoaded && !isSignedIn && (
             <SignInButton mode="modal">
               <Button variant="outline" size="sm" className="h-8">Log In</Button>
@@ -108,7 +122,15 @@ export function Sidebar() {
       <div className="p-4 border-t border-border/40 hidden md:flex items-center justify-between">
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           {isLoaded && isSignedIn && (
-            <UserButton showName />
+            <UserButton showName>
+              <UserButton.MenuItems>
+                <UserButton.Link
+                  label="Profile"
+                  labelIcon={<User className="w-4 h-4" />}
+                  href="/profile"
+                />
+              </UserButton.MenuItems>
+            </UserButton>
           )}
           {isLoaded && !isSignedIn && (
             <SignInButton mode="modal">

@@ -4,6 +4,8 @@ import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 
+import { auth } from "@clerk/nextjs/server";
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const MODEL = "gemini-2.5-flash-lite";
 
@@ -38,6 +40,7 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const label = process.env.GMAIL_LABEL || "CampusFlow";
     let emails = [];
     
@@ -52,6 +55,19 @@ export async function POST(req: NextRequest) {
 
     if (emails.length === 0) {
       return NextResponse.json({ message: "No new emails found", imported: 0 });
+    }
+
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
     }
 
     // Keyword filtering locally before hitting AI
@@ -117,6 +133,8 @@ Email Subject: `;
                   actionRequired: noticeData.actionRequired || null,
                   source: "email",
                   embedding,
+                  instituteName,
+                  major,
                   createdAt: email.date
                 }
               });

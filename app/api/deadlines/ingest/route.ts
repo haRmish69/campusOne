@@ -3,6 +3,8 @@ import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 
+import { auth } from "@clerk/nextjs/server";
+
 const PROMPT = `Extract the following fields for a deadline/assignment from the text. Return ONLY a JSON object.
 Fields to extract:
 - title (string): Short descriptive title
@@ -15,6 +17,7 @@ If you cannot determine the due date, return null for dueDate.`;
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const { type, data } = await req.json();
 
     if (!type || !data) {
@@ -37,27 +40,47 @@ export async function POST(req: NextRequest) {
     
     // Parse dueDate string to Date object
     let parsedDate = new Date();
+    parsedDate.setDate(parsedDate.getDate() + 7); // Default to 7 days from now
+
     if (dueDate) {
-      const d = new Date(dueDate);
+      const d = new Date(dueDate as string);
       if (!isNaN(d.getTime())) {
         parsedDate = d;
       }
-    } else {
-       // fallback to 7 days from now if absolutely unable to parse
-       parsedDate.setDate(parsedDate.getDate() + 7);
     }
     
-    const embedString = `${subject || "Unknown"} ${title || "Deadline"} due on ${parsedDate.toISOString()}: ${notes || ""}`;
+    let instituteName = null;
+    let major = null;
+
+    if (userId) {
+      const profile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      if (profile) {
+        instituteName = profile.instituteName;
+        major = profile.major;
+      }
+    }
+
+    const normalizedType = deadlineType ? String(deadlineType).toLowerCase() : "";
+    const safeTitle = typeof title === "string" ? title : (title ? String(title) : "Untitled Deadline");
+    const safeSubject = typeof subject === "string" ? subject : (subject ? String(subject) : "General");
+    const safeNotes = typeof notes === "string" ? notes : (notes ? String(notes) : null);
+
+    const embedString = `${safeSubject || "Unknown"} ${safeTitle || "Deadline"} due on ${parsedDate.toISOString()}: ${safeNotes || ""}`;
     const embedding = await embedText(embedString);
 
     const deadline = await prisma.deadline.create({
       data: {
-        title: title || "Untitled Deadline",
-        subject: subject || "General",
+        title: safeTitle,
+        subject: safeSubject,
         dueDate: parsedDate,
-        type: ["exam", "assignment", "project", "other"].includes(deadlineType) ? deadlineType : "other",
-        notes: notes || null,
+        type: ["exam", "assignment", "project", "other"].includes(normalizedType) ? normalizedType : "other",
+        notes: safeNotes,
         embedding,
+        userId,
+        instituteName,
+        major,
       }
     });
 
