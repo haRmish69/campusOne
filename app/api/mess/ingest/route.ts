@@ -52,8 +52,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Wipe old mess menus to avoid duplication
-    await prisma.messMenu.deleteMany();
+    // Wipe old mess menus to avoid duplication for this user
+    await prisma.messMenu.deleteMany({
+      where: { userId }
+    });
 
     const createdMenus = [];
 
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
 
       const menu = await prisma.messMenu.create({
         data: {
+          userId,
           day: day || "Unknown",
           meal: meal || "Unknown",
           items: items || "Unknown",

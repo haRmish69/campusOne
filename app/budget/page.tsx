@@ -3,18 +3,23 @@ import { BudgetSetup } from "@/components/BudgetSetup";
 import { BudgetStatus } from "@/components/BudgetStatus";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 import { SmartSavings } from "@/components/SmartSavings";
 
 export const dynamic = "force-dynamic";
 
 export default async function BudgetPage() {
+  const { userId } = await auth();
+  if (!userId) return redirect("/sign-in");
+
   const now = new Date();
   const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
   // Fetch budget
   const budget = await prisma.budget.findFirst({
-    where: { month },
+    where: { userId, month },
   });
 
   let currentBudget = null;
@@ -31,7 +36,7 @@ export default async function BudgetPage() {
     const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const expenses = await prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
     });
 
     const actualSpend: Record<string, number> = {};

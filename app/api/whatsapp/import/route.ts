@@ -111,6 +111,7 @@ Messages to analyze:
             // Deduplication check: Do we already have a notice with this exact title and body?
             const existing = await prisma.notice.findFirst({
               where: {
+                userId,
                 title: noticeData.title,
                 body: noticeData.body,
                 source: "whatsapp"
@@ -121,6 +122,7 @@ Messages to analyze:
               const embedding = await embedText(noticeData.body);
               await prisma.notice.create({
                 data: {
+                  userId,
                   title: noticeData.title,
                   body: noticeData.body,
                   category: noticeData.category || "general",

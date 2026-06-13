@@ -3,10 +3,15 @@ import { ExpenseEntry } from "@/components/ExpenseEntry";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage() {
+  const { userId } = await auth();
+  if (!userId) return redirect("/sign-in");
+
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
@@ -27,12 +32,12 @@ export default async function ExpensesPage() {
 
   // Fetch data
   const currentExpenses = await prisma.expense.findMany({
-    where: { date: { gte: currentStartDate, lte: currentEndDate } },
+    where: { userId, date: { gte: currentStartDate, lte: currentEndDate } },
     orderBy: { date: "desc" },
   });
 
   const prevExpenses = await prisma.expense.findMany({
-    where: { date: { gte: prevStartDate, lte: prevEndDate } },
+    where: { userId, date: { gte: prevStartDate, lte: prevEndDate } },
   });
 
   // Calculate Summary

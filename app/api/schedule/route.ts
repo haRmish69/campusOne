@@ -10,9 +10,7 @@ export async function GET() {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const schedules = await prisma.classSchedule.findMany({
-      where: {
-        OR: [{ userId }, { userId: null }]
-      },
+      where: { userId },
       orderBy: { startTime: "asc" },
       select: {
         id: true,

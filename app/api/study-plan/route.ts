@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { answerQuestion } from "@/lib/gemini";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     // 1. Fetch deadlines
     const deadlines = await prisma.deadline.findMany({
-      where: { isComplete: false },
+      where: { userId, isComplete: false },
       orderBy: { dueDate: "asc" }
     });
 
     // 2. Fetch class schedule
-    const classes = await prisma.classSchedule.findMany();
+    const classes = await prisma.classSchedule.findMany({
+      where: { userId }
+    });
 
     // 3. Construct prompt
     const prompt = `You are a highly intelligent AI Study Planner. Create a weekly study schedule based on the student's classes and upcoming deadlines.

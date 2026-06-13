@@ -19,22 +19,23 @@ export default async function DashboardPage() {
 
   const [notices, deadlines, todaysClasses, profile] = await Promise.all([
     prisma.notice.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
       take: 3,
     }),
     prisma.deadline.findMany({
       where: { 
+        userId,
         isComplete: false,
         dueDate: { gte: now },
-        OR: [{ userId }, { userId: null }]
       },
       orderBy: { dueDate: "asc" },
       take: 3,
     }),
     prisma.classSchedule.findMany({
       where: { 
+        userId,
         day: todayName,
-        OR: [{ userId }, { userId: null }]
       },
       orderBy: { startTime: "asc" },
     }),
@@ -57,13 +58,13 @@ export default async function DashboardPage() {
   const currentEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   
   const currentExpenses = await prisma.expense.findMany({
-    where: { date: { gte: currentStartDate, lte: currentEndDate } },
+    where: { userId, date: { gte: currentStartDate, lte: currentEndDate } },
   });
   const currentTotal = currentExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const existingInsight = await prisma.wellnessInsight.findFirst({
-    where: { date: { gte: todayStart } },
+    where: { userId, date: { gte: todayStart } },
     orderBy: { date: "desc" },
   });
 

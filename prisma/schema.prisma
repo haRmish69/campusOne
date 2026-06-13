@@ -9,6 +9,7 @@ generator client {
 
 model Notice {
   id             String    @id @default(cuid())
+  userId         String?
   title          String
   body           String    @db.Text
   category       String // "placement" | "exam" | "event" | "hostel" | "general"
@@ -24,6 +25,7 @@ model Notice {
 
 model MessMenu {
   id            String   @id @default(cuid())
+  userId        String?
   day           String // "Monday" | "Tuesday" | ... | "Sunday"
   meal          String // "breakfast" | "lunch" | "dinner"
   items         String   @db.Text // comma-separated list of dishes
@@ -84,6 +86,7 @@ model StudyPlan {
 
 model Expense {
   id          String   @id @default(cuid())
+  userId      String?
   amount      Float
   category    String // "food", "travel", "academics", "rent",
   // "subscriptions", "entertainment", "other"
@@ -96,6 +99,7 @@ model Expense {
 
 model Budget {
   id             String   @id @default(cuid())
+  userId         String?
   month          String // "2026-06" format
   totalLimit     Float
   categoryLimits Json // { food: 3000, travel: 1000, ... }
@@ -104,6 +108,7 @@ model Budget {
 
 model WellnessLog {
   id            String   @id @default(cuid())
+  userId        String?
   date          DateTime @default(now())
   mood          Int
   sleepHours    Float?
@@ -133,10 +138,15 @@ model UserProfile {
   whatsappNumber  String?
   contactOptIn    Boolean  @default(false)
   onboardingDone  Boolean  @default(false)
+
+  // Phase 15 fields
+  lastEmailSync     DateTime?
+  emailSyncEnabled  Boolean   @default(false)
 }
 
 model WellnessInsight {
   id          String   @id @default(cuid())
+  userId      String?
   date        DateTime @default(now())
   score       Int
   message     String   @db.Text
@@ -191,4 +201,41 @@ model PeerNotification {
   message     String
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+}
+
+model EmailSyncLog {
+  id              String   @id @default(cuid())
+  profileId       String?  // null for cron-triggered syncs before profile load
+  triggeredBy     String   // "cron" | "chat" | "manual_api"
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  status          String   @default("running")
+  // "running" | "completed" | "failed" | "partial"
+  emailsFound     Int      @default(0)
+  emailsProcessed Int      @default(0)
+  emailsSkipped   Int      @default(0)
+  // skipped = private/irrelevant, deduplicated, or over cap
+  noticesCreated  Int      @default(0)
+  deadlinesCreated Int     @default(0)
+  schedulesUpdated Int     @default(0)
+  errorMessage    String?  @db.Text
+  // if status="failed", why
+  extractionLog   Json     @default("[]")
+  // array of { emailId, subject, decision, entityType, confidence, reason }
+  // populated even for skipped emails — this is your audit trail
+}
+
+model ProcessedEmail {
+  id          String   @id @default(cuid())
+  gmailId     String   @unique
+  // Gmail's internal message ID — globally unique per message
+  subject     String
+  receivedAt  DateTime
+  profileId   String
+  syncLogId   String
+  wasPrivate  Boolean
+  // true = privacy filter caught it (stored for audit, no content)
+  createdAt   DateTime @default(now())
+
+  @@index([profileId, receivedAt])
 }

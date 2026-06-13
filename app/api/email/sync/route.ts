@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRecentEmails } from "@/lib/gmail";
+import { fetchEmailsSince } from "@/lib/gmail";
 import { embedText } from "@/lib/embeddings";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
@@ -45,7 +45,8 @@ export async function POST(req: NextRequest) {
     let emails = [];
     
     try {
-      emails = await getRecentEmails(label, 10); // Fetch top 10 recent
+      // Pass null to fetch the last 7 days (default behavior of fetchEmailsSince for new users)
+      emails = await fetchEmailsSince(null, 10); 
     } catch (err: any) {
       if (err.message === "Email sync not configured") {
         return NextResponse.json({ error: "Email sync not configured" }, { status: 400 });
@@ -116,6 +117,7 @@ Email Subject: `;
             // Deduplication
             const existing = await prisma.notice.findFirst({
               where: {
+                userId,
                 title: noticeData.title,
                 source: "email"
               }
@@ -125,6 +127,7 @@ Email Subject: `;
               const embedding = await embedText(noticeData.body);
               await prisma.notice.create({
                 data: {
+                  userId,
                   title: noticeData.title,
                   body: noticeData.body,
                   category: noticeData.category || "general",

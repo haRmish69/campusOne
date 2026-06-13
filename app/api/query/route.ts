@@ -119,7 +119,7 @@ ${context}`;
       const toolArgs = functionCallPart.functionCall.args || {};
       
       console.log(`🔧 Tool call: ${toolName}(${JSON.stringify(toolArgs)})`);
-      const toolResult = await executeTool(toolName!, toolArgs);
+      const toolResult = await executeTool(toolName!, toolArgs, userId!);
       console.log(`✅ Tool result: ${toolResult}`);
 
       // Send the tool result back to Gemini for a natural language confirmation

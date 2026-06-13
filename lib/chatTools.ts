@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { getRealEmbedding } from "./embeddings";
 import { addToFaissIndex } from "./vectorStore";
 import { IndexFlatL2 } from "faiss-node";
+import { runEmailSync, SyncResult } from "./emailSync";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -184,45 +185,57 @@ export const toolDeclarations = [
       required: ["dateSearch"],
     },
   },
+  {
+    name: "import_recent_emails",
+    description: "Triggers an email sync to fetch the latest campus notices, deadlines, and schedule changes from the user's Gmail inbox. Use this when the user asks to import emails, sync their inbox, check for new email notices, or update from email.",
+    parameters: {
+      type: "object" as const,
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // ─── Executor Functions ──────────────────────────────────────────────────
 
-export async function executeTool(name: string, args: any): Promise<string> {
+export async function executeTool(name: string, args: any, userId: string): Promise<string> {
   switch (name) {
     case "update_mess_menu":
-      return updateMessMenu(args);
+      return updateMessMenu(args, userId);
     case "update_notice":
-      return updateNotice(args);
+      return updateNotice(args, userId);
     case "update_deadline":
-      return updateDeadline(args);
+      return updateDeadline(args, userId);
     case "update_schedule":
-      return updateSchedule(args);
+      return updateSchedule(args, userId);
     case "add_notice":
-      return addNotice(args);
+      return addNotice(args, userId);
     case "add_deadline":
-      return addDeadline(args);
+      return addDeadline(args, userId);
     case "add_schedule":
-      return addSchedule(args);
+      return addSchedule(args, userId);
     case "add_expense":
-      return addExpense(args);
+      return addExpense(args, userId);
     case "update_expense":
-      return updateExpense(args);
+      return updateExpense(args, userId);
     case "add_wellness_log":
-      return addWellnessLog(args);
+      return addWellnessLog(args, userId);
     case "update_wellness_log":
-      return updateWellnessLog(args);
+      return updateWellnessLog(args, userId);
+    case "import_recent_emails":
+      return importRecentEmails(userId);
     default:
       return `Unknown tool: ${name}`;
   }
 }
 
-async function updateMessMenu(args: { day: string; meal: string; newItems: string }): Promise<string> {
+async function updateMessMenu(args: { day: string; meal: string; newItems: string }, userId: string): Promise<string> {
   const { day, meal, newItems } = args;
 
   // Find the matching menu entry (case-insensitive match)
   const existing = await prisma.messMenu.findFirst({
     where: {
+      userId,
       day: { contains: day },
       meal: { contains: meal },
     },
@@ -245,11 +258,11 @@ async function updateMessMenu(args: { day: string; meal: string; newItems: strin
   return `Successfully updated ${day} ${meal} menu. New items: ${newItems}`;
 }
 
-async function updateNotice(args: { title: string; newTitle?: string; newBody?: string }): Promise<string> {
+async function updateNotice(args: { title: string; newTitle?: string; newBody?: string }, userId: string): Promise<string> {
   const { title, newTitle, newBody } = args;
 
   const existing = await prisma.notice.findFirst({
-    where: { title: { contains: title } },
+    where: { userId, title: { contains: title } },
   });
 
   if (!existing) {
@@ -272,11 +285,11 @@ async function updateNotice(args: { title: string; newTitle?: string; newBody?: 
   return `Successfully updated notice "${updated.title}".`;
 }
 
-async function updateDeadline(args: { title: string; newTitle?: string; newDueDate?: string; newNotes?: string }): Promise<string> {
+async function updateDeadline(args: { title: string; newTitle?: string; newDueDate?: string; newNotes?: string }, userId: string): Promise<string> {
   const { title, newTitle, newDueDate, newNotes } = args;
 
   const existing = await prisma.deadline.findFirst({
-    where: { title: { contains: title } },
+    where: { userId, title: { contains: title } },
   });
 
   if (!existing) {
@@ -299,10 +312,10 @@ async function updateDeadline(args: { title: string; newTitle?: string; newDueDa
   return `Successfully updated deadline "${updated.title}". New due date: ${updated.dueDate}.`;
 }
 
-async function updateSchedule(args: { subject: string; day?: string; newDay?: string; newStartTime?: string; newEndTime?: string; newRoom?: string }): Promise<string> {
+async function updateSchedule(args: { subject: string; day?: string; newDay?: string; newStartTime?: string; newEndTime?: string; newRoom?: string }, userId: string): Promise<string> {
   const { subject, day, newDay, newStartTime, newEndTime, newRoom } = args;
 
-  const where: any = { subject: { contains: subject } };
+  const where: any = { userId, subject: { contains: subject } };
   if (day) where.day = { contains: day };
 
   const existing = await prisma.classSchedule.findFirst({ where });
@@ -328,7 +341,7 @@ async function updateSchedule(args: { subject: string; day?: string; newDay?: st
   return `Successfully updated class "${updated.subject}" on ${updated.day}. Time: ${updated.startTime}-${updated.endTime}, Room: ${updated.room}.`;
 }
 
-async function addNotice(args: { title: string; body: string; category?: string }): Promise<string> {
+async function addNotice(args: { title: string; body: string; category?: string }, userId: string): Promise<string> {
   const { title, body, category } = args;
   const validCategories = ["placement", "exam", "event", "hostel", "general"];
   const safeCategory = validCategories.includes(category?.toLowerCase() || "") ? category!.toLowerCase() : "general";
@@ -337,6 +350,7 @@ async function addNotice(args: { title: string; body: string; category?: string 
 
   const notice = await prisma.notice.create({
     data: {
+      userId,
       title,
       body,
       category: safeCategory,
@@ -349,7 +363,7 @@ async function addNotice(args: { title: string; body: string; category?: string 
   return `Successfully created new notice: "${title}" in category "${safeCategory}".`;
 }
 
-async function addDeadline(args: { title: string; subject: string; dueDate: string; notes?: string }): Promise<string> {
+async function addDeadline(args: { title: string; subject: string; dueDate: string; notes?: string }, userId: string): Promise<string> {
   const { title, subject, dueDate, notes } = args;
 
   const parsedDate = new Date(dueDate);
@@ -361,6 +375,7 @@ async function addDeadline(args: { title: string; subject: string; dueDate: stri
 
   const deadline = await prisma.deadline.create({
     data: {
+      userId,
       title,
       subject,
       dueDate: parsedDate,
@@ -375,13 +390,14 @@ async function addDeadline(args: { title: string; subject: string; dueDate: stri
   return `Successfully created new deadline: "${title}" for ${subject}, due ${parsedDate.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}.`;
 }
 
-async function addSchedule(args: { subject: string; day: string; startTime: string; endTime: string; room?: string; faculty?: string }): Promise<string> {
+async function addSchedule(args: { subject: string; day: string; startTime: string; endTime: string; room?: string; faculty?: string }, userId: string): Promise<string> {
   const { subject, day, startTime, endTime, room, faculty } = args;
 
   const embedding = await getRealEmbedding(`[CLASS] ${subject} taught by ${faculty || "Unknown"} on ${day} from ${startTime} to ${endTime} at ${room || "Unknown"}`);
 
   const schedule = await prisma.classSchedule.create({
     data: {
+      userId,
       subject,
       day,
       startTime,
@@ -397,7 +413,7 @@ async function addSchedule(args: { subject: string; day: string; startTime: stri
   return `Successfully added class "${subject}" on ${day} from ${startTime} to ${endTime}.`;
 }
 
-async function addExpense(args: { amount: number; category: string; description: string; date?: string }): Promise<string> {
+async function addExpense(args: { amount: number; category: string; description: string; date?: string }, userId: string): Promise<string> {
   const { amount, category, description, date } = args;
 
   const validCategories = ["food", "travel", "academics", "rent", "subscriptions", "entertainment", "other"];
@@ -409,6 +425,7 @@ async function addExpense(args: { amount: number; category: string; description:
 
   const expense = await prisma.expense.create({
     data: {
+      userId,
       amount,
       category: safeCategory,
       description,
@@ -423,11 +440,11 @@ async function addExpense(args: { amount: number; category: string; description:
   return `Successfully logged expense: ₹${amount} for ${description} under ${safeCategory}.`;
 }
 
-async function updateExpense(args: { descriptionSearch: string; newAmount?: number; newCategory?: string; newDescription?: string }): Promise<string> {
+async function updateExpense(args: { descriptionSearch: string; newAmount?: number; newCategory?: string; newDescription?: string }, userId: string): Promise<string> {
   const { descriptionSearch, newAmount, newCategory, newDescription } = args;
 
   const existing = await prisma.expense.findFirst({
-    where: { description: { contains: descriptionSearch } },
+    where: { userId, description: { contains: descriptionSearch } },
     orderBy: { date: 'desc' },
   });
 
@@ -451,7 +468,7 @@ async function updateExpense(args: { descriptionSearch: string; newAmount?: numb
   return `Successfully updated expense. Amount is now ₹${updated.amount} for "${updated.description}".`;
 }
 
-async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHours?: number; notes?: string }): Promise<string> {
+async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHours?: number; notes?: string }, userId: string): Promise<string> {
   const { mood, stressLevel, sleepHours, notes } = args;
   
   const today = new Date();
@@ -464,6 +481,7 @@ async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHo
   // Check if one exists for today already
   const existing = await prisma.wellnessLog.findFirst({
     where: {
+      userId,
       date: { gte: startOfDay, lte: endOfDay }
     }
   });
@@ -475,13 +493,14 @@ async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHo
       newStressLevel: stressLevel,
       newSleepHours: sleepHours,
       newNotes: notes
-    });
+    }, userId);
   }
 
   const embedding = await getRealEmbedding(`[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours || 0}h. Notes: ${notes || ""}. Date: ${today.toISOString().split("T")[0]}`);
 
   const log = await prisma.wellnessLog.create({
     data: {
+      userId,
       mood,
       stressLevel,
       sleepHours,
@@ -495,7 +514,7 @@ async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHo
   return `Successfully logged today's wellness. Mood: ${mood}/5, Stress: ${stressLevel}/5.`;
 }
 
-async function updateWellnessLog(args: { dateSearch: string; newMood?: number; newStressLevel?: number; newSleepHours?: number; newNotes?: string }): Promise<string> {
+async function updateWellnessLog(args: { dateSearch: string; newMood?: number; newStressLevel?: number; newSleepHours?: number; newNotes?: string }, userId: string): Promise<string> {
   const { dateSearch, newMood, newStressLevel, newSleepHours, newNotes } = args;
 
   const searchDate = new Date(dateSearch);
@@ -505,6 +524,7 @@ async function updateWellnessLog(args: { dateSearch: string; newMood?: number; n
 
   const existing = await prisma.wellnessLog.findFirst({
     where: {
+      userId,
       date: {
         gte: searchDate,
         lt: nextDay,
@@ -532,4 +552,59 @@ async function updateWellnessLog(args: { dateSearch: string; newMood?: number; n
   await addToFaissIndex(updated.id, `[WELLNESS] Mood: ${updated.mood}/5, Stress: ${updated.stressLevel}/5, Sleep: ${updated.sleepHours || 0}h. Notes: ${updated.notes || ""}. Date: ${updated.date.toISOString().split("T")[0]}`);
 
   return `Successfully updated wellness log for ${updated.date.toISOString().split("T")[0]}. Mood is now ${updated.mood}/5.`;
+}
+
+async function importRecentEmails(userId: string): Promise<string> {
+  if (!userId) {
+    return "I need you to be logged in to sync emails. Please sign in first.";
+  }
+
+  // Check if email sync is enabled
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: { id: true, emailSyncEnabled: true, lastEmailSync: true },
+  });
+
+  if (!profile) {
+    return "I couldn't find your profile. Please complete your onboarding first.";
+  }
+
+  try {
+    const result = await runEmailSync(profile.id, "chat");
+
+    if (!result.success) {
+      return `I tried to sync your emails but ran into an issue: ${result.errorMessage}. You can try again or check your email connection in Settings.`;
+    }
+
+    if (result.emailsFound === 0) {
+      const lastSync = profile.lastEmailSync;
+      const timeSince = lastSync
+        ? `${Math.round((Date.now() - lastSync.getTime()) / 60000)} minutes ago`
+        : "never";
+      return `I synced your inbox — no new campus emails found since your last sync (${timeSince}).`;
+    }
+
+    const parts: string[] = [];
+    parts.push(`I've synced your inbox! Found ${result.emailsFound} email(s).`);
+
+    if (result.noticesCreated > 0) {
+      parts.push(`📋 Added ${result.noticesCreated} new notice(s)`);
+    }
+    if (result.deadlinesCreated > 0) {
+      parts.push(`⏰ Added ${result.deadlinesCreated} new deadline(s)`);
+    }
+    if (result.schedulesUpdated > 0) {
+      parts.push(`📅 Updated ${result.schedulesUpdated} schedule item(s)`);
+    }
+    if (result.emailsSkipped > 0) {
+      parts.push(`🔒 Skipped ${result.emailsSkipped} private/irrelevant email(s)`);
+    }
+
+    parts.push(`Sync completed in ${(result.durationMs / 1000).toFixed(1)}s.`);
+
+    return parts.join("\n");
+  } catch (error) {
+    console.error("[Chat] Email sync failed:", error);
+    return "Something went wrong while syncing your emails. Please try again later or check your email connection in Settings.";
+  }
 }

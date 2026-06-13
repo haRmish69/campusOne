@@ -10,12 +10,7 @@ export async function GET() {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const deadlines = await prisma.deadline.findMany({
-      where: {
-        OR: [
-          { userId },
-          { userId: null }
-        ]
-      },
+      where: { userId },
       orderBy: { dueDate: "asc" },
       select: {
         id: true,

@@ -3,16 +3,21 @@ import { WellnessCheckIn } from "@/components/WellnessCheckIn";
 import { BurnoutRadar } from "@/components/BurnoutRadar";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function WellnessPage() {
+  const { userId } = await auth();
+  if (!userId) return redirect("/sign-in");
+
   const now = new Date();
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
   fourteenDaysAgo.setHours(0, 0, 0, 0);
 
   const logs = await prisma.wellnessLog.findMany({
-    where: { date: { gte: fourteenDaysAgo } },
+    where: { userId, date: { gte: fourteenDaysAgo } },
     orderBy: { date: "asc" },
   });
 

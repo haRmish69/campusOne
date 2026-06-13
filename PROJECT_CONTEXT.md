@@ -57,6 +57,13 @@ Build the full Peer Learning Ecosystem with passive expertise inference, smart m
 ### Phases
 - [ ] Phase 11: Peer Learning Ecosystem (Schema, Inference Engine, Matcher, API, UI)
 
+## Module 5: Intelligent Integrations
+### Goal
+Automate data ingestion from external silos (Gmail) directly into the CampusFlow brain securely, proactively handling privacy and preventing data corruption.
+
+### Phases
+- [x] Phase 15: Production Email Sync Pipeline (Schema + Gmail + Classifier + Sync Engine + APIs + Chat Tool + Cron)
+
 ## Module 3 — Identity Decision
 The current identity mechanism is **Clerk Authentication**. 
 The application actively uses `auth()` from `@clerk/nextjs` to retrieve `userId`.
@@ -70,6 +77,7 @@ Therefore, the new model must be named `UserProfile`, and it must use `userId` (
 - [2026-06-13] Added PocketBuddy Module navigation with a subtle uppercase divider in the Sidebar to cleanly separate core campus features from personal financial/wellness tools without cluttering the UI.
 - [2026-06-13] Completed Module 3: Hyper-Personalized Peer Network integration. Fixed LLM ingestion runtime bugs for Deadlines (date fallback logic and case-insensitive enum parsing). 
 - [2026-06-13] Reverted "Modern Web Design" CSS overrides to preserve the intended Calendly-inspired light theme while keeping the newly integrated features (`CampusPulse`, `StudyGroupMatcher`, `OnboardingModal`).
+- [2026-06-13] Phase 15: Production Email Sync Pipeline. Replaced naive gmail.ts with production-grade version: MIME tree walker, HTML stripping via `he`, forwarded chain removal, `internalDate` (not Date header) for sender-clock-skew immunity, 1500-char hard truncation. Two-gate LLM pipeline: Gate 1 (Privacy Filter) → Gate 2 (Entity Extractor). Safe-default: if privacy classifier fails, email is treated as private. For new users (null lastEmailSync), sync window defaults to 7 days ago with a hard cap of 30 emails. Deduplication via `ProcessedEmail.gmailId` unique key. Full audit trail via `EmailSyncLog` with extractionLog JSON. Chat tool `import_recent_emails` added. Vercel cron at 8 AM / 8 PM.
 
 ## Completed Phases
 - [x] Phase 0: Context File Setup
@@ -85,6 +93,7 @@ Therefore, the new model must be named `UserProfile`, and it must use `userId` (
 - [x] Phase 8A: Voice FAB, Dashboard, Sidebar, Root Layout
 - [x] Phase 8B: Seed Data + Demo Polish
 - [x] Phase 9: README + Setup Validation
+- [x] Phase 15: Production Email Sync Pipeline
 
 ## File Inventory
 - `PROJECT_CONTEXT.md`: Persistent memory and project roadmap.
@@ -128,6 +137,16 @@ Therefore, the new model must be named `UserProfile`, and it must use `userId` (
 - `app/budget/page.tsx`: PocketBuddy Budget tracking UI.
 - `app/wellness/page.tsx`: PocketBuddy Wellness check-in UI.
 - `app/api`, `components`, `lib`, `scripts`: Scaffolded directories.
+- `lib/gmail.ts`: Production Gmail service — OAuth validation, MIME tree walking, HTML stripping, forwarded chain removal, 7-day/30-email cap for new users.
+- `lib/emailClassifier.ts`: Two-gate LLM pipeline — Gate 1 (Privacy Filter), Gate 2 (Entity Extractor: Notice/Deadline/ScheduleUpdate/Ignore).
+- `lib/emailSync.ts`: Core sync orchestrator — idempotent, deduplicates via ProcessedEmail, logs every decision to EmailSyncLog.
+- `app/api/email-sync/route.ts`: Manual email sync trigger endpoint (POST).
+- `app/api/email-sync/status/route.ts`: Sync log history endpoint (GET).
+- `app/api/email-sync/test/route.ts`: Gmail OAuth connection test endpoint (GET).
+- `app/api/cron/email-sync/route.ts`: Automated cron endpoint (GET, protected by CRON_SECRET).
+- `vercel.json`: Vercel cron config (8 AM, 8 PM daily).
+- `docs/gmail-oauth-setup.md`: Step-by-step Gmail OAuth setup guide.
+- `scripts/get-gmail-token.ts`: One-time OAuth refresh token generator script.
 
 ## Known Issues / TODO
 - Email sync requires explicit Gmail OAuth configuration in the Google Cloud Console. Without `.env` variables, the sync button shows a graceful toast error but will not crash the app.
@@ -135,3 +154,5 @@ Therefore, the new model must be named `UserProfile`, and it must use `userId` (
 
 ## Environment & Setup Notes
 - Expected env vars: `DATABASE_URL`, `GEMINI_API_KEY`, `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_TAGLINE`
+- Gmail sync env vars: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`
+- Cron security: `CRON_SECRET` (generate with `openssl rand -hex 32`)

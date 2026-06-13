@@ -2,11 +2,17 @@ import { FileUpload } from "@/components/FileUpload";
 import { MessCard } from "@/components/MessCard";
 import { prisma } from "@/lib/prisma";
 import { MessMenu } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function MessPage() {
+  const { userId } = await auth();
+  if (!userId) return redirect("/sign-in");
+
   const menusRaw = await prisma.messMenu.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

@@ -3,11 +3,17 @@ import { NoticeCard } from "@/components/NoticeCard";
 import { SyncEmailButton } from "@/components/SyncEmailButton";
 import { prisma } from "@/lib/prisma";
 import { Notice } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function NoticesPage() {
+  const { userId } = await auth();
+  if (!userId) return redirect("/sign-in");
+
   const noticesRaw = await prisma.notice.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

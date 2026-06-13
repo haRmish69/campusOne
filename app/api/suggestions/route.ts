@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
+import { auth } from "@clerk/nextjs/server";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const MODEL = "gemini-flash-latest";
@@ -32,11 +33,14 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ suggestions: [] });
+
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     // 1. Fetch budget and compute status
-    const budget = await prisma.budget.findFirst({ where: { month } });
+    const budget = await prisma.budget.findFirst({ where: { userId, month } });
     
     if (!budget || !budget.categoryLimits) {
       return NextResponse.json({ suggestions: [] });
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
     const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const expenses = await prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } },
+      where: { userId, date: { gte: startDate, lte: endDate } },
       orderBy: { date: "desc" }
     });
 

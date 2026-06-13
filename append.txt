@@ -1,0 +1,1390 @@
+
+---
+
+## PHASE 15 — Production Email Sync Pipeline
+
+TASK: Build a production-grade email sync pipeline with automated scheduling,
+privacy-first filtering, intelligent entity extraction, and chat-triggered
+manual sync. Every failure mode is handled. No silent data corruption.
+
+Read PROJECT_CONTEXT.md before starting.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART A — BRUTAL REALITY CHECK BEFORE WRITING CODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before touching a single file, understand these constraints.
+Violating them causes silent data loss or demo crashes.
+
+── Gmail API Reality ──
+
+1. The Gmail API does NOT return emails in the order you think.
+   "after:TIMESTAMP" filters by the email's internal date header —
+   which is set by the SENDER, not Gmail's receipt time.
+   A sender with a misconfigured clock can timestamp an email
+   in 2019 and it will be invisible to your after: query.
+   Mitigation: also store the Gmail message ID of the last
+   processed email and use it as a secondary dedup key.
+
+2. OAuth refresh tokens expire if:
+   - Not used for 6 months
+   - The Google account password changes
+   - The user revokes access
+   - The OAuth consent screen is in "Testing" mode (7-day expiry)
+   Every token refresh must be wrapped in error handling that
+   produces a clear, actionable error — not a 500.
+
+3. Gmail API has a rate limit of 250 quota units per second per user.
+   List messages = 5 units. Get message = 5 units.
+   For 50 emails: 5 + (50 × 5) = 255 units — you're at the limit.
+   Mitigation: hard cap at 30 emails per sync run. Log a warning
+   if the inbox has more unprocessed emails than the cap.
+
+4. Email bodies are a disaster:
+   - HTML emails: must strip tags before sending to Gemini
+   - Multipart MIME: must walk the part tree to find text/plain
+   - Base64 encoded: Gmail API returns body.data as base64url
+   - Forwarded chains: will confuse Gemini into extracting old data
+   - Email threads: same subject appears 10 times
+   Mitigation: extract ONLY the most recent message in a thread.
+   Strip all HTML. Truncate to 1500 chars before sending to Gemini.
+
+5. The Gmail "after:" query uses Unix timestamps in SECONDS, not ms.
+
+── Gemini + Email Reality ──
+
+6. Gemini will hallucinate structured data from ambiguous emails.
+   A "Hey, catch up sometime?" from a professor will sometimes
+   be classified as a deadline. You cannot prevent this 100%.
+   Mitigation: confidence scoring + human-readable extraction log
+   that shows what was extracted from what email.
+
+7. Gemini has a context window limit. A single email with a long
+   HTML-stripped body + forwarded chain can hit 8k tokens.
+   Hard truncate ALL email bodies to 1500 characters before Gemini.
+
+── Privacy Reality ──
+
+8. "Safely ignoring private emails" is not a checkbox — it's a
+   classification problem. Gemini makes mistakes. A bank OTP email
+   will sometimes look like a "deadline" to an LLM.
+   Mitigation: privacy filter runs as a SEPARATE Gemini call BEFORE
+   entity extraction. Two-gate system. Log every decision.
+
+9. Never store raw email content in the database.
+   Store only extracted structured data. The email body is
+   processed in memory and discarded. This is not optional.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART B — SCHEMA CHANGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to prisma/schema.prisma EXACTLY as written:
+
+── Modify UserProfile ──
+Add these fields to the existing UserProfile model:
+
+  lastEmailSync     DateTime?
+  emailSyncEnabled  Boolean   @default(false)
+  // false by default — user must explicitly opt in
+
+── New model: EmailSyncLog ──
+// Audit trail of every sync run. Never delete these rows.
+// This is your debugging lifeline when something goes wrong.
+
+model EmailSyncLog {
+  id              String   @id @default(cuid())
+  profileId       String?  // null for cron-triggered syncs before profile load
+  triggeredBy     String   // "cron" | "chat" | "manual_api"
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  status          String   @default("running")
+  // "running" | "completed" | "failed" | "partial"
+  emailsFound     Int      @default(0)
+  emailsProcessed Int      @default(0)
+  emailsSkipped   Int      @default(0)
+  // skipped = private/irrelevant, deduplicated, or over cap
+  noticesCreated  Int      @default(0)
+  deadlinesCreated Int     @default(0)
+  schedulesUpdated Int     @default(0)
+  errorMessage    String?  @db.Text
+  // if status="failed", why
+  extractionLog   Json     @default("[]")
+  // array of { emailId, subject, decision, entityType, confidence, reason }
+  // populated even for skipped emails — this is your audit trail
+}
+
+── New model: ProcessedEmail ──
+// Deduplication registry. Prevents the same email being processed twice
+// even if the timestamp filter fails (sender clock skew, etc.)
+
+model ProcessedEmail {
+  id          String   @id @default(cuid())
+  gmailId     String   @unique
+  // Gmail's internal message ID — globally unique per message
+  subject     String
+  receivedAt  DateTime
+  profileId   String
+  syncLogId   String
+  wasPrivate  Boolean
+  // true = privacy filter caught it (stored for audit, no content)
+  createdAt   DateTime @default(now())
+
+  @@index([profileId, receivedAt])
+}
+
+── Run after schema changes ──
+npx prisma generate
+npx prisma db push
+
+If db push fails: stop and report the exact Prisma error.
+Do not proceed with a broken schema.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART C — GMAIL SERVICE LAYER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── Install dependencies ──
+npm install googleapis he
+npm install --save-dev @types/he
+
+he = HTML entity decoder (for stripping HTML from email bodies)
+
+── lib/gmail.ts [NEW — replace any existing gmail.ts] ──
+
+import { google } from "googleapis"
+import { decode } from "he"
+
+// ── Types ──
+export interface ParsedEmail {
+  gmailId: string
+  threadId: string
+  subject: string
+  from: string
+  // "Display Name <email@domain.com>" — keep full string for context
+  receivedAt: Date
+  // parsed from internalDate (milliseconds since epoch) — NOT the Date header
+  // internalDate is set by Gmail on receipt — immune to sender clock skew
+  body: string
+  // cleaned, truncated plain text — NEVER raw HTML
+}
+
+// ── OAuth2 client factory ──
+// Call this fresh on every request — never cache the client object
+// because the access token may have been refreshed
+
+export function createOAuthClient() {
+  const client = new google.auth.OAuth2(
+    process.env.GMAIL_CLIENT_ID,
+    process.env.GMAIL_CLIENT_SECRET,
+    "urn:ietf:wg:oauth:2.0:oob"  // demo: no redirect URI needed
+  )
+  client.setCredentials({
+    refresh_token: process.env.GMAIL_REFRESH_TOKEN
+  })
+  return client
+}
+
+// ── Token validation ──
+// Call this before any Gmail API call.
+// Returns the refreshed credentials or throws a typed error.
+
+export async function validateAndRefreshToken(): Promise<void> {
+  const client = createOAuthClient()
+  try {
+    const { credentials } = await client.refreshAccessToken()
+    if (!credentials.access_token) {
+      throw new Error("Gmail OAuth: refresh succeeded but no access_token returned")
+    }
+    // Credentials are valid. The client handles token storage internally.
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error)
+    // Classify the error for clear debugging
+    if (msg.includes("invalid_grant")) {
+      throw new GmailAuthError(
+        "REFRESH_TOKEN_EXPIRED",
+        "Gmail refresh token has expired or been revoked. " +
+        "Re-run the OAuth flow to generate a new refresh token. " +
+        "See docs/gmail-oauth-setup.md for instructions."
+      )
+    }
+    if (msg.includes("invalid_client")) {
+      throw new GmailAuthError(
+        "INVALID_CLIENT",
+        "GMAIL_CLIENT_ID or GMAIL_CLIENT_SECRET is incorrect."
+      )
+    }
+    throw new GmailAuthError("UNKNOWN_AUTH_ERROR", msg)
+  }
+}
+
+export class GmailAuthError extends Error {
+  constructor(public code: string, message: string) {
+    super(message)
+    this.name = "GmailAuthError"
+  }
+}
+
+// ── HTML stripping ──
+// Robust: handles nested tags, inline styles, scripts, entities
+
+function stripHtml(html: string): string {
+  // Remove script and style blocks entirely (content + tags)
+  let text = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+  // Replace block-level elements with newlines for readability
+    .replace(/<\/(p|div|tr|li|h[1-6]|br)>/gi, "\n")
+  // Strip all remaining tags
+    .replace(/<[^>]+>/g, " ")
+  // Decode HTML entities (e.g. &amp; → &, &nbsp; → space)
+    .replace(/&nbsp;/gi, " ")
+  text = decode(text)
+  // Normalize whitespace
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+  return text
+}
+
+// ── MIME body extraction ──
+// Walks the MIME part tree to find the best text representation.
+// Priority: text/plain > text/html (stripped) > empty string
+
+interface MimePart {
+  mimeType?: string
+  body?: { data?: string; size?: number }
+  parts?: MimePart[]
+}
+
+function extractBody(payload: MimePart): string {
+  function decode64(data: string): string {
+    // Gmail uses base64url encoding (- and _ instead of + and /)
+    return Buffer.from(data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")
+  }
+
+  function walk(part: MimePart): { text: string | null; html: string | null } {
+    const result: { text: string | null; html: string | null } = { text: null, html: null }
+
+    if (part.mimeType === "text/plain" && part.body?.data) {
+      result.text = decode64(part.body.data)
+    } else if (part.mimeType === "text/html" && part.body?.data) {
+      result.html = decode64(part.body.data)
+    } else if (part.parts) {
+      for (const child of part.parts) {
+        const childResult = walk(child)
+        if (childResult.text) result.text = result.text ?? childResult.text
+        if (childResult.html) result.html = result.html ?? childResult.html
+      }
+    }
+    return result
+  }
+
+  const { text, html } = walk(payload)
+
+  if (text) return text
+  if (html) return stripHtml(html)
+  return ""
+}
+
+// ── Forwarded chain removal ──
+// Strips everything after "---------- Forwarded message ---------"
+// or "On [date] [person] wrote:" patterns to prevent Gemini
+// from extracting stale data from the original email.
+
+function removeForwardedChains(text: string): string {
+  const forwardPatterns = [
+    /[-]{5,}\s*Forwarded message\s*[-]{5,}/i,
+    /On .{10,50} wrote:/i,
+    /From:\s*[\w.-]+@[\w.-]+/i,  // inline "From:" header in reply chain
+  ]
+  for (const pattern of forwardPatterns) {
+    const match = text.search(pattern)
+    if (match > 100) {  // only strip if there's meaningful content before it
+      return text.slice(0, match).trim()
+    }
+  }
+  return text
+}
+
+// ── Main fetch function ──
+
+export async function fetchEmailsSince(
+  afterDate: Date | null,
+  maxResults: number = 30
+): Promise<ParsedEmail[]> {
+  await validateAndRefreshToken()
+
+  const auth = createOAuthClient()
+  const gmail = google.gmail({ version: "v1", auth })
+
+  // Build query — campus-relevant senders heuristic
+  // "category:primary" excludes Promotions/Social/Updates tabs
+  // This is the first privacy gate — reduces volume before LLM filtering
+  let query = "category:primary"
+  if (afterDate) {
+    // Gmail after: uses Unix timestamp in SECONDS
+    const afterSeconds = Math.floor(afterDate.getTime() / 1000)
+    query += ` after:${afterSeconds}`
+  }
+
+  // Step 1: List message IDs (5 quota units)
+  const listResponse = await gmail.users.messages.list({
+    userId: "me",
+    q: query,
+    maxResults,  // hard cap enforced here
+  })
+
+  const messages = listResponse.data.messages ?? []
+  if (messages.length === 0) return []
+
+  // Log if we hit the cap — there might be more emails we're missing
+  if (messages.length === maxResults) {
+    console.warn(
+      `[Gmail] Hit maxResults cap of ${maxResults}. ` +
+      `There may be more unprocessed emails. ` +
+      `Consider reducing sync interval or increasing cap.`
+    )
+  }
+
+  // Step 2: Fetch full message for each ID (5 quota units each)
+  // Use Promise.allSettled so one failed fetch doesn't abort the batch
+  const fetchResults = await Promise.allSettled(
+    messages.map(msg =>
+      gmail.users.messages.get({
+        userId: "me",
+        id: msg.id!,
+        format: "full",  // we need the full payload for body extraction
+      })
+    )
+  )
+
+  const parsed: ParsedEmail[] = []
+
+  for (const result of fetchResults) {
+    if (result.status === "rejected") {
+      console.error("[Gmail] Failed to fetch message:", result.reason)
+      continue  // skip this message, process the rest
+    }
+
+    const message = result.value.data
+    const headers = message.payload?.headers ?? []
+
+    const getHeader = (name: string) =>
+      headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value ?? ""
+
+    const subject = getHeader("Subject") || "(No subject)"
+    const from = getHeader("From") || "Unknown"
+
+    // Use internalDate (Gmail receipt time) not the Date header
+    // internalDate is in milliseconds
+    const receivedAt = message.internalDate
+      ? new Date(parseInt(message.internalDate))
+      : new Date()
+
+    // Extract and clean body
+    const rawBody = extractBody(message.payload ?? {})
+    const cleanBody = removeForwardedChains(rawBody)
+
+    // HARD TRUNCATE at 1500 chars — non-negotiable
+    const truncatedBody = cleanBody.slice(0, 1500)
+
+    if (truncatedBody.trim().length < 20) {
+      // Skip emails with no meaningful body (image-only, tracking pixels, etc.)
+      continue
+    }
+
+    parsed.push({
+      gmailId: message.id!,
+      threadId: message.threadId!,
+      subject,
+      from,
+      receivedAt,
+      body: truncatedBody,
+    })
+  }
+
+  return parsed
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART D — PRIVACY FILTER + ENTITY EXTRACTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+These are TWO SEPARATE Gemini calls. Never merge them into one.
+Reason: a combined prompt asks Gemini to "ignore private data while
+also extracting entities" — it will inconsistently do both or neither.
+The two-gate system makes each decision independent and auditable.
+
+── lib/emailClassifier.ts [NEW] ──
+
+import { GoogleGenerativeAI } from "@google/generative-ai"
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+// ── Gate 1: Privacy Filter ──
+// Binary decision: is this email campus-relevant or private/irrelevant?
+// NEVER pass private email content further in the pipeline.
+
+export type PrivacyDecision = {
+  isPrivate: boolean
+  confidence: "high" | "medium" | "low"
+  reason: string
+  // short human-readable reason for the audit log
+}
+
+export async function classifyPrivacy(
+  subject: string,
+  from: string,
+  bodyPreview: string  // first 300 chars only — privacy filter doesn't need the full body
+): Promise<PrivacyDecision> {
+  // Use only 300 chars for privacy check — less LLM exposure of personal content
+  const preview = bodyPreview.slice(0, 300)
+
+  const prompt = \`You are a privacy classifier for a college student's email.
+Decide if this email is related to campus/academic life or is private/irrelevant.
+
+CAMPUS-RELEVANT (classify as NOT private):
+- College notices, announcements, events
+- Exam schedules, results, timetable changes
+- Assignment deadlines, project submissions
+- Placement drives, internship opportunities
+- Hostel, mess, library, admin communications
+- Faculty or department communications
+- Student club and society updates
+
+PRIVATE/IRRELEVANT (classify as private):
+- Personal conversations between individuals
+- Banking, OTP, transaction, payment emails
+- Shopping, delivery, e-commerce emails
+- Social media notifications
+- Marketing, promotional, newsletter emails
+- Medical, insurance, government personal emails
+- Job applications to external companies (not campus placement)
+- Anything not directly related to the student's campus life
+
+Email to classify:
+Subject: \${subject}
+From: \${from}
+Body preview: \${preview}
+
+Respond with ONLY a raw JSON object (no markdown):
+{
+  "isPrivate": true or false,
+  "confidence": "high" or "medium" or "low",
+  "reason": "one sentence explanation"
+}\`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const text = result.response.text().trim()
+      .replace(/\`\`\`json|\`\`\`/g, "").trim()
+
+    const parsed = JSON.parse(text) as PrivacyDecision
+
+    // Validate — if Gemini returns garbage, default to private (safe fail)
+    if (typeof parsed.isPrivate !== "boolean") {
+      console.warn("[Privacy] Gemini returned invalid isPrivate, defaulting to private")
+      return { isPrivate: true, confidence: "low", reason: "Classifier returned invalid response — defaulted to private" }
+    }
+    if (!["high", "medium", "low"].includes(parsed.confidence)) {
+      parsed.confidence = "low"
+    }
+
+    return parsed
+  } catch (error) {
+    console.error("[Privacy] Classification failed:", error)
+    // SAFE DEFAULT: if the classifier fails, treat as private
+    // Never process an email we couldn't classify
+    return {
+      isPrivate: true,
+      confidence: "low",
+      reason: "Classification failed due to error — defaulted to private for safety"
+    }
+  }
+}
+
+// ── Gate 2: Entity Extractor ──
+// Only called if Gate 1 says isPrivate=false AND confidence != "low"
+// For medium confidence: extract but flag for review in the log
+
+export type EntityType = "notice" | "deadline" | "schedule_update" | "ignore"
+
+export interface ExtractedNotice {
+  type: "notice"
+  title: string
+  body: string
+  category: "placement" | "exam" | "event" | "hostel" | "general"
+  eventDate: string | null  // "YYYY-MM-DD" or null
+  venue: string | null
+  actionRequired: string | null
+}
+
+export interface ExtractedDeadline {
+  type: "deadline"
+  title: string
+  subject: string
+  dueDate: string  // "YYYY-MM-DD" — required for deadlines
+  deadlineType: "exam" | "assignment" | "project" | "other"
+  notes: string | null
+}
+
+export interface ExtractedScheduleUpdate {
+  type: "schedule_update"
+  updateKind: "cancelled" | "rescheduled" | "room_change" | "new_class"
+  subject: string
+  affectedDay: string  // "Monday" | "Tuesday" | etc.
+  originalTime: string | null  // "HH:MM"
+  newTime: string | null
+  newRoom: string | null
+  notes: string | null
+}
+
+export interface ExtractedIgnore {
+  type: "ignore"
+  reason: string
+}
+
+export type ExtractionResult =
+  | ExtractedNotice
+  | ExtractedDeadline
+  | ExtractedScheduleUpdate
+  | ExtractedIgnore
+
+export async function extractEntity(
+  subject: string,
+  from: string,
+  body: string,
+  receivedAt: Date
+): Promise<ExtractionResult> {
+  const todayStr = receivedAt.toISOString().split("T")[0]
+
+  const prompt = \`You are an academic data extractor for a college student assistant.
+Extract structured data from this campus email.
+Today's date: \${todayStr}
+
+Email:
+Subject: \${subject}
+From: \${from}
+Body: \${body}
+
+Classify this email into EXACTLY ONE category and return structured JSON:
+
+If it's a general campus announcement, event, or notice:
+{ "type": "notice", "title": "...", "body": "...", "category": "placement"|"exam"|"event"|"hostel"|"general", "eventDate": "YYYY-MM-DD or null", "venue": "... or null", "actionRequired": "... or null" }
+
+If it mentions an assignment, project, or exam deadline:
+{ "type": "deadline", "title": "...", "subject": "course name", "dueDate": "YYYY-MM-DD", "deadlineType": "exam"|"assignment"|"project"|"other", "notes": "... or null" }
+
+If it mentions a class being cancelled, rescheduled, or room changed:
+{ "type": "schedule_update", "updateKind": "cancelled"|"rescheduled"|"room_change"|"new_class", "subject": "...", "affectedDay": "Monday"|"Tuesday"|..., "originalTime": "HH:MM or null", "newTime": "HH:MM or null", "newRoom": "... or null", "notes": "... or null" }
+
+If the email is campus-related but contains no actionable structured data:
+{ "type": "ignore", "reason": "brief explanation" }
+
+Rules:
+- For deadlines: dueDate is REQUIRED. If you cannot determine a specific date, use "ignore".
+- For schedule_update: affectedDay is REQUIRED.
+- Never invent information not present in the email.
+- If the email mentions multiple entities (e.g., both a deadline AND a cancelled class),
+  extract the MORE ACTIONABLE one (deadline > schedule_update > notice).
+- Return ONLY raw JSON. No markdown fences. No preamble.\`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const text = result.response.text().trim()
+      .replace(/\`\`\`json|\`\`\`/g, "").trim()
+
+    const parsed = JSON.parse(text) as ExtractionResult
+
+    // Validate required fields per type
+    if (parsed.type === "deadline") {
+      if (!parsed.dueDate || !isValidDate(parsed.dueDate)) {
+        console.warn("[Extractor] Deadline missing valid dueDate, converting to ignore")
+        return { type: "ignore", reason: "Deadline extracted but dueDate was invalid or missing" }
+      }
+    }
+    if (parsed.type === "schedule_update") {
+      if (!parsed.affectedDay || !isValidDay(parsed.affectedDay)) {
+        return { type: "ignore", reason: "Schedule update extracted but affectedDay was invalid" }
+      }
+    }
+
+    return parsed
+  } catch (error) {
+    console.error("[Extractor] Extraction failed:", error)
+    return { type: "ignore", reason: "Extraction failed due to error" }
+  }
+}
+
+function isValidDate(str: string): boolean {
+  const d = new Date(str)
+  return !isNaN(d.getTime()) && str.match(/^\d{4}-\d{2}-\d{2}$/) !== null
+}
+
+function isValidDay(str: string): boolean {
+  return ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
+    .includes(str)
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART E — CORE SYNC ENGINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── lib/emailSync.ts [NEW] ──
+
+This is the orchestrator. Called by the cron job AND by the chat tool.
+It must be idempotent — running it twice must produce the same result.
+
+import { prisma } from "@/lib/prisma"
+import { fetchEmailsSince } from "@/lib/gmail"
+import { classifyPrivacy, extractEntity } from "@/lib/emailClassifier"
+import { embedText } from "@/lib/embeddings"
+
+export type SyncResult = {
+  success: boolean
+  syncLogId: string
+  emailsFound: number
+  emailsProcessed: number
+  emailsSkipped: number
+  noticesCreated: number
+  deadlinesCreated: number
+  schedulesUpdated: number
+  errorMessage?: string
+  durationMs: number
+}
+
+export async function runEmailSync(
+  profileId: string,
+  triggeredBy: "cron" | "chat" | "manual_api"
+): Promise<SyncResult> {
+  const startTime = Date.now()
+
+  // Create sync log entry immediately — this is running state
+  const syncLog = await prisma.emailSyncLog.create({
+    data: {
+      profileId,
+      triggeredBy,
+      status: "running",
+    }
+  })
+
+  // Helper to finalize the log — always called, even on failure
+  async function finalizeLog(
+    status: string,
+    counts: {
+      emailsFound?: number
+      emailsProcessed?: number
+      emailsSkipped?: number
+      noticesCreated?: number
+      deadlinesCreated?: number
+      schedulesUpdated?: number
+    },
+    extractionLog: unknown[],
+    errorMessage?: string
+  ) {
+    await prisma.emailSyncLog.update({
+      where: { id: syncLog.id },
+      data: {
+        status,
+        completedAt: new Date(),
+        ...counts,
+        extractionLog,
+        errorMessage,
+      }
+    })
+  }
+
+  const extractionLog: unknown[] = []
+  let emailsFound = 0
+  let emailsProcessed = 0
+  let emailsSkipped = 0
+  let noticesCreated = 0
+  let deadlinesCreated = 0
+  let schedulesUpdated = 0
+
+  try {
+    // ── Step 1: Get last sync timestamp + already-processed IDs ──
+    const profile = await prisma.userProfile.findUnique({
+      where: { id: profileId },
+      select: { lastEmailSync: true }
+    })
+    if (!profile) {
+      await finalizeLog("failed", {}, [], "ProfileId not found")
+      return { success: false, syncLogId: syncLog.id, emailsFound: 0,
+               emailsProcessed: 0, emailsSkipped: 0, noticesCreated: 0,
+               deadlinesCreated: 0, schedulesUpdated: 0,
+               errorMessage: "ProfileId not found", durationMs: Date.now() - startTime }
+    }
+
+    // ── Step 2: Fetch emails from Gmail ──
+    const emails = await fetchEmailsSince(profile.lastEmailSync, 30)
+    emailsFound = emails.length
+
+    if (emails.length === 0) {
+      await prisma.userProfile.update({
+        where: { id: profileId },
+        data: { lastEmailSync: new Date() }
+      })
+      await finalizeLog("completed", { emailsFound: 0 }, [])
+      return { success: true, syncLogId: syncLog.id, emailsFound: 0,
+               emailsProcessed: 0, emailsSkipped: 0, noticesCreated: 0,
+               deadlinesCreated: 0, schedulesUpdated: 0,
+               durationMs: Date.now() - startTime }
+    }
+
+    // ── Step 3: Deduplicate against ProcessedEmail table ──
+    const existingIds = await prisma.processedEmail.findMany({
+      where: {
+        gmailId: { in: emails.map(e => e.gmailId) }
+      },
+      select: { gmailId: true }
+    })
+    const processedSet = new Set(existingIds.map(r => r.gmailId))
+    const newEmails = emails.filter(e => !processedSet.has(e.gmailId))
+    emailsSkipped += emails.length - newEmails.length
+
+    // ── Step 4: Process each email through the two-gate pipeline ──
+    // Process SEQUENTIALLY — not in parallel
+    // Reason: Gemini rate limits + we want the extraction log to be ordered
+    for (const email of newEmails) {
+      const logEntry: Record<string, unknown> = {
+        gmailId: email.gmailId,
+        subject: email.subject,
+        from: email.from,
+        receivedAt: email.receivedAt,
+      }
+
+      try {
+        // ── Gate 1: Privacy Filter ──
+        const privacy = await classifyPrivacy(
+          email.subject,
+          email.from,
+          email.body
+        )
+        logEntry.privacyDecision = privacy
+
+        // Register this email as processed regardless of outcome
+        // so we never process it again
+        await prisma.processedEmail.create({
+          data: {
+            gmailId: email.gmailId,
+            subject: email.subject,
+            receivedAt: email.receivedAt,
+            profileId,
+            syncLogId: syncLog.id,
+            wasPrivate: privacy.isPrivate,
+          }
+        })
+
+        if (privacy.isPrivate) {
+          logEntry.decision = "skipped_private"
+          extractionLog.push(logEntry)
+          emailsSkipped++
+          continue
+        }
+
+        // Skip if privacy classifier is uncertain (low confidence = treat as private)
+        if (privacy.confidence === "low") {
+          logEntry.decision = "skipped_low_confidence"
+          extractionLog.push(logEntry)
+          emailsSkipped++
+          continue
+        }
+
+        // ── Gate 2: Entity Extraction ──
+        const entity = await extractEntity(
+          email.subject,
+          email.from,
+          email.body,
+          email.receivedAt
+        )
+        logEntry.entityType = entity.type
+        logEntry.extraction = entity
+
+        // ── Step 5: Persist extracted entity ──
+        if (entity.type === "notice") {
+          const embedding = await embedText(entity.body)
+          await prisma.notice.create({
+            data: {
+              title: entity.title,
+              body: entity.body,
+              category: entity.category,
+              eventDate: entity.eventDate ? new Date(entity.eventDate) : null,
+              venue: entity.venue,
+              actionRequired: entity.actionRequired,
+              source: \`email:\${email.from}\`,
+              embedding,
+            }
+          })
+          noticesCreated++
+          logEntry.decision = "created_notice"
+
+        } else if (entity.type === "deadline") {
+          const embedding = await embedText(entity.title + " " + entity.subject)
+          await prisma.deadline.create({
+            data: {
+              title: entity.title,
+              subject: entity.subject,
+              dueDate: new Date(entity.dueDate),
+              type: entity.deadlineType,
+              notes: entity.notes,
+              embedding,
+            }
+          })
+          deadlinesCreated++
+          logEntry.decision = "created_deadline"
+
+        } else if (entity.type === "schedule_update") {
+          // Handle schedule updates carefully — don't blindly overwrite
+          await handleScheduleUpdate(entity)
+          schedulesUpdated++
+          logEntry.decision = "updated_schedule"
+
+        } else {
+          // entity.type === "ignore"
+          logEntry.decision = "ignored"
+          logEntry.ignoreReason = entity.reason
+          emailsSkipped++
+        }
+
+        emailsProcessed++
+
+      } catch (emailError) {
+        // One email failing must NOT abort the entire sync
+        console.error(\`[Sync] Failed to process email \${email.gmailId}:\`, emailError)
+        logEntry.decision = "error"
+        logEntry.error = emailError instanceof Error
+          ? emailError.message : String(emailError)
+        emailsSkipped++
+      }
+
+      extractionLog.push(logEntry)
+
+      // Small delay between emails to avoid Gemini rate limits
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
+
+    // ── Step 6: Update lastEmailSync timestamp ──
+    // Only update if sync completed without a hard failure
+    await prisma.userProfile.update({
+      where: { id: profileId },
+      data: { lastEmailSync: new Date() }
+    })
+
+    const finalStatus = emailsSkipped > emailsProcessed ? "partial" : "completed"
+    await finalizeLog(finalStatus, {
+      emailsFound, emailsProcessed, emailsSkipped,
+      noticesCreated, deadlinesCreated, schedulesUpdated
+    }, extractionLog)
+
+    return {
+      success: true,
+      syncLogId: syncLog.id,
+      emailsFound, emailsProcessed, emailsSkipped,
+      noticesCreated, deadlinesCreated, schedulesUpdated,
+      durationMs: Date.now() - startTime
+    }
+
+  } catch (fatalError) {
+    // Fatal error — entire sync failed
+    const msg = fatalError instanceof Error ? fatalError.message : String(fatalError)
+    console.error("[Sync] Fatal error:", fatalError)
+    await finalizeLog("failed", {
+      emailsFound, emailsProcessed, emailsSkipped
+    }, extractionLog, msg)
+
+    return {
+      success: false,
+      syncLogId: syncLog.id,
+      emailsFound, emailsProcessed, emailsSkipped,
+      noticesCreated: 0, deadlinesCreated: 0, schedulesUpdated: 0,
+      errorMessage: msg,
+      durationMs: Date.now() - startTime
+    }
+  }
+}
+
+// ── Schedule update handler ──
+// Schedule updates are the most dangerous entity type — incorrect updates
+// can corrupt the timetable. Be conservative.
+
+async function handleScheduleUpdate(
+  entity: import("@/lib/emailClassifier").ExtractedScheduleUpdate
+): Promise<void> {
+  if (entity.updateKind === "cancelled") {
+    // Find matching class and mark it or add a note — do NOT delete it
+    // (the class recurs next week — a cancellation is one-time)
+    // For v1: create a notice instead of modifying the schedule
+    const embedding = await embedText(
+      \`Cancelled: \${entity.subject} on \${entity.affectedDay}\`
+    )
+    await prisma.notice.create({
+      data: {
+        title: \`Class Cancelled: \${entity.subject} (\${entity.affectedDay})\`,
+        body: entity.notes ?? \`\${entity.subject} class on \${entity.affectedDay} has been cancelled.\`,
+        category: "general",
+        eventDate: null,
+        venue: null,
+        actionRequired: null,
+        source: "email:schedule_update",
+        embedding,
+      }
+    })
+  } else if (entity.updateKind === "room_change") {
+    // Find the matching ClassSchedule row and update the room
+    if (entity.subject && entity.affectedDay && entity.originalTime) {
+      const existing = await prisma.classSchedule.findFirst({
+        where: {
+          subject: { contains: entity.subject.split(" ")[0] },
+          // fuzzy: match first word of subject to handle "CS301 Data Structures" vs "Data Structures"
+          day: entity.affectedDay,
+          startTime: entity.originalTime,
+        }
+      })
+      if (existing && entity.newRoom) {
+        await prisma.classSchedule.update({
+          where: { id: existing.id },
+          data: { room: entity.newRoom }
+        })
+      }
+    }
+  } else if (entity.updateKind === "rescheduled" || entity.updateKind === "new_class") {
+    // For new/rescheduled classes: create a notice rather than auto-modifying
+    // the schedule. Schedule modifications require higher confidence.
+    const embedding = await embedText(
+      \`\${entity.updateKind}: \${entity.subject} \${entity.affectedDay} \${entity.newTime ?? ""}\`
+    )
+    await prisma.notice.create({
+      data: {
+        title: \`Schedule Update: \${entity.subject}\`,
+        body: entity.notes ?? \`\${entity.subject} has been \${entity.updateKind}.\`,
+        category: "general",
+        eventDate: null,
+        venue: entity.newRoom,
+        actionRequired: "Check updated timetable",
+        source: "email:schedule_update",
+        embedding,
+      }
+    })
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART F — API ROUTES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+── app/api/email-sync/route.ts [NEW] ──
+Manual trigger endpoint (for chat tool + UI button):
+
+import { runEmailSync } from "@/lib/emailSync"
+import { prisma } from "@/lib/prisma"
+
+export async function POST(request: Request) {
+  try {
+    const { profileId } = await request.json()
+
+    if (!profileId || typeof profileId !== "string") {
+      return Response.json({ error: "profileId is required" }, { status: 400 })
+    }
+
+    // Validate profile exists
+    const profile = await prisma.userProfile.findUnique({
+      where: { id: profileId },
+      select: { id: true, emailSyncEnabled: true }
+    })
+    if (!profile) {
+      return Response.json({ error: "Profile not found" }, { status: 404 })
+    }
+    if (!profile.emailSyncEnabled) {
+      return Response.json(
+        { error: "Email sync is not enabled for this profile. Enable it in Settings." },
+        { status: 403 }
+      )
+    }
+
+    // Check if a sync is already running (prevent concurrent syncs)
+    const runningSyncs = await prisma.emailSyncLog.count({
+      where: { profileId, status: "running" }
+    })
+    if (runningSyncs > 0) {
+      return Response.json(
+        { error: "A sync is already in progress. Please wait." },
+        { status: 409 }
+      )
+    }
+
+    const result = await runEmailSync(profileId, "manual_api")
+
+    return Response.json({ result }, { status: result.success ? 200 : 500 })
+
+  } catch (error) {
+    console.error("[POST /api/email-sync]", error)
+    return Response.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+── app/api/email-sync/status/route.ts [NEW] ──
+Returns recent sync logs for the UI status panel:
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const profileId = searchParams.get("profileId")
+
+  if (!profileId) {
+    return Response.json({ error: "profileId required" }, { status: 400 })
+  }
+
+  const logs = await prisma.emailSyncLog.findMany({
+    where: { profileId },
+    orderBy: { startedAt: "desc" },
+    take: 10,
+    select: {
+      id: true,
+      triggeredBy: true,
+      startedAt: true,
+      completedAt: true,
+      status: true,
+      emailsFound: true,
+      emailsProcessed: true,
+      emailsSkipped: true,
+      noticesCreated: true,
+      deadlinesCreated: true,
+      schedulesUpdated: true,
+      errorMessage: true,
+      // DO NOT return extractionLog to the client — contains email subjects
+      // which may be sensitive. Only expose aggregate counts.
+    }
+  })
+
+  return Response.json({ logs })
+}
+
+── app/api/cron/email-sync/route.ts [NEW] ──
+Automated cron endpoint (called by Vercel Cron or external scheduler):
+
+export async function GET(request: Request) {
+  // Verify this is called by the cron system, not a random HTTP request
+  const authHeader = request.headers.get("Authorization")
+  const cronSecret = process.env.CRON_SECRET
+
+  if (!cronSecret) {
+    console.error("[Cron] CRON_SECRET is not set — cron endpoint is unprotected!")
+    return Response.json({ error: "Cron secret not configured" }, { status: 500 })
+  }
+
+  if (authHeader !== \`Bearer \${cronSecret}\`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Find all profiles with emailSyncEnabled=true
+  const profiles = await prisma.userProfile.findMany({
+    where: { emailSyncEnabled: true },
+    select: { id: true }
+  })
+
+  if (profiles.length === 0) {
+    return Response.json({ message: "No profiles with email sync enabled" })
+  }
+
+  // Process profiles sequentially — never in parallel for cron
+  // Parallel would hammer Gemini rate limits
+  const results = []
+  for (const profile of profiles) {
+    try {
+      const result = await runEmailSync(profile.id, "cron")
+      results.push({ profileId: profile.id, ...result })
+    } catch (error) {
+      results.push({
+        profileId: profile.id,
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
+    // 2-second gap between profiles to respect Gemini rate limits
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
+
+  return Response.json({ processed: profiles.length, results })
+}
+
+── vercel.json [NEW at project root] ──
+{
+  "crons": [
+    {
+      "path": "/api/cron/email-sync",
+      "schedule": "0 8,20 * * *"
+    }
+  ]
+}
+
+Note: Vercel Cron sends requests with Authorization: Bearer CRON_SECRET
+automatically when you add CRON_SECRET to your Vercel environment variables.
+For local testing, call the endpoint manually with the header.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART G — CHAT TOOL INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The user can say "import my emails", "sync my inbox",
+"check for new notices from email", "update from email" in the chat.
+The AI detects intent and triggers the sync.
+
+── Update lib/gemini.ts — add tool support ──
+
+Add a new exported function:
+
+export async function answerWithTools(
+  question: string,
+  context: string,
+  history: {role: string, content: string}[],
+  profileId: string
+): Promise<{ text: string; triggeredSync: boolean; syncResult?: SyncResult }>
+
+Detection logic (keyword-based before Gemini — cheaper and faster):
+const syncTriggerPhrases = [
+  "import email", "sync email", "sync inbox", "check email",
+  "update from email", "fetch email", "new email", "import inbox",
+  "check my inbox", "email sync", "sync my mail"
+]
+const questionLower = question.toLowerCase()
+const wantsSync = syncTriggerPhrases.some(p => questionLower.includes(p))
+
+If wantsSync=true:
+1. Check emailSyncEnabled for this profileId
+   - If false: return text explaining they need to enable email sync in Settings
+2. If enabled: call runEmailSync(profileId, "chat")
+3. Build a human-readable summary from the SyncResult:
+   - If success: "I've synced your inbox. Found \${emailsFound} emails,
+     added \${noticesCreated} notice(s), \${deadlinesCreated} deadline(s),
+     and updated \${schedulesUpdated} schedule item(s)."
+   - If success but 0 new items: "I synced your inbox — no new campus
+     emails since your last sync \${timeSinceLastSync}."
+   - If failed: "I tried to sync your emails but ran into an issue:
+     \${errorMessage}. You can try again or check your email connection in Settings."
+4. Return { text: summary, triggeredSync: true, syncResult: result }
+
+If wantsSync=false: proceed with normal answerQuestion flow.
+
+── Update components/ChatInterface.tsx ──
+
+When a chat response has triggeredSync=true, show a special message card
+instead of a regular AI bubble:
+
+<div className="flex items-start gap-3 bg-indigo-950/40 border border-indigo-500/30 rounded-lg p-3">
+  <div className="text-indigo-400 mt-0.5">📧</div>
+  <div>
+    <p className="text-sm font-medium text-indigo-300">Email Sync Complete</p>
+    <p className="text-sm text-slate-300 mt-1">{syncSummaryText}</p>
+    {syncResult && (
+      <div className="flex gap-3 mt-2 text-xs text-slate-400">
+        <span>{syncResult.noticesCreated} notices</span>
+        <span>{syncResult.deadlinesCreated} deadlines</span>
+        <span>{syncResult.schedulesUpdated} schedule updates</span>
+      </div>
+    )}
+  </div>
+</div>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART H — SETTINGS UI + SYNC STATUS PANEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add an "Email Sync" section to the Settings page:
+
+── components/EmailSyncSettings.tsx [NEW] ──
+
+Sections:
+
+1. Connection Status:
+   - "Gmail Connected ✓" or "Gmail Not Connected"
+   - A "Test Connection" button that calls a lightweight
+     GET /api/email-sync/test route (just runs validateAndRefreshToken,
+     returns { valid: boolean, error?: string })
+
+2. Enable/Disable Toggle:
+   - "Automatically sync campus emails" toggle
+   - PATCH /api/peer/profile (or a new PATCH /api/profile route)
+     to update emailSyncEnabled
+   - When enabling: show consent text:
+     "CampusFlow will read emails from your Gmail inbox twice daily.
+      Only campus-related emails are processed. Email content is never stored.
+      Only extracted information (notices, deadlines, schedules) is saved."
+   - Require explicit "I understand" checkbox before enabling
+
+3. Last Sync Status:
+   - "Last synced: X minutes ago" or "Never synced"
+   - "Sync Now" button → POST /api/email-sync
+     Shows a loading spinner while running (sync can take 15-30 seconds)
+     On complete: shows the sync result summary
+
+4. Sync History (last 5 runs):
+   - Table: Date | Triggered By | Emails Found | Created | Status
+   - Status chip: green=completed, amber=partial, red=failed
+   - Fetch from GET /api/email-sync/status?profileId=xxx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART I — ENVIRONMENT VARIABLES + DOCS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to .env.local.example:
+
+# Gmail OAuth (single demo user)
+GMAIL_CLIENT_ID="your-google-oauth-client-id"
+GMAIL_CLIENT_SECRET="your-google-oauth-client-secret"
+GMAIL_REFRESH_TOKEN="your-refresh-token-from-oauth-flow"
+
+# Cron security
+CRON_SECRET="generate-with: openssl rand -hex 32"
+
+Create docs/gmail-oauth-setup.md with step-by-step instructions:
+1. Go to console.cloud.google.com
+2. Create project → Enable Gmail API
+3. OAuth consent screen → External → Add test user (your Gmail)
+4. Credentials → OAuth 2.0 Client ID → Desktop app
+5. Download credentials JSON
+6. Run the one-time token generator script (scripts/get-gmail-token.ts):
+
+   import { google } from "googleapis"
+   import * as readline from "readline"
+
+   const CLIENT_ID = process.env.GMAIL_CLIENT_ID!
+   const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET!
+
+   const oauth2Client = new google.auth.OAuth2(
+     CLIENT_ID, CLIENT_SECRET,
+     "urn:ietf:wg:oauth:2.0:oob"
+   )
+
+   const authUrl = oauth2Client.generateAuthUrl({
+     access_type: "offline",
+     scope: ["https://www.googleapis.com/auth/gmail.readonly"],
+     prompt: "consent"  // force consent screen to get refresh_token
+   })
+
+   console.log("Open this URL:", authUrl)
+   const rl = readline.createInterface({ input: process.stdin })
+   rl.question("Paste the code here: ", async (code) => {
+     const { tokens } = await oauth2Client.getToken(code)
+     console.log("Add to .env.local:")
+     console.log("GMAIL_REFRESH_TOKEN=" + tokens.refresh_token)
+     rl.close()
+   })
+
+7. Add the refresh token to .env.local
+8. Run scripts/test-gmail.ts to verify connection
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QA CHECKPOINT — Phase 15
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Switch roles: QA lead who has debugged Gmail integrations that worked
+in dev and silently did nothing in production. Be merciless.
+
+── GMAIL SERVICE CHECKS ──
+
+1. validateAndRefreshToken with valid credentials → returns without throwing.
+   Log the access token (first 10 chars) to confirm it's real.
+
+2. validateAndRefreshToken with invalid GMAIL_CLIENT_ID →
+   throws GmailAuthError with code="INVALID_CLIENT".
+   Confirm the error message contains actionable instructions.
+
+3. validateAndRefreshToken with expired/revoked GMAIL_REFRESH_TOKEN →
+   throws GmailAuthError with code="REFRESH_TOKEN_EXPIRED".
+   Confirm the error message references docs/gmail-oauth-setup.md.
+
+4. fetchEmailsSince with afterDate=null →
+   fetches up to 30 emails from category:primary.
+   Confirm none of them appear in the Promotions or Social tabs.
+
+5. fetchEmailsSince with afterDate=now() →
+   returns empty array (no emails in the future).
+
+6. Send yourself a test email with an HTML body containing
+   nested divs, inline styles, and &nbsp; entities.
+   Confirm extractBody strips all HTML, decodes entities,
+   and returns readable plain text.
+
+7. Create a test email with a forwarded chain ("On X wrote:").
+   Confirm removeForwardedChains truncates at the forward boundary.
+   The returned body must not contain the forwarded content.
+
+8. fetchEmailsSince with a test inbox that has 35 emails since the date.
+   Confirm maxResults=30 is enforced. Confirm the console warning fires.
+
+── PRIVACY FILTER CHECKS ──
+
+9. Run classifyPrivacy on each of these — confirm expected result:
+   a. Subject: "Exam Schedule — November 2024", From: "academics@college.edu"
+      → isPrivate: false, confidence: "high"
+   b. Subject: "Your OTP is 847291", From: "noreply@hdfc.com"
+      → isPrivate: true
+   c. Subject: "Amazon: Your order has shipped", From: "shipment@amazon.in"
+      → isPrivate: true
+   d. Subject: "Hey, are you coming to the party?", From: "friend@gmail.com"
+      → isPrivate: true
+   e. Subject: "Placement Drive — Google", From: "placement@college.edu"
+      → isPrivate: false, confidence: "high"
+   f. Subject: "Re: Fwd: Meeting notes", From: "professor@college.edu"
+      → isPrivate: false (campus related despite chain)
+
+10. Simulate Gemini throwing an error inside classifyPrivacy.
+    Confirm: returns { isPrivate: true, confidence: "low", reason: "..." }
+    Confirm: does NOT throw. Does NOT propagate the error.
+
+── ENTITY EXTRACTOR CHECKS ──
+
+11. Run extractEntity on:
+    a. "Assignment 3 for CS301 Data Structures is due on November 15th.
+       Submit on the portal before midnight."
+       → type: "deadline", dueDate: "2024-11-15", deadlineType: "assignment"
+
+    b. "The End Semester Examination for all 3rd year students will be
+       held from December 1-10, 2024 in Examination Hall A."
+       → type: "notice" OR "deadline" — document which and why
+
+    c. "Due to unavoidable circumstances, the Operating Systems class
+       scheduled for Monday at 10:00 AM has been cancelled."
+       → type: "schedule_update", updateKind: "cancelled", affectedDay: "Monday"
+
+    d. "Don't forget to submit your fees before the semester ends."
+       (no specific date given)
+       → type: "ignore" (no actionable date)
+
+    e. "See you at the fest this weekend!"
+       (personal/vague)
+       → type: "ignore"
+
+12. extractEntity returns a deadline with dueDate="sometime next month".
+    Confirm isValidDate fails, entity converted to ignore.
+
+── SYNC ENGINE CHECKS ──
+
+13. Run sync twice. Confirm the second run returns success=true,
+    emailsFound=0, emailsProcessed=0.
+
+14. Inject a test email that causes extractEntity to throw.
+    Confirm the sync CONTINUES processing the remaining emails,
+    and returns success=true with emailsSkipped incremented.
+
+15. Inject a DB connection error during prisma.emailSyncLog.update.
+    Confirm runEmailSync catches it and returns success=false
+    with the errorMessage. No unhandled promise rejections.
+
+── CHAT INTEGRATION CHECKS ──
+
+16. Ask chat: "Can you sync my inbox?" when emailSyncEnabled=false.
+    Confirm the response tells the user to go to Settings.
+    Confirm no actual sync was run.
+
+17. Ask chat: "Import my new emails" when emailSyncEnabled=true.
+    Wait for completion. Confirm the special UI message card appears
+    with the correct counts from the SyncResult.
+
+18. Ask chat: "When is my next exam?"
+    Confirm answerWithTools bypasses the sync logic and handles
+    the query normally using the RAG pipeline.
+
+If any check fails, do not close the phase. Fix the bug, document why it happened, and rerun the check.

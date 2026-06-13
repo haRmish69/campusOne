@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
+import { auth } from "@clerk/nextjs/server";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 const MODEL = "gemini-flash-latest";
@@ -34,12 +35,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     // Check if we already generated an insight today
     const existingInsight = await prisma.wellnessInsight.findFirst({
-      where: { date: { gte: todayStart } },
+      where: { userId, date: { gte: todayStart } },
       orderBy: { date: "desc" },
     });
 
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Fetch Wellness Data
     const wellnessLogs = await prisma.wellnessLog.findMany({
-      where: { date: { gte: fourteenDaysAgo } },
+      where: { userId, date: { gte: fourteenDaysAgo } },
       orderBy: { date: "asc" },
       select: { date: true, mood: true, sleepHours: true, stressLevel: true }
     });
@@ -61,6 +65,7 @@ export async function GET(req: NextRequest) {
     // 2. Fetch Academic Data
     const academicLoad = await prisma.deadline.findMany({
       where: {
+        userId,
         AND: [
           { dueDate: { gte: now, lte: sevenDaysFromNow } },
           { OR: [{ type: { contains: "exam" } }, { type: { contains: "assignment" } }, { title: { contains: "test" } }] }
@@ -72,7 +77,7 @@ export async function GET(req: NextRequest) {
     // 3. Fetch Financial Data (last 7 days expenses)
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const expenses = await prisma.expense.findMany({
-      where: { date: { gte: sevenDaysAgo } },
+      where: { userId, date: { gte: sevenDaysAgo } },
     });
     const foodWeeklyExpense = expenses.filter(e => e.category === "food" || e.category.toLowerCase().includes("food") || e.category.toLowerCase().includes("dining")).reduce((sum, e) => sum + e.amount, 0);
     const totalWeeklyExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -108,6 +113,7 @@ Return ONLY JSON: { "score": number (1-100, 100=highest risk), "message": string
     // Save to database
     const insight = await prisma.wellnessInsight.create({
       data: {
+        userId,
         score: typeof parsed.score === "number" ? parsed.score : 50,
         message: parsed.message || "Take a deep breath and remember to prioritize your well-being.",
       },
