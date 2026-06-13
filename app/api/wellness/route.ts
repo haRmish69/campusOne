@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { embedText } from "@/lib/embeddings";
+import { addToFaissIndex } from "@/lib/vectorStore";
 
 import { auth } from "@clerk/nextjs/server";
 
@@ -46,6 +47,9 @@ export async function POST(req: NextRequest) {
         major,
       },
     });
+
+    // Add to FAISS for semantic search
+    await addToFaissIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours}h. Notes: ${notes || "none"}`);
 
     return NextResponse.json(log, { status: 201 });
   } catch (error) {

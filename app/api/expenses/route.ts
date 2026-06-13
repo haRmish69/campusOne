@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseImageToJSON, categorizeExpense } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
+import { addToFaissIndex } from "@/lib/vectorStore";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,6 +49,9 @@ export async function POST(req: NextRequest) {
         embedding: JSON.stringify(embedding),
       },
     });
+
+    // Add to FAISS for semantic search
+    await addToFaissIndex(expense.id, `[EXPENSE] ${category}: ₹${amount} on ${description}`);
 
     return NextResponse.json(expense, { status: 201 });
   } catch (error) {

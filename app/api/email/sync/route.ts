@@ -7,7 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-flash-latest";
 
 // Helper for retries
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {

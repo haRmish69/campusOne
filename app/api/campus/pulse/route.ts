@@ -83,7 +83,7 @@ export async function GET() {
     Write a 2-3 sentence engaging "Campus Pulse" message summarizing the vibe on campus. Be empathetic. Mention if certain majors seem stressed. Do NOT mention specific users or raw data.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-flash-latest",
       contents: prompt,
       config: { temperature: 0.5 }
     });

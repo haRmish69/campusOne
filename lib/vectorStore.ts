@@ -1,129 +1,98 @@
-import { prisma } from "./prisma";
-import { cosineSimilarity } from "./embeddings";
+import { IndexFlatL2 } from "faiss-node";
+import { getRealEmbedding } from "./embeddings";
+import * as fs from "fs";
+import * as path from "path";
 
-export type SearchResult = {
-  id: string;
-  type: "notice" | "mess" | "deadline" | "schedule" | "expense" | "wellness";
-  title: string;
-  body: string;
-  similarity: number;
+const DATA_DIR = path.join(process.cwd(), "data");
+const INDEX_PATH = path.join(DATA_DIR, "campus.index");
+const MAP_PATH = path.join(DATA_DIR, "faiss_map.json");
+
+/** Get dimension from existing index, or default */
+function getDimension(): number {
+  if (fs.existsSync(INDEX_PATH)) {
+    try {
+      const idx = IndexFlatL2.read(INDEX_PATH);
+      return idx.getDimension();
+    } catch { /* fall through */ }
+  }
+  return 768; // fallback
 }
 
-export async function searchAcrossTables(queryEmbedding: number[], userId: string, topK: number = 5): Promise<SearchResult[]> {
-  const [notices, messMenus, deadlines, classes, expenses, wellnessLogs] = await Promise.all([
-    prisma.notice.findMany(),
-    prisma.messMenu.findMany(),
-    prisma.deadline.findMany({
-      where: { OR: [{ userId }, { userId: null }] }
-    }),
-    prisma.classSchedule.findMany({
-      where: { OR: [{ userId }, { userId: null }] }
-    }),
-    prisma.expense.findMany(),
-    prisma.wellnessLog.findMany()
-  ]);
-
-  const results: SearchResult[] = [];
-
-  const parseEmbedding = (raw: unknown): number[] => {
-    if (!raw) throw new Error("Null embedding");
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === "string") {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
-      if (typeof parsed === "string") {
-        const doubleParsed = JSON.parse(parsed);
-        if (Array.isArray(doubleParsed)) return doubleParsed;
-      }
+/**
+ * Adds a single new vector to the existing FAISS index on disk.
+ * Call this from any ingest route after inserting a record into MySQL.
+ */
+export async function addToFaissIndex(prismaId: string, text: string): Promise<void> {
+  try {
+    const embedding = await getRealEmbedding(text);
+    const hasValues = embedding.some(v => v !== 0);
+    if (!hasValues || embedding.length === 0) {
+      console.warn(`FAISS: Skipped adding ${prismaId} (bad embedding)`);
+      return;
     }
-    throw new Error("Invalid embedding format");
-  };
 
-  for (const notice of notices) {
-    if (!notice.embedding) continue;
-    try {
-      const embedding = parseEmbedding(notice.embedding);
-      results.push({
-        id: notice.id,
-        type: "notice",
-        title: notice.title,
-        body: notice.body,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+    let index: InstanceType<typeof IndexFlatL2>;
+    let faissMap: Record<number, string> = {};
+
+    if (fs.existsSync(INDEX_PATH) && fs.existsSync(MAP_PATH)) {
+      index = IndexFlatL2.read(INDEX_PATH);
+      faissMap = JSON.parse(fs.readFileSync(MAP_PATH, "utf-8"));
+    } else {
+      index = new IndexFlatL2(embedding.length);
+    }
+
+    // Check if this ID is already in the map (avoid duplicates)
+    const existingIds = Object.values(faissMap);
+    if (existingIds.includes(prismaId)) {
+      console.log(`FAISS: ${prismaId} already indexed, skipping.`);
+      return;
+    }
+
+    const nextIndex = index.ntotal();
+    index.add(embedding);
+    faissMap[nextIndex] = prismaId;
+
+    index.write(INDEX_PATH);
+    fs.writeFileSync(MAP_PATH, JSON.stringify(faissMap, null, 2));
+
+    console.log(`FAISS: Added vector #${nextIndex} for ${prismaId}`);
+  } catch (error) {
+    console.error(`FAISS: Failed to add ${prismaId}:`, error);
+  }
+}
+
+/**
+ * Performs a semantic search against the local FAISS index.
+ * Returns an array of Prisma string IDs corresponding to the closest matches.
+ */
+export function semanticSearch(queryEmbedding: number[], topK: number = 5): string[] {
+  const dim = getDimension();
+  if (queryEmbedding.length !== dim) {
+    console.error(`Invalid query embedding dimension: ${queryEmbedding.length}, expected ${dim}`);
+    return [];
   }
 
-  for (const menu of messMenus) {
-    if (!menu.embedding) continue;
-    try {
-      const embedding = parseEmbedding(menu.embedding);
-      results.push({
-        id: menu.id,
-        type: "mess",
-        title: `${menu.day} ${menu.meal}`,
-        body: menu.items,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
+  if (!fs.existsSync(INDEX_PATH) || !fs.existsSync(MAP_PATH)) {
+    console.warn("FAISS index or map not found. Run: npm run rebuild-index");
+    return [];
   }
 
-  for (const deadline of deadlines) {
-    if (!deadline.embedding) continue;
-    try {
-      const embedding = parseEmbedding(deadline.embedding);
-      results.push({
-        id: deadline.id,
-        type: "deadline",
-        title: deadline.title,
-        body: `${deadline.subject} due ${deadline.dueDate.toISOString()}`,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
+  const faissMap: Record<number, string> = JSON.parse(fs.readFileSync(MAP_PATH, "utf-8"));
+  const index = IndexFlatL2.read(INDEX_PATH);
+
+  const safeK = Math.min(topK, index.ntotal());
+  if (safeK === 0) return [];
+
+  const results = index.search(queryEmbedding, safeK);
+
+  const matchedPrismaIds: string[] = [];
+  for (const label of results.labels) {
+    if (label !== -1 && faissMap[label]) {
+      matchedPrismaIds.push(faissMap[label]);
+    }
   }
 
-  for (const cls of classes) {
-    if (!cls.embedding) continue;
-    try {
-      const embedding = parseEmbedding(cls.embedding);
-      results.push({
-        id: cls.id,
-        type: "schedule",
-        title: cls.subject,
-        body: `${cls.subject} taught by ${cls.faculty || "Unknown"} on ${cls.day} at ${cls.startTime}-${cls.endTime} in ${cls.room || "Unknown"}`,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
-  }
-
-  for (const expense of expenses) {
-    if (!expense.embedding) continue;
-    try {
-      const embedding = parseEmbedding(expense.embedding);
-      results.push({
-        id: expense.id,
-        type: "expense",
-        title: `Expense: ${expense.category}`,
-        body: `Spent ₹${expense.amount} on ${expense.description} on ${expense.date.toISOString().split("T")[0]}`,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
-  }
-
-  for (const log of wellnessLogs) {
-    if (!log.embedding) continue;
-    try {
-      const embedding = parseEmbedding(log.embedding);
-      results.push({
-        id: log.id,
-        type: "wellness",
-        title: `Wellness Log`,
-        // Wellness string template
-        body: `Mood: ${log.mood}/5, Stress: ${log.stressLevel}/5, Sleep: ${log.sleepHours}h. Notes: ${log.notes}. Date: ${log.date.toISOString().split("T")[0]}`,
-        similarity: cosineSimilarity(queryEmbedding, embedding)
-      });
-    } catch {}
-  }
-
-  results.sort((a, b) => b.similarity - a.similarity);
-  return results.slice(0, topK);
+  return matchedPrismaIds;
 }

@@ -1,61 +1,55 @@
-import { extractKeywords } from "./gemini";
+import { GoogleGenAI } from "@google/genai";
 
-export async function embedText(text: string): Promise<number[]> {
+let detectedDimension = 0;
+
+export async function getRealEmbedding(text: string): Promise<number[]> {
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+  
   if (!text || text.trim().length === 0) {
-    return Array(200).fill(0);
-  }
-  
-  const truncated = text.substring(0, 2000).toLowerCase();
-  
-  // Extract words locally instead of using AI to save API quota
-  const words = truncated.match(/\b[a-z]{4,}\b/g) || [];
-  
-  // Simple stopword removal
-  const stopwords = new Set(["this", "that", "with", "from", "your", "have", "will", "they", "their", "what", "when", "where"]);
-  const keywords = words.filter(w => !stopwords.has(w));
-
-  const vector = new Float32Array(200).fill(0);
-  
-  for (const keyword of keywords) {
-    let hash = 0;
-    for (let i = 0; i < keyword.length; i++) {
-      hash = (hash * 31 + keyword.charCodeAt(i)) % 200;
-    }
-    vector[hash] += 1;
+    return Array(detectedDimension || 768).fill(0);
   }
 
-  let sumOfSquares = 0;
-  for (let i = 0; i < 200; i++) {
-    sumOfSquares += vector[i] * vector[i];
-  }
-  
-  const magnitude = Math.sqrt(sumOfSquares);
-  if (magnitude > 0) {
-    for (let i = 0; i < 200; i++) {
-      vector[i] = vector[i] / magnitude;
+  try {
+    const response = await ai.models.embedContent({
+      model: 'gemini-embedding-001',
+      contents: text,
+    });
+    
+    const embedding = response.embeddings?.[0]?.values;
+    
+    if (!embedding || embedding.length === 0) {
+      throw new Error("Empty embedding returned from Gemini");
     }
+
+    // Auto-detect and log dimension on first successful call
+    if (detectedDimension === 0) {
+      detectedDimension = embedding.length;
+      console.log(`📐 Embedding dimension detected: ${detectedDimension}`);
+    }
+    
+    return embedding;
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    return Array(detectedDimension || 768).fill(0);
   }
-  
-  return Array.from(vector);
 }
 
+export function getEmbeddingDimension(): number {
+  return detectedDimension || 768;
+}
+
+// Backward-compatible aliases for existing code
+export const embedText = getRealEmbedding;
+
 export function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0 || b.length === 0) {
-    return 0;
-  }
-  
-  let dot = 0;
-  let sumA = 0;
-  let sumB = 0;
-  
+  if (a.length !== b.length || a.length === 0) return 0;
+  let dot = 0, sumA = 0, sumB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     sumA += a[i] * a[i];
     sumB += b[i] * b[i];
   }
-  
   const magA = Math.sqrt(sumA);
   const magB = Math.sqrt(sumB);
-  
   return magA === 0 || magB === 0 ? 0 : dot / (magA * magB);
 }

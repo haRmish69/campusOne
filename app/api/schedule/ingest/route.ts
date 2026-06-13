@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
+import { addToFaissIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
           major,
         }
       });
+      // Add to FAISS for semantic search
+      await addToFaissIndex(schedule.id, `[CLASS] ${subject || "Class"} taught by ${faculty || "Unknown"} on ${day || "Unknown"} from ${startTime || "00:00"} to ${endTime || "00:00"} at ${room || "Unknown"}`);
       createdSchedules.push({ ...schedule, embedding: undefined });
     }
 

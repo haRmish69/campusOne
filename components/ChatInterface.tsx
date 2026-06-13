@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
-import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2 } from "lucide-react";
+import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -144,9 +144,27 @@ export function ChatInterface() {
       speak(fullResponse);
       
     } catch (error: any) {
-      console.error(error);
+      let errorMsg = error.message || "An unexpected error occurred.";
+      try {
+        const parsed = JSON.parse(errorMsg);
+        if (parsed.error && parsed.error.message) errorMsg = parsed.error.message;
+      } catch (e) {}
+      
+      console.error("Chat Error:", errorMsg);
+      try {
+        const parsed = JSON.parse(errorMsg);
+        if (parsed.error && parsed.error.message) errorMsg = parsed.error.message;
+      } catch (e) {}
+      
       toast.error("Chat Error", {
-        description: error.message || "An unexpected error occurred.",
+        description: errorMsg,
+        style: {
+          backgroundColor: '#ef4444', 
+          color: 'white', 
+          border: '1px solid #dc2626'
+        },
+        className: "!text-white", 
+        descriptionClassName: "!text-white !opacity-100 font-bold"
       });
       setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
     } finally {
@@ -164,6 +182,14 @@ export function ChatInterface() {
     }
   };
 
+  const startNewChat = () => {
+    const newSid = uuidv4();
+    localStorage.setItem("campusflow_session", newSid);
+    setSessionId(newSid);
+    setMessages([]);
+    toast.success("Started a new chat session");
+  };
+
   const quickQuestions = [
     "What's for dinner today?",
     "Any upcoming exams?",
@@ -178,6 +204,14 @@ export function ChatInterface() {
           <p className="text-xs text-muted-foreground">Ask anything about your campus</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={startNewChat}
+            className="text-muted-foreground"
+          >
+            <Plus className="w-4 h-4 mr-2" /> New Chat
+          </Button>
           <Button 
             variant="outline" 
             size="sm"

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-flash-latest";
 
 // Reuse the withRetry wrapper logic here
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {

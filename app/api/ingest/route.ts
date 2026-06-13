@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
+import { addToFaissIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 
 const PROMPT = `Extract the following fields from the notice. Return ONLY a JSON object.
@@ -77,6 +78,9 @@ export async function POST(req: NextRequest) {
         embedding: embedding,
       }
     });
+
+    // Add to FAISS for semantic search
+    await addToFaissIndex(notice.id, `[NOTICE] ${title}: ${bodyText}`);
 
     return NextResponse.json({ success: true, notice }, { status: 201 });
 
