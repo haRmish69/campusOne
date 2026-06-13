@@ -95,10 +95,10 @@ User Profile: Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear |
 Context retrieved from FAISS:
 ${context}`;
 
-    // 7. First Gemini Call — use gemini-flash-latest (no thinking) for fast tool detection
+    // 7. First Gemini Call — use gemini-1.5-flash (no thinking) for fast tool detection
     console.log("⏳ Starting tool-detection call...");
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-1.5-flash",
       contents: query,
       config: {
         systemInstruction,
@@ -124,7 +124,7 @@ ${context}`;
 
       // Send the tool result back to Gemini for a natural language confirmation
       const followUp = await ai.models.generateContentStream({
-        model: "gemini-flash-latest",
+        model: "gemini-1.5-flash",
         contents: [
           { role: "user", parts: [{ text: query }] },
           { role: "model", parts: candidate.content.parts },
@@ -167,7 +167,7 @@ ${context}`;
     }
 
     // 9. Normal text response (no tool call) — use the text we already have
-    //    If gemini-flash-latest already gave us text, just return it directly.
+    //    If gemini-1.5-flash already gave us text, just return it directly.
     //    Only do a second streaming call with 2.5-flash for richer answers.
     const alreadyHasText = response.text && response.text.trim().length > 0;
     
@@ -183,7 +183,7 @@ ${context}`;
           } else {
             // Fallback: stream from 2.5-flash
             const streamResponse = await ai.models.generateContentStream({
-              model: "gemini-flash-latest",
+              model: "gemini-1.5-flash",
               contents: query,
               config: {
                 systemInstruction,

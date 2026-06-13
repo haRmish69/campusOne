@@ -176,7 +176,7 @@ INSTRUCTIONS:
 
     // ─── 8. Generate briefing via Gemini ────────────────────────────────
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-1.5-flash",
       contents: `Generate my ${type} briefing.`,
       config: {
         systemInstruction: systemPrompt,

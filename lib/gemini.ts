@@ -6,7 +6,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "gemini-1.5-flash";
 
 // Retry wrapper to handle 429 rate limits automatically
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
