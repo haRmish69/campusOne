@@ -8,6 +8,10 @@ import { auth } from "@clerk/nextjs/server";
 
 import { CampusPulse } from "@/components/CampusPulse";
 import { BriefingWidget } from "@/components/BriefingWidget";
+import { BurnoutWidget } from "@/components/BurnoutWidget";
+import { InsightsFeed } from "@/components/InsightsFeed";
+import { computeBurnoutSignals, computeCompositeBurnout } from "@/lib/burnoutModel";
+import { computeAlerts } from "@/lib/alertEngine";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +46,18 @@ export default async function DashboardPage() {
     }),
     userId ? prisma.userProfile.findUnique({ where: { userId } }) : Promise.resolve(null)
   ]);
+
+  let burnoutData = null;
+  let proactiveAlerts: any[] = [];
+  if (userId) {
+    try {
+      const signals = await computeBurnoutSignals(userId);
+      burnoutData = await computeCompositeBurnout(signals);
+      proactiveAlerts = await computeAlerts(userId);
+    } catch (e) {
+      console.error("Error computing Ring 4 intelligence:", e);
+    }
+  }
 
   const filteredClasses = todaysClasses
     .filter(c => c.day.toLowerCase() === todayName.toLowerCase())
@@ -94,6 +110,22 @@ export default async function DashboardPage() {
 
         {/* Daily Briefing */}
         <BriefingWidget />
+
+        {/* Intelligence / Burnout & Insights */}
+        {userId && (burnoutData || proactiveAlerts.length > 0) && (
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {burnoutData && (
+              <div className="lg:col-span-1">
+                <BurnoutWidget data={burnoutData} />
+              </div>
+            )}
+            {proactiveAlerts.length > 0 && (
+              <div className="lg:col-span-2">
+                <InsightsFeed alerts={proactiveAlerts} />
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Today's Classes */}
           <section>

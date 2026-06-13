@@ -102,7 +102,11 @@ export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndp
       const json = await res.json();
       
       if (!res.ok) {
-        throw new Error(json.error || "Failed to process");
+        const errorMsg = typeof json.error === "string" ? json.error : JSON.stringify(json.error);
+        if (res.status === 429 || errorMsg?.includes("429") || errorMsg?.includes("quota") || errorMsg?.includes("Quota")) {
+          throw new Error("AI is currently busy processing too many requests. Please wait a few seconds and try again.");
+        }
+        throw new Error(errorMsg || "Failed to process");
       }
 
       const itemCount = json.count || 1;

@@ -15,7 +15,7 @@ const files = [
 files.forEach(f => {
   let content = fs.readFileSync(f, 'utf8');
   if (content.includes('gemini-flash-latest')) {
-    fs.writeFileSync(f, content.replace(/gemini-flash-latest/g, 'gemini-1.5-flash'));
+    fs.writeFileSync(f, content.replace(/gemini-flash-latest/g, 'gemini-2.0-flash'));
     console.log('Fixed', f);
   }
 });

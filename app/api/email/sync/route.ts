@@ -7,7 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-1.5-flash";
+const MODEL = "gemini-2.0-flash";
 
 // Helper for retries
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -138,7 +138,7 @@ Email Subject: `;
                   embedding,
                   instituteName,
                   major,
-                  createdAt: email.date
+                  createdAt: email.receivedAt
                 }
               });
               noticesImported++;

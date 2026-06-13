@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     // ─── 1. Extract structured wellness data using strict JSON mode ─────
     const extractionResponse = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: `Extract wellness data from this user message. The user was asked about their sleep, mood (1-10), and stress level (1-10). Parse their natural language response into structured data.
 
 If the user did not mention a specific value, use these defaults:
@@ -95,7 +95,7 @@ User message: "${text}"`,
 
     // ─── 3. Generate empathetic confirmation ────────────────────────────
     const confirmationResponse = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: `The user just shared their wellness check-in. Here's what I extracted:
 - Mood: ${mood}/10
 - Sleep: ${sleepHours} hours

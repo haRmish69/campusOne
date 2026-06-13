@@ -95,7 +95,7 @@ async function main() {
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
   if (index && currentIndex > 0) {
-    index.write(path.join(dataDir, "campus.index"));
+    (index as any).write(path.join(dataDir, "campus.index"));
     fs.writeFileSync(path.join(dataDir, "faiss_map.json"), JSON.stringify(faissMap, null, 2));
     console.log(`\n✅ FAISS index rebuilt with ${currentIndex} vectors (dim=${dimension})!`);
     console.log(`   Saved to data/campus.index and data/faiss_map.json`);
