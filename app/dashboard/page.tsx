@@ -7,6 +7,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 
 import { CampusPulse } from "@/components/CampusPulse";
+import { BriefingWidget } from "@/components/BriefingWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -90,7 +91,10 @@ export default async function DashboardPage() {
 
       <div className="flex flex-col space-y-12">
         <CampusPulse />
-        
+
+        {/* Daily Briefing */}
+        <BriefingWidget />
+
         {/* Today's Classes */}
           <section>
             <div className="flex items-center justify-between mb-4">

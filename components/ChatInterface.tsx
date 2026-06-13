@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
-import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus } from "lucide-react";
+import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus, Sun, Moon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export function ChatInterface() {
   const [isListening, setIsListening] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [sessionId, setSessionId] = useState("");
+  const [isAwaitingWellness, setIsAwaitingWellness] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -90,10 +91,121 @@ export function ChatInterface() {
     recognition.start();
   };
 
+  // ─── Proactive Routine Engine: Briefing Trigger ────────────────────────
+  const triggerBriefing = async (type: "morning" | "evening") => {
+    if (isLoading) return;
+    setIsLoading(true);
+
+    const assistantMessageId = uuidv4();
+    setMessages(prev => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
+
+    try {
+      const res = await fetch("/api/briefing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, sessionId }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+        throw new Error(errorData.error || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const briefingText = data.briefing;
+
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessageId
+            ? { ...m, content: briefingText }
+            : m
+        )
+      );
+
+      // Activate wellness check-in mode
+      setIsAwaitingWellness(true);
+      speak(briefingText);
+
+    } catch (error: any) {
+      console.error("Briefing Error:", error);
+      toast.error("Briefing Error", {
+        description: error.message,
+        style: { backgroundColor: '#ef4444', color: 'white', border: '1px solid #dc2626' },
+        className: "!text-white",
+        descriptionClassName: "!text-white !opacity-100 font-bold"
+      });
+      setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Wellness Sync Handler ─────────────────────────────────────────────
+  const handleWellnessSync = async (userText: string) => {
+    const userMessage: Message = { id: uuidv4(), role: "user", content: userText };
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    const assistantMessageId = uuidv4();
+    setMessages(prev => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
+
+    try {
+      const res = await fetch("/api/wellness-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: userText, sessionId }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
+        throw new Error(errorData.error || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const responseText = data.response;
+      const logged = data.logged;
+
+      // Show the empathetic response + a summary of what was logged
+      const fullResponse = `${responseText}\n\n📊 *Logged:* Mood ${logged.mood}/10 · Stress ${logged.stressLevel}/10 · Sleep ${logged.sleepHours}h`;
+
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessageId
+            ? { ...m, content: fullResponse }
+            : m
+        )
+      );
+
+      // Deactivate wellness mode
+      setIsAwaitingWellness(false);
+      speak(responseText);
+      toast.success("Wellness check-in logged! 💙");
+
+    } catch (error: any) {
+      console.error("Wellness Sync Error:", error);
+      toast.error("Wellness Sync Error", {
+        description: error.message,
+        style: { backgroundColor: '#ef4444', color: 'white', border: '1px solid #dc2626' },
+        className: "!text-white",
+        descriptionClassName: "!text-white !opacity-100 font-bold"
+      });
+      setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Main Send Handler ────────────────────────────────────────────────
   const sendMessage = async (e?: React.FormEvent, overrideInput?: string) => {
     if (e) e.preventDefault();
     const textToSend = overrideInput || input;
     if (!textToSend.trim() || isLoading) return;
+
+    // Route to wellness sync if we're awaiting a wellness response
+    if (isAwaitingWellness) {
+      return handleWellnessSync(textToSend);
+    }
 
     const userMessage: Message = { id: uuidv4(), role: "user", content: textToSend };
     setMessages(prev => [...prev, userMessage]);
@@ -174,6 +286,7 @@ export function ChatInterface() {
 
   const clearChat = async () => {
     setMessages([]);
+    setIsAwaitingWellness(false);
     try {
       await fetch(`/api/chat?sessionId=${sessionId}`, { method: "DELETE" });
       toast.success("Chat history cleared");
@@ -187,6 +300,7 @@ export function ChatInterface() {
     localStorage.setItem("campusflow_session", newSid);
     setSessionId(newSid);
     setMessages([]);
+    setIsAwaitingWellness(false);
     toast.success("Started a new chat session");
   };
 
@@ -201,7 +315,11 @@ export function ChatInterface() {
       <div className="p-4 border-b bg-card flex justify-between items-center">
         <div>
           <h2 className="font-semibold tracking-tight">CampusFlow Assistant</h2>
-          <p className="text-xs text-muted-foreground">Ask anything about your campus</p>
+          <p className="text-xs text-muted-foreground">
+            {isAwaitingWellness
+              ? "🩺 Wellness check-in active — tell me how you're feeling!"
+              : "Ask anything about your campus"}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -233,9 +351,33 @@ export function ChatInterface() {
 
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-20">
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground mt-10">
             <Bot className="w-12 h-12 mb-4 opacity-20" />
-            <p className="mb-8">I'm ready to answer your questions.</p>
+            <p className="mb-6">I'm ready to answer your questions.</p>
+
+            {/* ─── Briefing Buttons ─────────────────────────────────────── */}
+            <div className="flex gap-3 mb-8">
+              <Button
+                variant="outline"
+                onClick={() => triggerBriefing("morning")}
+                disabled={isLoading}
+                className="rounded-[8px] px-6 py-5 h-auto text-[15px] border-amber-300/50 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-400 transition-all shadow-sm hover:shadow-md"
+              >
+                <Sun className="w-5 h-5 mr-2 text-amber-500" />
+                🌅 Morning Briefing
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => triggerBriefing("evening")}
+                disabled={isLoading}
+                className="rounded-[8px] px-6 py-5 h-auto text-[15px] border-indigo-300/50 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm hover:shadow-md"
+              >
+                <Moon className="w-5 h-5 mr-2 text-indigo-500" />
+                🌙 Evening Wrap-up
+              </Button>
+            </div>
+
+            {/* ─── Quick Questions ──────────────────────────────────────── */}
             <div className="flex flex-col gap-2">
               {quickQuestions.map(q => (
                 <Button 
@@ -286,6 +428,13 @@ export function ChatInterface() {
       </div>
 
       <div className="p-6 bg-[var(--color-paper)] border-t border-[var(--color-mist-border)]">
+        {/* Wellness mode indicator */}
+        {isAwaitingWellness && (
+          <div className="mb-3 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm flex items-center gap-2">
+            <span className="animate-pulse">💙</span>
+            <span>Wellness check-in active — share how you're feeling and I'll log it for you.</span>
+          </div>
+        )}
         <form onSubmit={sendMessage} className="flex gap-3">
           <Button 
             type="button" 
@@ -300,7 +449,7 @@ export function ChatInterface() {
           <Input 
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Ask a question about your campus..."
+            placeholder={isAwaitingWellness ? "Tell me about your sleep, mood, and stress..." : "Ask a question about your campus..."}
             disabled={isLoading || isListening}
             className="flex-1 h-[60px] px-6 text-[16px] rounded-[4px] border-[var(--color-mist-border)] shadow-[var(--shadow-sm)] focus-visible:ring-[var(--color-signal-blue)]"
           />
