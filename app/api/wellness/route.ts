@@ -52,6 +52,19 @@ export async function POST(req: NextRequest) {
     // Add to FAISS for semantic search
     await addToFaissIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours}h. Notes: ${notes || "none"}`);
 
+    // Invalidate today's cached Wellness Insight so the score updates dynamically 
+    // after the user answers the briefing questions.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (userId) {
+      await prisma.wellnessInsight.deleteMany({
+        where: {
+          userId,
+          date: { gte: todayStart }
+        }
+      });
+    }
+
     return NextResponse.json(log, { status: 201 });
   } catch (error) {
     console.error("Failed to create wellness log:", error);
