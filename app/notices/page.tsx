@@ -1,12 +1,11 @@
 import { FileUpload } from "@/components/FileUpload";
-import { NoticeCard } from "@/components/NoticeCard";
-import { EmptyState } from "@/components/EmptyState";
-import { Bell } from "lucide-react";
+import { NoticeList } from "@/components/NoticeList";
 import { SyncEmailButton } from "@/components/SyncEmailButton";
 import { prisma } from "@/lib/prisma";
 import { Notice } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import "./notices.css";
 
 export const dynamic = "force-dynamic";
 
@@ -35,48 +34,25 @@ export default async function NoticesPage() {
   const notices = noticesRaw as Notice[];
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Smart Notice Digester</h1>
-        <p className="text-muted-foreground">
-          Upload any campus notice (image, PDF, or text). CampusFlow's AI will automatically extract the details, categorize it, and make it searchable.
-        </p>
+    <div className="page-main">
+      <div className="page-header">
+        <div className="page-header-left">
+          <h1 className="page-title">Notices</h1>
+          <p className="page-subtitle">Upload any campus notice — AI will extract, categorize, and make it searchable.</p>
+        </div>
+        <div className="page-header-right">
+          <SyncEmailButton />
+        </div>
       </div>
       
-      <div className="flex flex-col space-y-12">
-        <div className="space-y-6">
-          <div>
-            <div className="flex justify-between items-center mb-6 max-w-2xl">
-              <h2 className="text-2xl font-bold tracking-tight text-[var(--color-midnight-navy)]">Add Notice</h2>
-              <SyncEmailButton />
-            </div>
-            <div className="max-w-2xl">
-              <FileUpload />
-            </div>
-          </div>
+      <div className="upload-section">
+        <div className="max-w-2xl">
+          <FileUpload apiEndpoint="/api/notices/ingest" />
         </div>
-        
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight mb-8 text-[var(--color-midnight-navy)]">
-            Recent Notices <span className="text-muted-foreground text-sm font-normal ml-2">({notices.length})</span>
-          </h2>
-          
-          {notices.length === 0 ? (
-            <EmptyState 
-              icon={Bell} 
-              heading="No notices yet" 
-              subtitle="Upload a notice or sync your email to get started" 
-              ctaLabel="Upload Notice" 
-              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
-            />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {notices.map((notice) => (
-                <NoticeCard key={notice.id} notice={notice} />
-              ))}
-            </div>
-          )}
-        </div>
+      </div>
+      
+      <div>
+        <NoticeList initialNotices={notices} />
       </div>
     </div>
   );

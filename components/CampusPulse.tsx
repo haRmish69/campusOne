@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, TrendingUp, AlertCircle, HeartPulse } from "lucide-react";
+import { Activity } from "lucide-react";
+import Link from "next/link";
+import "@/app/dashboard/dashboard.css";
 
 export function CampusPulse() {
   const [pulseData, setPulseData] = useState<any>(null);
@@ -26,9 +28,9 @@ export function CampusPulse() {
 
   if (loading) {
     return (
-      <div className="bg-[var(--color-fog)] rounded-[8px] p-6 border border-[var(--color-mist-border)] animate-pulse">
-        <div className="h-6 bg-[var(--color-paper)] rounded w-1/3 mb-4"></div>
-        <div className="h-16 bg-[var(--color-paper)] rounded w-full"></div>
+      <div className="card animate-pulse">
+        <div style={{ height: '16px', background: 'var(--surface2)', borderRadius: '4px', width: '33%', marginBottom: '16px' }}></div>
+        <div style={{ height: '40px', background: 'var(--surface2)', borderRadius: '4px', width: '100%' }}></div>
       </div>
     );
   }
@@ -36,36 +38,35 @@ export function CampusPulse() {
   if (!pulseData || pulseData.requiresOnboarding) return null;
 
   return (
-    <div className="bg-gradient-to-br from-[var(--color-ember-orange)] to-[#cc4600] rounded-[8px] p-6 text-white shadow-[var(--shadow-md)] relative overflow-hidden">
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-
-      <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-3">
-          <HeartPulse className="w-5 h-5 text-white" />
-          <h2 className="text-lg font-semibold tracking-wide flex items-center gap-2">
-            Campus Pulse <span className="text-xs font-normal bg-white/20 px-2 py-0.5 rounded-full">Live</span>
-          </h2>
-        </div>
-
-        <p className="text-white/90 leading-relaxed text-sm md:text-base">
-          {pulseData.pulse}
-        </p>
-
-        {pulseData.count > 0 && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm bg-black/20 rounded-[8px] p-3 inline-flex">
-            <div className="flex flex-col">
-              <span className="text-white/70 text-xs uppercase tracking-wider font-medium">Avg Mood</span>
-              <span className="font-semibold text-white">{pulseData.avgMood?.toFixed(1)}/5</span>
-            </div>
-            <div className="w-px bg-white/20"></div>
-            <div className="flex flex-col">
-              <span className="text-white/70 text-xs uppercase tracking-wider font-medium">Avg Stress</span>
-              <span className="font-semibold text-white">{pulseData.avgStress?.toFixed(1)}/5</span>
-            </div>
+    <div className="card">
+      
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: 'var(--surface2)' }}>
+            <Activity size={13} style={{ color: 'var(--text3)' }} />
           </div>
-        )}
+          <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Campus Pulse
+          </span>
+        </div>
+        {/* LIVE badge — acc-soft bg and acc text */}
+        <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--acc)', backgroundColor: 'var(--acc-soft)', borderRadius: '20px', padding: '3px 8px', letterSpacing: '0.5px' }}>
+          LIVE
+        </span>
       </div>
+
+      {/* Content */}
+      <p style={{ fontSize: '13px', color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+        {pulseData.count === 0 ? (
+          <Link href="/wellness" style={{ color: 'var(--acc)', fontWeight: 600, textDecoration: 'none' }}>
+            Not enough data. Be the first to log your wellness →
+          </Link>
+        ) : (
+          pulseData.pulse
+        )}
+      </p>
+
     </div>
   );
 }

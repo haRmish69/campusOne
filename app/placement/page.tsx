@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Briefcase, Search, TrendingUp, ChevronRight, Building2, Plus, Flag, Trash2, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, ArrowRight, Building2, Flag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AddCompanyModal from "./components/AddCompanyModal";
+import { PageHeader } from "@/components/PageHeader";
 
 type Company = {
   id: string;
@@ -21,21 +22,12 @@ type Company = {
   addedBy: string | null;
 };
 
-const DOMAIN_COLORS: Record<string, string> = {
-  tech: "bg-blue-100 text-blue-700",
-  finance: "bg-emerald-100 text-emerald-700",
-  consulting: "bg-purple-100 text-purple-700",
-  core: "bg-amber-100 text-amber-700",
-  product: "bg-pink-100 text-pink-700",
-  other: "bg-gray-100 text-gray-700",
-};
-
 export default function PlacementPage() {
   const { user } = useUser();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [domainFilter, setDomainFilter] = useState("");
+  const [domainFilter, setDomainFilter] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -46,7 +38,7 @@ export default function PlacementPage() {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
-      if (domainFilter) params.set("domain", domainFilter);
+      if (domainFilter && domainFilter !== "All") params.set("domain", domainFilter.toLowerCase());
       const res = await fetch(`/api/companies?${params}`);
       const data = await res.json();
       setCompanies(Array.isArray(data) ? data : []);
@@ -110,72 +102,46 @@ export default function PlacementPage() {
     return `Up to ₹${max} LPA`;
   };
 
-  const domains = ["tech", "finance", "consulting", "core", "product", "other"];
+  const domains = ['All', 'Tech', 'Finance', 'Consulting', 'Core', 'Product', 'Other'];
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
-      {/* Back Button */}
-      <Link href="/campus-ecosystem" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Campus Ecosystem
-      </Link>
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-midnight-navy)] flex items-center gap-3">
-            <Briefcase className="w-8 h-8 text-[var(--color-electric-indigo)]" />
-            Placement Hub
-          </h1>
-          <p className="text-[var(--color-slate-blue)] mt-1">
-            Company profiles, interview experiences & skill gap analysis
-          </p>
-        </div>
-      </div>
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      {/* Page Header */}
+      <PageHeader
+        backHref="/campus-ecosystem"
+        backLabel="Back to Campus Ecosystem"
+        title="Placement Hub"
+        subtitle="Company profiles, interview experiences & skill gap analysis"
+        ctaLabel="Add Company"
+        onCtaClick={() => setIsModalOpen(true)}
+      />
 
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <div className="flex items-center gap-2 flex-1 min-w-[240px] border border-[var(--color-paper)] rounded-[20px] px-4 py-2.5 bg-[var(--color-canvas-white)]">
+          <Search size={14} className="text-[var(--color-pewter)] shrink-0" />
           <input
             type="text"
             placeholder="Search companies..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
+            className="flex-1 text-[14px] text-[var(--color-slate-dark)] outline-none placeholder:text-[var(--color-stone)] bg-transparent"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+
+        {domains.map((f) => (
           <button
-            onClick={() => setDomainFilter("")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
-              !domainFilter
-                ? "bg-[var(--color-midnight-navy)] text-white"
-                : "bg-[var(--color-fog)] text-[var(--color-slate-blue)] hover:bg-[var(--color-cloud)]"
+            key={f}
+            onClick={() => setDomainFilter(f)}
+            className={`px-4 py-2 rounded-[20px] text-[13px] font-medium transition-colors ${
+              domainFilter === f
+                ? 'border border-[var(--color-ember-orange)] text-[var(--color-ember-orange)] bg-[var(--color-canvas-white)]'
+                : 'border border-[var(--color-paper)] text-[var(--color-stone)] bg-[var(--color-canvas-white)] hover:border-[var(--color-mist)]'
             }`}
           >
-            All
+            {f}
           </button>
-          {domains.map((d) => (
-            <button
-              key={d}
-              onClick={() => setDomainFilter(d)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all shrink-0 ${
-                domainFilter === d
-                  ? "bg-[var(--color-midnight-navy)] text-white"
-                  : "bg-[var(--color-fog)] text-[var(--color-slate-blue)] hover:bg-[var(--color-cloud)]"
-              }`}
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all shrink-0 h-[44px]"
-        >
-          <Plus className="w-5 h-5" />
-          Add Company
-        </button>
+        ))}
       </div>
 
       {/* Company Grid */}
@@ -184,17 +150,19 @@ export default function PlacementPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-48 rounded-2xl bg-[var(--color-fog)] animate-pulse"
+              className="h-48 rounded-[20px] bg-[var(--color-pearl)] animate-pulse"
             />
           ))}
         </div>
       ) : filteredCompanies.length === 0 ? (
-        <div className="text-center py-16">
-          <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-[var(--color-midnight-navy)]">
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+          <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+            <Building2 size={20} className="text-[var(--color-pewter)]" />
+          </div>
+          <h3 className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">
             No companies found
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-[14px] text-[var(--color-stone)] mb-6">
             {searchQuery
               ? "Try a different search term"
               : "No companies have been added for your campus yet"}
@@ -206,89 +174,70 @@ export default function PlacementPage() {
             const skills = parseSkills(company.topSkillsRequired);
             const isOwner = user?.id === company.addedBy;
             return (
-              <Link
+              <a
                 key={company.id}
                 href={`/placement/${company.id}`}
-                className="group block"
+                className="group block rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-6 hover:border-[var(--color-ember-orange)] transition-colors relative"
               >
-                <div className="rounded-2xl border border-border/60 bg-card p-5 hover:shadow-lg hover:border-[var(--color-electric-indigo)]/30 transition-all duration-300 h-full flex flex-col relative overflow-hidden">
-                  
-                  {/* Action buttons */}
-                  <div className="absolute bottom-3 right-3 flex gap-1 z-10">
-                    {isOwner && (
-                      <button
-                        title="Delete your company"
-                        onClick={(e) => handleDelete(company.id, e)}
-                        className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                {/* Action buttons */}
+                <div className="absolute bottom-6 right-6 flex gap-1 z-10">
+                  {isOwner && (
                     <button
-                      title="Report incorrect or fake information"
-                      onClick={(e) => handleReport(company.id, e)}
-                      className="p-2 bg-orange-50 text-orange-500 rounded-full hover:bg-orange-100 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete your company"
+                      onClick={(e) => handleDelete(company.id, e)}
+                      className="p-1.5 bg-[var(--color-canvas-white)] border border-[var(--color-paper)] text-[var(--color-ember-orange)] rounded-full hover:bg-[var(--color-pearl)] transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <Flag className="w-4 h-4" />
+                      <Trash2 size={13} />
                     </button>
-                  </div>
-
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3 mt-1">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[var(--color-midnight-navy)] truncate group-hover:text-[var(--color-electric-indigo)] transition-colors pr-2">
-                        {company.name}
-                      </h3>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
-                          DOMAIN_COLORS[company.domain] || DOMAIN_COLORS.other
-                        }`}
-                      >
-                        {company.domain}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-[var(--color-electric-indigo)] transition-colors shrink-0 mt-1" />
-                  </div>
-
-                  {/* Package */}
-                  <div className="flex items-center gap-2 text-sm mb-3">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span className="font-medium text-[var(--color-midnight-navy)]">
-                      {formatPackage(company.packageMin, company.packageMax)}
-                    </span>
-                  </div>
-
-                  {/* Stats Row */}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                    {company.interviewRounds && (
-                      <span>{company.interviewRounds} rounds</span>
-                    )}
-                    {company.campusVisitCount > 0 && (
-                      <span>Visited {company.campusVisitCount}x</span>
-                    )}
-                    {company.lastVisitedYear && (
-                      <span>Last: {company.lastVisitedYear}</span>
-                    )}
-                  </div>
-
-                  {/* Skills */}
-                  <div className="flex flex-wrap gap-1.5 mt-auto">
-                    {skills.slice(0, 4).map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-2 py-0.5 rounded-md bg-[var(--color-fog)] text-[10px] font-medium text-[var(--color-slate-blue)]"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                    {skills.length > 4 && (
-                      <span className="px-2 py-0.5 rounded-md bg-[var(--color-fog)] text-[10px] font-medium text-muted-foreground">
-                        +{skills.length - 4}
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  <button
+                    title="Report incorrect or fake information"
+                    onClick={(e) => handleReport(company.id, e)}
+                    className="p-1.5 bg-[var(--color-canvas-white)] border border-[var(--color-paper)] text-[var(--color-stone)] rounded-full hover:bg-[var(--color-pearl)] transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Flag size={13} />
+                  </button>
                 </div>
-              </Link>
+
+                {/* Top row: name + arrow */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h3 className="text-[16px] font-semibold text-[var(--color-graphite)] truncate pr-4">{company.name}</h3>
+                  <ArrowRight size={14} className="text-[var(--color-pewter)] shrink-0 mt-0.5 group-hover:text-[var(--color-ember-orange)] transition-colors" />
+                </div>
+
+                {/* Category badge — ONE neutral style for ALL categories */}
+                <span className="inline-block text-[11px] font-semibold text-[var(--color-stone)] border border-[var(--color-paper)] rounded-[20px] px-2.5 py-0.5 bg-[var(--color-pearl)] mb-4">
+                  {company.domain}
+                </span>
+
+                {/* Package */}
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TrendingUp size={13} className="text-[var(--color-pewter)]" />
+                  <span className="text-[15px] font-semibold text-[var(--color-graphite)]">{formatPackage(company.packageMin, company.packageMax)}</span>
+                </div>
+
+                {/* Meta */}
+                <p className="text-[12px] text-[var(--color-pewter)] mb-4">
+                  {company.interviewRounds ? `${company.interviewRounds} rounds` : ''}{company.lastVisitedYear ? ` · Last: ${company.lastVisitedYear}` : ''}
+                </p>
+
+                {/* Skill tags */}
+                <div className="flex flex-wrap gap-1.5">
+                  {skills.slice(0, 4).map((skill) => (
+                    <span
+                      key={skill}
+                      className="text-[11px] text-[var(--color-stone)] border border-[var(--color-paper)] rounded-[20px] px-2.5 py-0.5 bg-[var(--color-pearl)]"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                  {skills.length > 4 && (
+                    <span className="text-[11px] text-[var(--color-pewter)] border border-[var(--color-paper)] rounded-[20px] px-2.5 py-0.5">
+                      +{skills.length - 4}
+                    </span>
+                  )}
+                </div>
+              </a>
             );
           })}
         </div>

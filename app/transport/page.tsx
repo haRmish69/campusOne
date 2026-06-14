@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Car, Clock, Plus, Users, Trash2, ArrowRight, ArrowLeft, User as UserIcon } from "lucide-react";
+import { Car, MapPin, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function TransportPage() {
   const { user } = useUser();
@@ -92,171 +92,180 @@ export default function TransportPage() {
   const minDateTime = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-      {/* Back Button */}
-      <Link href="/campus-ecosystem" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Campus Ecosystem
-      </Link>
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      
+      {/* Page Header */}
+      <PageHeader
+        backHref="/campus-ecosystem"
+        backLabel="Back to Campus Ecosystem"
+        title="Travel Pool"
+        subtitle="Share rides and split costs with students from your campus."
+        ctaLabel="Start a Pool"
+        onCtaClick={() => setShowNewPool(!showNewPool)}
+      />
 
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-midnight-navy)] flex items-center gap-3">
-          <Car className="w-8 h-8 text-[var(--color-signal-blue)]" />
-          Travel Pool
-        </h1>
-        <p className="text-[var(--color-slate-blue)] mt-1">Share rides and split the total cost evenly with students from your campus.</p>
-      </div>
-
-      <div className="space-y-4">
-        <button onClick={() => setShowNewPool(!showNewPool)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-signal-blue)] text-white text-sm font-medium hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" /> Start a Pool
-        </button>
-        {showNewPool && (
-          <div className="rounded-2xl border border-border/60 bg-card p-5 space-y-3">
-            <div className="flex gap-3">
-              <input placeholder="Source (e.g. Campus)" value={newPool.source} onChange={e => setNewPool({ ...newPool, source: e.target.value })} className="w-1/2 px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-signal-blue)]/30 transition-all" />
-              <input placeholder="Destination (e.g. Airport)" value={newPool.destination} onChange={e => setNewPool({ ...newPool, destination: e.target.value })} className="w-1/2 px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-signal-blue)]/30 transition-all" />
-            </div>
-            <input type="datetime-local" min={minDateTime} value={newPool.departureTime} onChange={e => setNewPool({ ...newPool, departureTime: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-signal-blue)]/30 transition-all" />
-            <div className="flex gap-3">
-              <input type="number" placeholder="Seats Available" value={newPool.seatsAvailable} onChange={e => setNewPool({ ...newPool, seatsAvailable: parseInt(e.target.value) || 1 })} className="w-1/2 px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-signal-blue)]/30 transition-all" min={1} max={6} />
-              <input type="number" placeholder="Total ride cost (₹)" value={newPool.estimatedCost} onChange={e => setNewPool({ ...newPool, estimatedCost: e.target.value })} className="w-1/2 px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-signal-blue)]/30 transition-all" />
-            </div>
-            <button onClick={handleCreatePool} className="px-4 py-2 rounded-lg bg-[var(--color-midnight-navy)] text-white text-sm font-medium hover:bg-[var(--color-midnight-navy)]/90 transition-colors">Create Pool</button>
+      {/* New Pool Form */}
+      {showNewPool && (
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-5 space-y-3 mb-6">
+          <div className="flex gap-3">
+            <input placeholder="Source (e.g. Campus)" value={newPool.source} onChange={e => setNewPool({ ...newPool, source: e.target.value })} className="w-1/2 px-3 py-2 rounded-[12px] border border-[var(--color-paper)] text-[14px] outline-none text-[var(--color-graphite)] placeholder:text-[var(--color-stone)] bg-transparent" />
+            <input placeholder="Destination (e.g. Airport)" value={newPool.destination} onChange={e => setNewPool({ ...newPool, destination: e.target.value })} className="w-1/2 px-3 py-2 rounded-[12px] border border-[var(--color-paper)] text-[14px] outline-none text-[var(--color-graphite)] placeholder:text-[var(--color-stone)] bg-transparent" />
           </div>
-        )}
+          <input type="datetime-local" min={minDateTime} value={newPool.departureTime} onChange={e => setNewPool({ ...newPool, departureTime: e.target.value })} className="w-full px-3 py-2 rounded-[12px] border border-[var(--color-paper)] text-[14px] outline-none text-[var(--color-graphite)] placeholder:text-[var(--color-stone)] bg-transparent" />
+          <div className="flex gap-3">
+            <input type="number" placeholder="Seats Available" value={newPool.seatsAvailable} onChange={e => setNewPool({ ...newPool, seatsAvailable: parseInt(e.target.value) || 1 })} className="w-1/2 px-3 py-2 rounded-[12px] border border-[var(--color-paper)] text-[14px] outline-none text-[var(--color-graphite)] placeholder:text-[var(--color-stone)] bg-transparent" min={1} max={6} />
+            <input type="number" placeholder="Total ride cost (₹)" value={newPool.estimatedCost} onChange={e => setNewPool({ ...newPool, estimatedCost: e.target.value })} className="w-1/2 px-3 py-2 rounded-[12px] border border-[var(--color-paper)] text-[14px] outline-none text-[var(--color-graphite)] placeholder:text-[var(--color-stone)] bg-transparent" />
+          </div>
+          <button onClick={handleCreatePool} className="px-5 py-2.5 rounded-[30px] bg-[var(--color-ember-orange)] text-white text-[14px] font-medium transition-colors hover:opacity-90">Create Pool</button>
+        </div>
+      )}
+
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
         
-        {isLoading ? (
-          <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-32 bg-[var(--color-fog)] animate-pulse rounded-2xl" />)}</div>
-        ) : activePools.length === 0 ? (
-          <div className="text-center py-12"><Users className="w-10 h-10 text-muted-foreground mx-auto mb-3" /><p className="text-muted-foreground">No open pools right now</p></div>
-        ) : activePools.map(pool => {
-          const participants: string[] = parseJson(pool.participants) || [];
-          const pendingRequests: any[] = pool.pendingRequests ? parseJson(pool.pendingRequests) : [];
-          const seatsLeft = pool.seatsAvailable;
-          const totalCost = pool.estimatedCost;
-          
-          const isInitiator = user?.id === pool.initiatorId;
-          const hasRequested = pendingRequests.some(p => p.userId === user?.id && p.status === "pending");
-          const isParticipant = participants.includes(user?.id || "");
-          
-          const initiatorName = pool.initiatorName || "Unknown";
-          const participantNames = pool.participantNames || [];
+        {/* LEFT — Active pools list */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[18px] font-semibold text-[var(--color-graphite)]">Open Pools</h2>
+            <span className="text-[12px] text-[var(--color-pewter)]">{activePools.length} available</span>
+          </div>
 
-          return (
-            <div key={pool.id} className="rounded-2xl border border-border/60 bg-card p-5">
-              <div className="flex items-start justify-between">
-                <div className="w-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-[var(--color-midnight-navy)] flex items-center gap-2">
-                        {pool.source ? (
-                          <>
-                            {pool.source} <ArrowRight className="w-4 h-4 text-muted-foreground" /> {pool.destination}
-                          </>
-                        ) : (
-                          pool.destination
-                        )}
-                      </h3>
-                      {isInitiator && (
-                        <button
-                          onClick={() => handleDeletePool(pool.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                          title="Delete Cab Pool"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    {!isInitiator && !isParticipant && seatsLeft > 0 && (
-                      <button 
-                        onClick={() => handleJoinPool(pool.id)} 
-                        disabled={hasRequested}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ml-4 ${
-                          hasRequested 
-                            ? "bg-amber-100 text-amber-700 cursor-not-allowed" 
-                            : "bg-emerald-500 text-white hover:bg-emerald-600"
-                        }`}
-                      >
-                        {hasRequested ? "Request Pending" : "Request to Join"}
-                      </button>
-                    )}
-                    {isParticipant && !isInitiator && (
-                       <span className="px-3 py-1.5 rounded-lg bg-[var(--color-fog)] text-[var(--color-midnight-navy)] text-xs font-medium shrink-0 ml-4">
-                         Joined
-                       </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Created by:</span>
-                        <span className="font-medium text-[var(--color-midnight-navy)]">{initiatorName} {isInitiator && "(You)"}</span>
-                      </div>
-                      
-                      {participantNames.length > 1 && (
-                        <div className="flex items-start gap-2 text-sm">
-                          <span className="text-muted-foreground whitespace-nowrap">Passengers:</span>
-                          <span className="text-[var(--color-midnight-navy)]">
-                            {participantNames.join(", ")}
-                          </span>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(pool.departureTime).toLocaleString()}</span>
-                        {totalCost && <span>₹{totalCost} total (split evenly)</span>}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col md:items-end justify-center space-y-2 bg-[var(--color-fog)]/50 p-3 rounded-xl border border-border/30">
-                      <div className="text-xs font-medium text-[var(--color-slate-blue)]">Seat Availability</div>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: participants.length }).map((_, i) => (
-                          <UserIcon key={`filled-${i}`} className="w-5 h-5 text-[var(--color-midnight-navy)] fill-[var(--color-midnight-navy)]" />
-                        ))}
-                        {Array.from({ length: seatsLeft }).map((_, i) => (
-                          <UserIcon key={`empty-${i}`} className="w-5 h-5 text-muted-foreground opacity-30" />
-                        ))}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-medium mt-1">
-                        {seatsLeft} {seatsLeft === 1 ? "seat" : "seats"} left
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {isLoading ? (
+            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-24 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />)}</div>
+          ) : activePools.length === 0 ? (
+            /* Empty state — proper structure */
+            <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+              <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+                <Car size={20} className="text-[var(--color-pewter)]" />
               </div>
+              <h3 className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">No open pools right now</h3>
+              <p className="text-[14px] text-[var(--color-stone)] mb-6">
+                Be the first to start a pool and find fellow students heading your way.
+              </p>
+              <button
+                onClick={() => setShowNewPool(true)}
+                style={{ boxShadow: 'rgba(0,0,0,0.25) 0px 4px 10px 0px' }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[30px] bg-[var(--color-ember-orange)] text-white text-[14px] font-medium"
+              >
+                <Plus size={14} />
+                Start a Pool
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activePools.map(pool => {
+                const participants: string[] = parseJson(pool.participants) || [];
+                const pendingRequests: any[] = pool.pendingRequests ? parseJson(pool.pendingRequests) : [];
+                const seatsLeft = pool.seatsAvailable;
+                const totalCost = pool.estimatedCost;
+                
+                const isInitiator = user?.id === pool.initiatorId;
+                const hasRequested = pendingRequests.some(p => p.userId === user?.id && p.status === "pending");
+                const isParticipant = participants.includes(user?.id || "");
 
-              {isInitiator && pendingRequests.filter(p => p.status === "pending").length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border/40">
-                  <p className="text-xs font-semibold text-[var(--color-midnight-navy)] mb-2">Pending Requests</p>
-                  <div className="space-y-2">
-                    {pendingRequests.filter(p => p.status === "pending").map((req: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between bg-[var(--color-fog)] p-2 rounded-lg">
-                        <span className="text-xs text-[var(--color-slate-blue)]">User: {req.userId.substring(0, 8)}...</span>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleManageRequest(pool.id, req.userId, "accept")}
-                            className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200"
+                const destName = pool.source ? `${pool.source} → ${pool.destination}` : pool.destination;
+                const costStr = totalCost ? `₹${totalCost} total` : '';
+
+                return (
+                  <div key={pool.id} className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <MapPin size={13} className="text-[var(--color-pewter)] shrink-0" />
+                          <p className="text-[14px] font-semibold text-[var(--color-graphite)] truncate">{destName}</p>
+                        </div>
+                        <p className="text-[12px] text-[var(--color-pewter)]">
+                          {new Date(pool.departureTime).toLocaleString()} · {seatsLeft} spot{seatsLeft !== 1 ? 's' : ''} left {costStr ? ` · ${costStr}` : ''}
+                        </p>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isInitiator && (
+                          <button
+                            onClick={() => handleDeletePool(pool.id)}
+                            className="p-2 border border-[var(--color-paper)] rounded-[20px] text-[var(--color-ember-orange)] hover:bg-[var(--color-pearl)] transition-colors"
+                            title="Delete Cab Pool"
                           >
-                            Accept
+                            <Trash2 size={14} />
                           </button>
+                        )}
+
+                        {!isInitiator && !isParticipant && seatsLeft > 0 && (
                           <button 
-                            onClick={() => handleManageRequest(pool.id, req.userId, "reject")}
-                            className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200"
+                            onClick={() => handleJoinPool(pool.id)} 
+                            disabled={hasRequested}
+                            className={`px-4 py-2 rounded-[20px] text-[13px] font-medium transition-colors border ${
+                              hasRequested 
+                                ? "border-[var(--color-paper)] text-[var(--color-stone)] bg-[var(--color-pearl)] cursor-not-allowed" 
+                                : "border-[var(--color-ember-orange)] text-[var(--color-ember-orange)] hover:bg-[var(--color-ember-orange)] hover:text-white"
+                            }`}
                           >
-                            Reject
+                            {hasRequested ? "Pending" : "Join"}
                           </button>
+                        )}
+                        {isParticipant && !isInitiator && (
+                          <span className="px-4 py-2 rounded-[20px] bg-[var(--color-pearl)] text-[var(--color-graphite)] text-[13px] font-medium border border-[var(--color-paper)]">
+                            Joined
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pending Requests for initiator */}
+                    {isInitiator && pendingRequests.filter(p => p.status === "pending").length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-[var(--color-paper)]">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-pewter)] mb-2">Pending Requests</p>
+                        <div className="space-y-2">
+                          {pendingRequests.filter(p => p.status === "pending").map((req: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between bg-[var(--color-pearl)] p-2 rounded-[12px]">
+                              <span className="text-[13px] text-[var(--color-stone)]">User: {req.userId.substring(0, 8)}...</span>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleManageRequest(pool.id, req.userId, "accept")}
+                                  className="px-3 py-1.5 bg-[var(--color-canvas-white)] border border-[var(--color-paper)] text-[var(--color-graphite)] rounded-[20px] text-[12px] font-medium hover:border-[var(--color-ember-orange)] transition-colors"
+                                >
+                                  Accept
+                                </button>
+                                <button 
+                                  onClick={() => handleManageRequest(pool.id, req.userId, "reject")}
+                                  className="px-3 py-1.5 bg-[var(--color-canvas-white)] border border-[var(--color-paper)] text-[var(--color-stone)] rounded-[20px] text-[12px] font-medium hover:text-[var(--color-ember-orange)] transition-colors"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
-          );
-        })}
+          )}
+        </div>
+
+        {/* RIGHT — Info sidebar */}
+        <div className="space-y-4">
+          {/* How it works */}
+          <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-6">
+            <h3 className="text-[14px] font-semibold text-[var(--color-graphite)] mb-4">How it works</h3>
+            {[
+              { step: '1', text: 'Post your destination and departure time' },
+              { step: '2', text: 'Peers at your campus join the pool' },
+              { step: '3', text: 'Split the cab fare evenly on arrival' },
+            ].map(item => (
+              <div key={item.step} className="flex items-start gap-3 mb-3 last:mb-0">
+                <span className="w-5 h-5 rounded-full border border-[var(--color-paper)] bg-[var(--color-pearl)] flex items-center justify-center text-[11px] font-semibold text-[var(--color-pewter)] shrink-0 mt-0.5">
+                  {item.step}
+                </span>
+                <p className="text-[13px] text-[var(--color-stone)] leading-relaxed">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );

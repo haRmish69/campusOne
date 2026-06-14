@@ -1,0 +1,237 @@
+/* Dashboard Unified Design System styles */
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  padding: 28px 32px;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+@media (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    padding: 20px 16px;
+  }
+}
+
+/* Header spans full width */
+.db-header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.main-col { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 14px; 
+}
+
+.right-col { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 14px; 
+}
+
+/* Base Card (used everywhere) */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Primary CTA Button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--acc);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Daily Briefing Buttons */
+.brief-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.brief-btn:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text1);
+  border-color: var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.brief-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Classes Today Rows */
+.class-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.class-row:hover {
+  background-color: var(--surface2);
+  border-bottom-color: transparent;
+}
+
+.class-row:last-child { 
+  border-bottom: none; 
+}
+
+/* Proactive Insights Rows */
+.insight-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.insight-row:hover {
+  background-color: var(--surface2);
+  border-bottom-color: transparent;
+}
+
+.insight-row:last-child { 
+  border-bottom: none; 
+}
+
+/* Deadlines Empty State */
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-radius: 9px;
+  border: 1.5px dashed var(--border);
+}
+
+/* Burnout Risk Specifics */
+.burnout-score {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text1);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.progress-bar {
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--acc);
+  border-radius: 4px;
+}
+
+.improving-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1B7A4A;
+  background: #E2F4EC;
+  border-radius: 20px;
+  padding: 4px 10px;
+}
+
+/* Typography Overrides based on spec */
+h1.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text1);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  margin: 0 0 5px;
+}
+
+p.page-subtitle {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 0;
+}
+
+h2.section-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text1);
+}
+
+/* Mini Notices inside right panel */
+.mini-notice-row {
+  padding: 12px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.mini-notice-row:hover {
+  background-color: var(--surface2);
+  border-bottom-color: transparent;
+}
+
+.mini-notice-row:last-child {
+  border-bottom: none;
+  padding-bottom: 8px;
+}

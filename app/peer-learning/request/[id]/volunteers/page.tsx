@@ -8,18 +8,10 @@ import { toast } from "sonner";
 import type { RankedVolunteer } from "@/lib/reputationEngine";
 
 const BADGE_STYLES: Record<string, string> = {
-  "Top Helper": "bg-yellow-100 text-yellow-700 border border-yellow-200",
-  "Subject Expert": "bg-purple-100 text-purple-700 border border-purple-200",
-  "Quick Responder": "bg-blue-100 text-blue-700 border border-blue-200",
+  "Top Helper": "bg-[var(--color-pearl)] text-[var(--color-graphite)] border border-[var(--color-paper)]",
+  "Subject Expert": "bg-[var(--color-pearl)] text-[var(--color-graphite)] border border-[var(--color-paper)]",
+  "Quick Responder": "bg-[var(--color-pearl)] text-[var(--color-graphite)] border border-[var(--color-paper)]",
 };
-
-const AVATAR_COLORS = [
-  "from-blue-400 to-indigo-500",
-  "from-emerald-400 to-teal-500",
-  "from-violet-400 to-purple-500",
-  "from-rose-400 to-pink-500",
-  "from-amber-400 to-orange-500",
-];
 
 export default function VolunteersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -85,15 +77,15 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="p-6 md:p-10 lg:p-14 max-w-5xl mx-auto">
-      <Link href="/peer-learning" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors mb-6">
+      <Link href="/peer-learning" className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--color-stone)] hover:text-[var(--color-graphite)] transition-colors mb-6">
         <ArrowLeft className="w-4 h-4" /> Back to Study Peers
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#0b3558] mb-2">
+        <h1 className="text-[24px] font-semibold text-[var(--color-graphite)] mb-2">
           Who can help with "{topic || "..."}"?
         </h1>
-        <p className="text-gray-500">
+        <p className="text-[14px] text-[var(--color-stone)]">
           {volunteers.length} student{volunteers.length !== 1 ? "s" : ""} volunteered. Choose one to start your session.
         </p>
       </div>
@@ -104,8 +96,8 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
           <button
             key={s}
             onClick={() => setSortBy(s)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-              sortBy === s ? "bg-[#0b3558] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            className={`px-4 py-1.5 rounded-[20px] text-[12px] font-semibold transition-all ${
+              sortBy === s ? "bg-[var(--color-graphite)] text-white" : "bg-[var(--color-pearl)] text-[var(--color-stone)] border border-[var(--color-paper)] hover:text-[var(--color-graphite)]"
             }`}
           >
             {s === "best" ? "Best Match" : s === "experienced" ? "Most Experienced" : "Newest"}
@@ -116,68 +108,65 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
       {isLoading ? (
         <div className="grid md:grid-cols-2 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-gray-100 animate-pulse rounded-2xl" />
+            <div key={i} className="h-64 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />
           ))}
         </div>
       ) : sorted.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No volunteers yet</p>
-          <p className="text-sm text-gray-400 mt-1">Your request is still open. Check back later!</p>
+        <div className="text-center py-16 border border-dashed border-[var(--color-paper)] rounded-[20px]">
+          <Users className="w-10 h-10 text-[var(--color-pewter)] mx-auto mb-3" />
+          <p className="text-[14px] text-[var(--color-stone)]">No volunteers yet</p>
+          <p className="text-[13px] text-[var(--color-pewter)] mt-1">Your request is still open. Check back later!</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {sorted.map((vol, i) => (
-            <div key={vol.volunteerId} className="rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden">
-              {/* Top accent */}
-              <div className="h-1 bg-gradient-to-r from-indigo-400 to-violet-500" />
-
+            <div key={vol.volunteerId} className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] hover:border-[var(--color-ember-orange)] transition-colors overflow-hidden">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
+                    <div className="w-12 h-12 rounded-full bg-[var(--color-pearl)] border border-[var(--color-paper)] flex items-center justify-center text-[var(--color-graphite)] font-bold text-lg">
                       {vol.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-[#0b3558]">{vol.name}</h3>
-                      <p className="text-xs text-gray-400">{vol.branch} · Year {vol.year}</p>
+                      <h3 className="font-semibold text-[var(--color-graphite)]">{vol.name}</h3>
+                      <p className="text-[12px] text-[var(--color-pewter)]">{vol.branch} · Year {vol.year}</p>
                     </div>
                   </div>
                   {vol.rankBadge && (
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${BADGE_STYLES[vol.rankBadge]}`}>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-[20px] font-semibold ${BADGE_STYLES[vol.rankBadge] || BADGE_STYLES["Top Helper"]}`}>
                       {vol.rankBadge}
                     </span>
                   )}
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+                <div className="flex items-center gap-4 mb-4 text-[12px] text-[var(--color-stone)]">
                   <span className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-amber-400" />
+                    <Star className="w-3.5 h-3.5 text-[var(--color-ember-orange)]" />
                     {vol.avgRating?.toFixed(1) || "New"}
                   </span>
                   <span className="flex items-center gap-1">
-                    <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                    <BookOpen className="w-3.5 h-3.5 text-[var(--color-graphite)]" />
                     {vol.totalHelped} helped
                   </span>
                   <span className="flex items-center gap-1">
-                    <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                    <Zap className="w-3.5 h-3.5 text-[var(--color-stone)]" />
                     {Math.round(vol.responseRate * 100)}% response
                   </span>
                 </div>
 
                 {/* Expertise bar */}
                 <div className="mb-4">
-                  <p className="text-xs text-gray-400 mb-1.5">Subject expertise</p>
+                  <p className="text-[12px] text-[var(--color-pewter)] mb-1.5">Subject expertise</p>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((level) => (
                       <div
                         key={level}
                         className={`h-2 flex-1 rounded-full transition-colors ${
                           level <= vol.topicExpertiseConfidence
-                            ? "bg-gradient-to-r from-indigo-400 to-violet-500"
-                            : "bg-gray-100"
+                            ? "bg-[var(--color-graphite)]"
+                            : "bg-[var(--color-pearl)] border border-[var(--color-paper)]"
                         }`}
                       />
                     ))}
@@ -186,8 +175,8 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
 
                 {/* Message */}
                 {vol.message && (
-                  <div className="mb-4 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                    <p className="text-sm text-gray-600 italic">"{vol.message}"</p>
+                  <div className="mb-4 bg-[var(--color-pearl)] rounded-[20px] p-3 border border-[var(--color-paper)]">
+                    <p className="text-[13px] text-[var(--color-stone)] italic">"{vol.message}"</p>
                   </div>
                 )}
 
@@ -195,7 +184,7 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
                 <button
                   onClick={() => setSelectedId(vol.volunteerId)}
                   disabled={isSelecting}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#0b3558] text-white text-sm font-semibold hover:bg-[#0b3558]/90 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[30px] bg-[var(--color-graphite)] text-white text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   Select This Helper <ChevronRight className="w-4 h-4" />
                 </button>
@@ -207,7 +196,7 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
 
       {/* Withdraw link */}
       <div className="mt-8 text-center">
-        <button onClick={handleWithdraw} className="text-sm text-red-500 hover:text-red-700 transition-colors underline">
+        <button onClick={handleWithdraw} className="text-[13px] text-[var(--color-stone)] hover:text-[var(--color-ember-orange)] transition-colors underline">
           Withdraw this request
         </button>
       </div>
@@ -215,25 +204,25 @@ export default function VolunteersPage({ params }: { params: Promise<{ id: strin
       {/* Confirmation Modal */}
       {selectedId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+          <div className="bg-[var(--color-canvas-white)] rounded-[20px] p-8 max-w-md w-full border border-[var(--color-paper)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#0b3558]">Confirm Selection</h3>
-              <button onClick={() => setSelectedId(null)} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-gray-400" />
+              <h3 className="text-[18px] font-semibold text-[var(--color-graphite)]">Confirm Selection</h3>
+              <button onClick={() => setSelectedId(null)} className="p-1 hover:bg-[var(--color-pearl)] rounded-full transition-colors">
+                <X className="w-5 h-5 text-[var(--color-pewter)]" />
               </button>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-[14px] text-[var(--color-stone)] mb-6">
               Select <strong>{sorted.find((v) => v.volunteerId === selectedId)?.name}</strong> to help you with <strong>{topic}</strong>?
               They'll be notified and we'll suggest study times.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setSelectedId(null)} className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              <button onClick={() => setSelectedId(null)} className="flex-1 px-4 py-3 rounded-[30px] border border-[var(--color-paper)] text-[13px] font-medium text-[var(--color-stone)] hover:bg-[var(--color-pearl)] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={() => handleSelect(selectedId)}
                 disabled={isSelecting}
-                className="flex-1 px-4 py-3 rounded-xl bg-indigo-500 text-white text-sm font-semibold hover:bg-indigo-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 rounded-[30px] bg-[var(--color-ember-orange)] text-white text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSelecting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Selection →"}
               </button>

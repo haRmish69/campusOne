@@ -67,8 +67,8 @@ export function DeadlineCard({ deadline, onToggleComplete, onDelete }: DeadlineC
             
             <div className={`text-[12px] flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] ${
               isComplete ? 'text-[var(--color-pewter)]' :
-              diffDays < 0 ? 'text-red-600 font-bold bg-red-50' :
-              diffDays <= 1 ? 'text-red-500 font-bold' :
+              diffDays < 0 ? 'text-red-600 font-bold bg-[var(--color-canvas-white)]' :
+              diffDays <= 1 ? 'text-[var(--color-ember-orange)] font-bold' :
               diffDays <= 7 ? 'text-amber-500 font-medium' :
               'text-[var(--color-slate-blue)] font-medium'
             }`}>

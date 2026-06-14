@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import { ClassSchedule } from "@prisma/client";
 import { FileUpload } from "@/components/FileUpload";
 import { AddClassModal } from "@/components/AddClassModal";
-import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,28 +17,11 @@ import {
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 
-// ─── Color palette for class blocks ───────────────────────────
-const CLASS_COLORS = [
-  { bg: "#e8f0fe", border: "#006bff", text: "#003d99" },   // Signal Blue
-  { bg: "#f3e8ff", border: "#8247f5", text: "#5b21b6" },   // Violet
-  { bg: "#fff7e6", border: "#ffa600", text: "#9a6700" },   // Amber
-  { bg: "#e6f7ff", border: "#0099ff", text: "#006bb3" },   // Cyan
-  { bg: "#fce8ff", border: "#e55cff", text: "#a21caf" },   // Magenta
-  { bg: "#e8faf0", border: "#10b981", text: "#065f46" },   // Emerald
-];
-
-function hashSubjectToColor(subject: string) {
-  let hash = 0;
-  for (let i = 0; i < subject.length; i++) {
-    hash = subject.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return CLASS_COLORS[Math.abs(hash) % CLASS_COLORS.length];
-}
-
 // ─── Helpers ──────────────────────────────────────────────────
 const DAYS_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_SHORT = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function getMonday(d: Date): Date {
   const date = new Date(d);
@@ -81,40 +63,61 @@ function MiniCalendar({ today, currentWeekStart }: { today: Date; currentWeekSta
   const startPad = (firstDay.getDay() + 6) % 7; // Mon=0
   const totalDays = lastDay.getDate();
 
-  const weekEnd = addDays(currentWeekStart, 6);
-
   const cells: (number | null)[] = [];
   for (let i = 0; i < startPad; i++) cells.push(null);
   for (let d = 1; d <= totalDays; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  return (
-    <div className="select-none">
-      <div className="text-sm font-semibold text-[var(--color-midnight-navy)] mb-3">
-        {MONTH_NAMES[month]} {year}
-      </div>
-      <div className="grid grid-cols-7 gap-0">
-        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-medium text-[var(--color-steel-blue)] pb-1.5">{d}</div>
-        ))}
-        {cells.map((day, i) => {
-          if (day === null) return <div key={i} className="h-7" />;
-          const cellDate = new Date(year, month, day);
-          const isToday = isSameDay(cellDate, today);
-          const isInWeek = cellDate >= currentWeekStart && cellDate <= weekEnd;
+  // Group cells into weeks
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
 
-          return (
-            <div
-              key={i}
-              className={`h-7 flex items-center justify-center text-xs transition-colors
-                ${isInWeek ? "bg-[var(--color-signal-blue)]/[0.06]" : ""}
-                ${isToday ? "bg-[var(--color-signal-blue)] text-white rounded-full font-bold" : "text-[var(--color-carbon)]"}
-              `}
-            >
-              {day}
-            </div>
-          );
-        })}
+  return (
+    <div className="select-none mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[#111827] text-[13px] font-[600]">
+          {MONTH_NAMES[month]} {year}
+        </span>
+        <div className="flex items-center gap-2">
+          <ChevronLeft className="w-4 h-4 text-[#9CA3AF] cursor-pointer" />
+          <ChevronRight className="w-4 h-4 text-[#9CA3AF] cursor-pointer" />
+        </div>
+      </div>
+      <div className="grid grid-cols-7 gap-0 mb-1">
+        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+          <div key={i} className="text-center text-[11px] font-[500] text-[#9CA3AF] tracking-[0.04em] pb-1.5">{d}</div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        {weeks.map((week, wIndex) => (
+          <div key={wIndex} className="grid grid-cols-7 rounded-[6px]">
+            {week.map((day, i) => {
+              if (day === null) return <div key={i} className="h-7" />;
+              const cellDate = new Date(year, month, day);
+              const isToday = isSameDay(cellDate, today);
+              const isWeekend = i === 5 || i === 6;
+
+              return (
+                <div
+                  key={i}
+                  className="h-7 flex items-center justify-center text-[13px] transition-colors"
+                >
+                  {isToday ? (
+                    <div className="bg-[#E8470A] text-white rounded-full w-[28px] h-[28px] flex items-center justify-center font-[600]">
+                      {day}
+                    </div>
+                  ) : (
+                    <span className={`font-[400] ${isWeekend ? "text-[#D1D5DB]" : "text-[#374151]"}`}>
+                      {day}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -142,14 +145,15 @@ function ClassBlock({
   const endMin = timeToMinutes(cls.endTime);
   const top = ((startMin / 60) - minHour) * hourHeight;
   const height = Math.max(((endMin - startMin) / 60) * hourHeight, 28);
-  const color = hashSubjectToColor(cls.subject);
+  
+  const isLab = cls.subject.toLowerCase().includes("lab");
 
   const widthPercent = 100 / colCount;
   const leftPercent = colIndex * widthPercent;
 
   return (
     <div
-      className="absolute group cursor-default transition-all duration-200 hover:shadow-md hover:z-10"
+      className="absolute cursor-pointer transition-all duration-200 group"
       style={{
         top: `${top}px`,
         height: `${height}px`,
@@ -160,30 +164,51 @@ function ClassBlock({
       }}
     >
       <div
-        className="h-full rounded-md px-2 py-1.5 overflow-hidden border-l-[3px] relative"
+        className="h-full rounded-[8px] overflow-hidden relative flex flex-col transition-all duration-200"
         style={{
-          backgroundColor: color.bg,
-          borderLeftColor: color.border,
+          backgroundColor: "#F8F9FA",
+          border: "1px solid #E5E7EB",
+          borderLeft: "3px solid #D1D5DB",
+          padding: "6px 10px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "#F1F3F5";
+          e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "#F8F9FA";
+          e.currentTarget.style.boxShadow = "none";
         }}
       >
         <div
-          className="text-[11px] font-semibold leading-tight truncate"
-          style={{ color: color.text }}
+          className="text-[12px] font-[600] text-[#374151] leading-tight overflow-hidden text-ellipsis whitespace-nowrap"
           title={cls.subject}
         >
           {cls.subject}
         </div>
+        
         {height > 40 && (
-          <div className="text-[10px] text-[var(--color-slate-blue)] mt-0.5 truncate">
+          <div className="text-[11px] font-[400] mt-0.5 text-[#9CA3AF] truncate">
             {cls.startTime} – {cls.endTime}
           </div>
         )}
-        {height > 56 && cls.room && (
-          <div className="text-[10px] text-[var(--color-steel-blue)] truncate">{cls.room}</div>
+
+        {isLab && height > 50 && (
+          <div className="mt-1">
+            <span className="bg-[#F3F4F6] text-[#6B7280] rounded-[4px] px-[5px] py-[1px] text-[10px] font-[500]">
+              LAB
+            </span>
+          </div>
+        )}
+        
+        {height > 56 && !isLab && cls.room && (
+          <div className="text-[11px] font-[400] text-[#9CA3AF] truncate mt-0.5">
+            {cls.room}
+          </div>
         )}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(cls.id); }}
-          className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-white/80 text-[var(--color-slate-blue)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full text-[#9CA3AF] hover:text-[#DC2626] opacity-0 group-hover:opacity-100 transition-opacity bg-transparent"
         >
           <Trash2 className="w-3 h-3" />
         </button>
@@ -201,9 +226,21 @@ export default function SchedulePage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTimeMinutes, setCurrentTimeMinutes] = useState(-1);
 
   const today = useMemo(() => new Date(), []);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => getMonday(today));
+
+  useEffect(() => {
+    // Update current time indicator every minute
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeMinutes(now.getHours() * 60 + now.getMinutes());
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchSchedule = async () => {
     try {
@@ -254,7 +291,7 @@ export default function SchedulePage() {
 
   // ── Compute time axis bounds ──
   const { minHour, maxHour } = useMemo(() => {
-    if (schedules.length === 0) return { minHour: 8, maxHour: 17 };
+    if (schedules.length === 0) return { minHour: 8, maxHour: 18 };
     let mn = 24, mx = 0;
     for (const s of schedules) {
       const sh = Math.floor(timeToMinutes(s.startTime) / 60);
@@ -323,33 +360,56 @@ export default function SchedulePage() {
 
   // ── Determine displayed month/year from current week ──
   const displayMonth = weekDates[3]; // Use Thursday to determine month
+  const weekStartStr = `${MONTH_SHORT[weekDates[0].getMonth()]} ${weekDates[0].getDate()}`;
+  const weekEndStr = `${weekDates[6].getDate()}`;
 
   // ── Sidebar content (shared between desktop sidebar and mobile drawer) ──
   const sidebarContent = (
-    <div className="space-y-6">
+    <div className="w-[260px] flex-shrink-0 bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] p-[16px] overflow-y-auto">
       <MiniCalendar today={today} currentWeekStart={currentWeekStart} />
+
+      <div className="h-px bg-[#E5E7EB] w-full mb-6" />
+
+      {/* Actions */}
+      <div className="space-y-3 mb-6">
+        <button
+          onClick={() => { setShowUpload(!showUpload); setSidebarOpen(false); }}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-[400] text-[#374151] border border-[#E5E7EB] rounded-[8px] hover:bg-[#F9FAFB] transition-colors"
+        >
+          <Upload className="w-4 h-4" /> Upload Timetable
+        </button>
+        {schedules.length > 0 && (
+          <button
+            onClick={() => { generateStudyPlan(); setSidebarOpen(false); }}
+            disabled={isGeneratingPlan}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-[500] text-white bg-[#E8470A] rounded-[8px] hover:opacity-90 transition-all disabled:opacity-50"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isGeneratingPlan ? "Thinking..." : "AI Study Plan"}
+          </button>
+        )}
+      </div>
 
       {/* Today's classes */}
       <div>
-        <h3 className="text-xs font-semibold text-[var(--color-slate-blue)] uppercase tracking-wider mb-2">
+        <h3 className="text-[10px] font-[600] text-[#9CA3AF] tracking-[0.08em] uppercase mb-3">
           Today&apos;s Classes
         </h3>
         {todaysClasses.length === 0 ? (
-          <p className="text-xs text-[var(--color-steel-blue)]">No classes today 🎉</p>
+          <p className="text-[12px] text-[#6B7280]">No classes today</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-0">
             {todaysClasses.map((cls) => {
-              const color = hashSubjectToColor(cls.subject);
               return (
                 <div
                   key={cls.id}
-                  className="flex items-start gap-2 py-1.5"
+                  className="flex items-start gap-2 py-[10px] px-[12px] border-b border-[#F3F4F6] last:border-b-0 group/class transition-colors"
                 >
-                  <div className="w-1 h-full min-h-[32px] rounded-full shrink-0 mt-0.5" style={{ backgroundColor: color.border }} />
+                  <div className="w-[3px] h-full min-h-[32px] rounded-full shrink-0 bg-[#E5E7EB] group-hover/class:bg-[#E8470A] transition-colors" />
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-[var(--color-midnight-navy)] truncate">{cls.subject}</div>
-                    <div className="text-[10px] text-[var(--color-slate-blue)]">
-                      {cls.startTime} – {cls.endTime}{cls.room ? ` · ${cls.room}` : ""}
+                    <div className="text-[13px] font-[500] text-[#111827] leading-tight truncate">{cls.subject}</div>
+                    <div className="text-[12px] font-[400] text-[#9CA3AF] mt-0.5">
+                      {cls.startTime} – {cls.endTime}
                     </div>
                   </div>
                 </div>
@@ -358,87 +418,73 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
-
-      {/* Actions */}
-      <div className="space-y-2">
-        <button
-          onClick={() => { setShowUpload(!showUpload); setSidebarOpen(false); }}
-          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[var(--color-slate-blue)] border border-[var(--color-mist-border)] rounded hover:bg-[var(--color-fog)] transition-colors"
-        >
-          <Upload className="w-3.5 h-3.5" /> Upload Timetable
-        </button>
-        {schedules.length > 0 && (
-          <button
-            onClick={() => { generateStudyPlan(); setSidebarOpen(false); }}
-            disabled={isGeneratingPlan}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-[var(--color-signal-blue)] rounded hover:opacity-90 transition-all disabled:opacity-50"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            {isGeneratingPlan ? "Thinking..." : "AI Study Plan"}
-          </button>
-        )}
-      </div>
     </div>
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col bg-[#F7F7F5] overflow-hidden font-sans">
       {/* ── HEADER ── */}
-      <div className="shrink-0 px-4 md:px-6 py-4 border-b border-[var(--color-mist-border)] bg-white">
-        <div className="flex items-center justify-between max-w-[1400px] mx-auto">
-          <div className="flex items-center gap-3">
-            {/* Mobile sidebar toggle */}
+      <div className="shrink-0 px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] transition-colors"
+              className="md:hidden w-9 h-9 flex items-center justify-center rounded-[8px] text-[#6B7280] hover:bg-[#E5E7EB] transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <h1 className="text-xl md:text-2xl font-bold text-[var(--color-midnight-navy)]">
-              {MONTH_NAMES[displayMonth.getMonth()]} {displayMonth.getFullYear()}
-            </h1>
+            <div className="flex items-baseline">
+              <h1 className="text-[22px] font-[600] text-[#111827] m-0">
+                {MONTH_NAMES[displayMonth.getMonth()]} {displayMonth.getFullYear()}
+              </h1>
+              <span className="text-[13px] font-[400] text-[#9CA3AF] ml-[10px]">
+                Week of {weekStartStr} – {weekEndStr}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={goToToday}
-              className="px-3 py-1.5 text-xs font-medium border border-[var(--color-mist-border)] rounded text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] transition-colors"
+              className="px-[14px] py-[6px] text-[13px] font-[400] text-[#374151] bg-[#FFFFFF] border border-[#E5E7EB] rounded-[8px] hover:bg-[#F9FAFB] transition-colors"
             >
               Today
             </button>
-            <button
-              onClick={goToPrevWeek}
-              className="w-8 h-8 flex items-center justify-center rounded text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] transition-all duration-200"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={goToNextWeek}
-              className="w-8 h-8 flex items-center justify-center rounded text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] transition-all duration-200"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={goToPrevWeek}
+                className="w-[32px] h-[32px] flex items-center justify-center bg-[#FFFFFF] border border-[#E5E7EB] rounded-[8px] text-[#374151] hover:bg-[#F9FAFB] transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                onClick={goToNextWeek}
+                className="w-[32px] h-[32px] flex items-center justify-center bg-[#FFFFFF] border border-[#E5E7EB] rounded-[8px] text-[#374151] hover:bg-[#F9FAFB] transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[var(--color-signal-blue)] rounded hover:opacity-90 transition-all"
+              className="flex items-center gap-[6px] px-[16px] py-[6px] text-[13px] font-[500] text-[#FFFFFF] bg-[#E8470A] rounded-[8px] hover:opacity-90 transition-opacity ml-2 border-none"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Class
+              <Plus className="w-4 h-4" /> Add Class
             </button>
           </div>
         </div>
       </div>
 
       {/* ── BODY ── */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden px-6 pb-6 gap-[20px]">
         {/* Mobile sidebar drawer overlay */}
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 md:hidden">
             <div className="absolute inset-0 bg-black/20" onClick={() => setSidebarOpen(false)} />
-            <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-white border-r border-[var(--color-mist-border)] p-5 overflow-y-auto shadow-lg">
+            <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-[#F7F7F5] p-5 overflow-y-auto shadow-lg">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-semibold text-[var(--color-midnight-navy)]">Schedule</span>
-                <button onClick={() => setSidebarOpen(false)} className="w-7 h-7 flex items-center justify-center rounded text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)]">
+                <span className="text-sm font-semibold text-[#111827]">Schedule</span>
+                <button onClick={() => setSidebarOpen(false)} className="w-7 h-7 flex items-center justify-center rounded text-[#6B7280] hover:bg-[#E5E7EB]">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -448,35 +494,37 @@ export default function SchedulePage() {
         )}
 
         {/* Desktop sidebar */}
-        <aside className="hidden md:block w-[260px] shrink-0 border-r border-[var(--color-mist-border)] bg-white p-5 overflow-y-auto">
+        <aside className="hidden md:block">
           {sidebarContent}
         </aside>
 
         {/* ── CALENDAR GRID ── */}
-        <main className="flex-1 overflow-auto bg-white">
+        <main className="flex-1 overflow-auto bg-[#FFFFFF] border border-[#E5E7EB] rounded-[12px] relative">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full text-[var(--color-slate-blue)] text-sm">
+            <div className="flex items-center justify-center h-full text-[#6B7280] text-sm">
               Loading schedule…
             </div>
           ) : (
             <div className="min-w-[700px]">
               {/* Day headers */}
-              <div className="sticky top-0 z-10 bg-white border-b border-[var(--color-mist-border)]">
+              <div className="sticky top-0 z-20 bg-[#FFFFFF] border-b border-[#E5E7EB]">
                 <div className="flex">
                   {/* Time gutter spacer */}
-                  <div className="w-14 shrink-0" />
+                  <div className="w-[56px] shrink-0" />
                   {/* Day columns */}
                   {DAYS_ORDER.map((day, i) => {
                     const date = weekDates[i];
                     const isToday = isSameDay(date, today);
+                    const isWeekend = i === 5 || i === 6;
+                    
                     return (
-                      <div key={day} className="flex-1 text-center py-2.5 border-l border-[var(--color-mist-border)] first:border-l-0">
-                        <div className="text-[11px] font-medium text-[var(--color-steel-blue)] uppercase tracking-wider">
+                      <div key={day} className={`flex-1 text-center py-[12px] border-l border-[#F3F4F6] first:border-l-0 ${isWeekend ? "bg-[#FAFAFA]" : ""}`}>
+                        <div className="text-[11px] font-[500] text-[#9CA3AF] tracking-[0.05em] uppercase mb-1">
                           {DAY_SHORT[i]}
                         </div>
                         <div
-                          className={`inline-flex items-center justify-center w-8 h-8 text-sm font-semibold mt-0.5 rounded-full transition-colors
-                            ${isToday ? "bg-[var(--color-signal-blue)] text-white" : "text-[var(--color-midnight-navy)]"}
+                          className={`mx-auto inline-flex items-center justify-center w-[34px] h-[34px] text-[20px] font-[600] rounded-full transition-colors
+                            ${isToday ? "bg-[#E8470A] text-[#FFFFFF]" : (isWeekend ? "text-[#EF4444]" : "text-[#111827]")}
                           `}
                         >
                           {date.getDate()}
@@ -490,12 +538,12 @@ export default function SchedulePage() {
               {/* Time grid */}
               <div className="flex relative" style={{ height: `${gridHeight}px` }}>
                 {/* Time labels */}
-                <div className="w-14 shrink-0 relative">
+                <div className="w-[56px] shrink-0 relative bg-[#FFFFFF]">
                   {Array.from({ length: totalHours }, (_, i) => (
                     <div
                       key={i}
-                      className="absolute right-2 text-[10px] text-[var(--color-steel-blue)] leading-none"
-                      style={{ top: `${i * hourHeight - 5}px` }}
+                      className="absolute right-3 text-[11px] font-[400] text-[#D1D5DB] leading-none"
+                      style={{ top: `${i * hourHeight - 6}px` }}
                     >
                       {formatHour(minHour + i)}
                     </div>
@@ -504,28 +552,38 @@ export default function SchedulePage() {
 
                 {/* Day columns */}
                 {DAYS_ORDER.map((day, dayIdx) => {
-                  const isToday = isSameDay(weekDates[dayIdx], today);
+                  const date = weekDates[dayIdx];
+                  const isToday = isSameDay(date, today);
+                  const isWeekend = dayIdx === 5 || dayIdx === 6;
                   const dayClasses = classesByDay[day] || [];
                   const groups = getOverlapGroups(dayClasses);
 
                   return (
                     <div
                       key={day}
-                      className={`flex-1 relative border-l border-[var(--color-mist-border)]
-                        ${isToday ? "bg-[#f0f6ff]" : ""}
-                      `}
+                      className={`flex-1 relative border-l border-[#F3F4F6] ${isWeekend ? "bg-[#FAFAFA]" : ""}`}
                     >
                       {/* Hour lines */}
                       {Array.from({ length: totalHours }, (_, i) => (
                         <div
                           key={i}
-                          className="absolute left-0 right-0 border-t border-[var(--color-fog)]"
+                          className="absolute left-0 right-0 border-t border-[#F3F4F6]"
                           style={{ top: `${i * hourHeight}px` }}
                         />
                       ))}
 
+                      {/* Current Time Indicator */}
+                      {isToday && currentTimeMinutes >= minHour * 60 && currentTimeMinutes <= maxHour * 60 && (
+                        <div 
+                          className="absolute left-0 right-0 border-t-[2px] border-[#E8470A] z-10 pointer-events-none"
+                          style={{ top: `${((currentTimeMinutes / 60) - minHour) * hourHeight}px` }}
+                        >
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-[#E8470A] -ml-[3.5px]" />
+                        </div>
+                      )}
+
                       {/* Class blocks */}
-                      <div className="absolute inset-0 px-0.5">
+                      <div className="absolute inset-0 px-[2px]">
                         {groups.flatMap((group) =>
                           group.map((cls, colIdx) => (
                             <ClassBlock
@@ -544,25 +602,6 @@ export default function SchedulePage() {
                   );
                 })}
               </div>
-
-              {/* Empty state overlay */}
-              {schedules.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ top: "120px" }}>
-                  <div className="text-center pointer-events-auto">
-                    <div className="text-4xl mb-3">📅</div>
-                    <h3 className="text-sm font-semibold text-[var(--color-midnight-navy)] mb-1">No classes yet</h3>
-                    <p className="text-xs text-[var(--color-slate-blue)] mb-3 max-w-[240px]">
-                      Upload a timetable photo or add classes manually to get started.
-                    </p>
-                    <button
-                      onClick={() => setShowAddModal(true)}
-                      className="text-xs font-medium text-[var(--color-signal-blue)] hover:underline"
-                    >
-                      + Add your first class
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </main>
@@ -570,11 +609,11 @@ export default function SchedulePage() {
 
       {/* ── Upload panel (collapsible below calendar) ── */}
       {showUpload && (
-        <div className="shrink-0 border-t border-[var(--color-mist-border)] bg-[var(--color-mist)] p-4 md:p-6">
+        <div className="shrink-0 border-t border-[#E5E7EB] bg-[#F7F7F5] p-4 md:p-6 z-20">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-[var(--color-midnight-navy)]">Upload Timetable</h3>
-              <button onClick={() => setShowUpload(false)} className="text-[var(--color-slate-blue)] hover:text-[var(--color-carbon)]">
+              <h3 className="text-sm font-semibold text-[#111827]">Upload Timetable</h3>
+              <button onClick={() => setShowUpload(false)} className="text-[#6B7280] hover:text-[#111827]">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -585,28 +624,28 @@ export default function SchedulePage() {
 
       {/* ── Study Plan panel ── */}
       {studyPlan && (
-        <div className="shrink-0 border-t border-[var(--color-mist-border)] bg-white max-h-[40vh] overflow-y-auto">
+        <div className="shrink-0 border-t border-[#E5E7EB] bg-[#FFFFFF] max-h-[40vh] overflow-y-auto z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
           <div className="max-w-3xl mx-auto p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-[var(--color-midnight-navy)]">
-                <Sparkles className="w-5 h-5 text-[var(--color-signal-blue)]" />
+              <h2 className="text-[18px] font-[600] flex items-center gap-2 text-[#111827]">
+                <Sparkles className="w-5 h-5 text-[#E8470A]" />
                 Your Custom Study Plan
               </h2>
               <button
                 onClick={() => setStudyPlan("")}
-                className="text-[var(--color-slate-blue)] hover:text-[var(--color-carbon)]"
+                className="text-[#6B7280] hover:text-[#111827]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="prose prose-sm max-w-none text-[var(--color-carbon)]">
+            <div className="prose prose-sm max-w-none text-[#374151]">
               <ReactMarkdown
                 components={{
                   p: ({ node, ...props }: any) => <p className="mb-3" {...props} />,
                   ul: ({ node, ...props }: any) => <ul className="list-disc ml-4 mb-3" {...props} />,
                   ol: ({ node, ...props }: any) => <ol className="list-decimal ml-4 mb-3" {...props} />,
                   li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
-                  h3: ({ node, ...props }: any) => <h3 className="text-lg font-semibold mt-6 mb-2" {...props} />,
+                  h3: ({ node, ...props }: any) => <h3 className="text-[16px] font-[600] mt-6 mb-2 text-[#111827]" {...props} />,
                 }}
               >
                 {studyPlan}

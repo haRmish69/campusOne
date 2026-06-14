@@ -1,7 +1,7 @@
 import { Wallet, Calendar, Receipt } from "lucide-react";
 import { ExpenseEntry } from "@/components/ExpenseEntry";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
-import { EmptyState } from "@/components/EmptyState";
+import { ExpensesEmptyState } from "./ExpensesEmptyState";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@clerk/nextjs/server";
@@ -92,13 +92,7 @@ export default async function ExpensesPage() {
 
       <h2 className="text-xl font-bold tracking-tight mb-4">Recent Expenses</h2>
       {recentExpenses.length === 0 ? (
-        <EmptyState 
-          icon={Receipt} 
-          heading="No expenses logged" 
-          subtitle="Say 'I spent ₹200 on lunch' in the chat to log your first expense" 
-          ctaLabel="Open Chat" 
-          onCtaClick={() => window.location.href = '/chat'} 
-        />
+        <ExpensesEmptyState />
       ) : (
         <div className="space-y-3">
           {recentExpenses.map((expense) => (
@@ -115,7 +109,7 @@ export default async function ExpensesPage() {
                       {expense.category}
                     </span>
                     {expense.source === "receipt" && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                      <span className="px-2 py-0.5 bg-[var(--color-pearl)] text-[var(--color-graphite)] border border-[var(--color-paper)] rounded-full">
                         Receipt
                       </span>
                     )}

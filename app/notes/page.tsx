@@ -299,7 +299,7 @@ export default function NotesPage() {
               placeholder="Search note contents or PDFs..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 w-full rounded-md border-border bg-card shadow-sm focus-visible:ring-signal-blue"
+              className="pl-9 h-10 w-full rounded-[12px] border-border bg-card shadow-sm focus-visible:ring-signal-blue"
             />
             {searchQuery && (
               <button 
@@ -313,7 +313,7 @@ export default function NotesPage() {
 
           {/* Add Note Button */}
           <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger className="inline-flex items-center justify-center rounded-lg bg-signal-blue text-white hover:bg-signal-blue/90 shadow-sm h-10 px-4 text-sm font-medium shrink-0">
+            <DialogTrigger className="inline-flex items-center justify-center rounded-[12px] bg-signal-blue text-white hover:bg-signal-blue/90 shadow-sm h-10 px-4 text-sm font-medium shrink-0">
                 <Plus className="w-4 h-4 mr-2" /> Add Note
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl w-full bg-card border-border/60">
@@ -332,7 +332,7 @@ export default function NotesPage() {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-lg p-10 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[220px]
+                  className={`border-2 border-dashed rounded-[12px] p-10 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[220px]
                     ${isDragging ? "border-signal-blue bg-signal-blue/5" : "border-border/50 bg-muted/20 hover:bg-muted/30"}
                     ${isProcessingAI ? "opacity-50 pointer-events-none" : ""}`}
                 >
@@ -397,7 +397,7 @@ export default function NotesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="file_indicator">Attachment</Label>
-                    <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/30 text-sm text-muted-foreground flex items-center gap-2">
+                    <div className="h-10 px-3 py-2 rounded-[12px] border border-input bg-muted/30 text-sm text-muted-foreground flex items-center gap-2">
                       {uploadedFileName ? (
                         <>
                           <FileText className="w-4 h-4 text-signal-blue shrink-0" />
@@ -497,7 +497,7 @@ export default function NotesPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-card border border-border/40 rounded-xl space-y-3">
+            <div className="text-center py-16 bg-card border border-border/40 rounded-[20px] space-y-3">
               <FileText className="w-12 h-12 text-muted-foreground mx-auto" />
               <h4 className="font-semibold text-midnight-navy">No matching documents found</h4>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -569,9 +569,9 @@ export default function NotesPage() {
                 <div 
                   key={folderName}
                   onClick={() => setSelectedFolder(folderName)}
-                  className="bg-card hover:bg-muted/10 border border-border/60 rounded-xl p-6 shadow-sm hover:shadow transition-all duration-200 cursor-pointer flex flex-col space-y-4"
+                  className="bg-card hover:bg-muted/10 border border-border/60 rounded-[20px] p-6 shadow-sm hover:shadow transition-all duration-200 cursor-pointer flex flex-col space-y-4"
                 >
-                  <div className="w-12 h-12 bg-signal-blue/10 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-signal-blue/10 rounded-[12px] flex items-center justify-center">
                     <FolderOpen className="w-6 h-6 text-signal-blue" />
                   </div>
                   <div>
@@ -584,7 +584,7 @@ export default function NotesPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-card border border-border/40 rounded-2xl space-y-4">
+            <div className="text-center py-20 bg-card border border-border/40 rounded-[20px] space-y-4">
               <BookOpen className="w-16 h-16 text-muted-foreground/60 mx-auto" />
               <h3 className="text-xl font-bold text-midnight-navy">Your library is empty</h3>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -625,7 +625,7 @@ export default function NotesPage() {
           
           <div className="flex-1 overflow-y-auto pr-2 py-4">
             {selectedNote?.fileName && selectedNote?.fileUrl && (
-              <div className="mb-6 bg-muted/20 border border-border/40 p-4 rounded-lg flex items-center justify-between">
+              <div className="mb-6 bg-muted/20 border border-border/40 p-4 rounded-[12px] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-signal-blue/10 rounded flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5 text-signal-blue" />
@@ -662,7 +662,7 @@ export default function NotesPage() {
                         console.error("Failed to open file:", e);
                       }
                     }}
-                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 border border-emerald-200 bg-card hover:bg-emerald-50 px-3 py-1.5 rounded transition-all flex items-center gap-1.5"
+                    className="text-xs font-semibold text-[var(--color-graphite)] hover:text-[var(--color-midnight-navy)] border border-[var(--color-paper)] bg-[var(--color-pearl)] hover:border-[var(--color-mist)] px-3 py-1.5 rounded transition-all flex items-center gap-1.5"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     View

@@ -53,7 +53,7 @@ export function BurnoutRadar() {
   const isHighRisk = insight.score > 70;
 
   return (
-    <Card className={`w-full shadow-sm mb-8 border-l-4 ${isHighRisk ? 'border-l-red-500 bg-red-50/30' : 'border-l-emerald-500 bg-emerald-50/30'}`}>
+    <Card className={`w-full shadow-sm mb-8 border-l-4 ${isHighRisk ? 'border-l-red-500 bg-[var(--color-canvas-white)]/30' : 'border-l-emerald-500 bg-emerald-50/30'}`}>
       <CardContent className="pt-6">
         <div className="flex items-start gap-4">
           <div className={`p-3 rounded-full ${isHighRisk ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>

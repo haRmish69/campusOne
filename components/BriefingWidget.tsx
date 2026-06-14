@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Sun, Moon, Loader2, X, Check, ChevronRight, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sun, Moon, Loader2, X, Check, Heart } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import "@/app/dashboard/dashboard.css";
 
-// ─── Wellness Questions ──────────────────────────────────────────────────
 interface WellnessQuestion {
   id: string;
   question: string;
   options: { label: string; value: number | string }[];
 }
+
 export function BriefingWidget() {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [dynamicQuestions, setDynamicQuestions] = useState<WellnessQuestion[]>([]);
@@ -67,11 +67,9 @@ export function BriefingWidget() {
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
 
-    // Move to next question or submit
     if (currentQuestion < dynamicQuestions.length - 1) {
       setTimeout(() => setCurrentQuestion(prev => prev + 1), 300);
     } else {
-      // All questions answered — submit
       submitWellness(newAnswers);
     }
   };
@@ -79,7 +77,6 @@ export function BriefingWidget() {
   const submitWellness = async (finalAnswers: Record<string, number | string>) => {
     setIsSubmitting(true);
 
-    // Build a natural language summary from the MCQ answers
     const payloadText = Object.entries(finalAnswers)
       .map(([id, val]) => {
         const q = dynamicQuestions.find((q) => q.id === id);
@@ -104,7 +101,7 @@ export function BriefingWidget() {
       setConfirmationMsg(data.response || "Your wellness check-in has been logged! 💙");
       setWellnessDone(true);
       setShowWellness(false);
-      toast.success("Wellness check-in saved! 💙");
+      toast.success("Wellness check-in saved!");
     } catch (error: any) {
       console.error("Wellness submit error:", error);
       toast.error("Failed to save wellness data");
@@ -117,66 +114,64 @@ export function BriefingWidget() {
   const progress = ((currentQuestion + (answers[currentQ?.id] !== undefined ? 1 : 0)) / dynamicQuestions.length) * 100;
 
   return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold tracking-tight">Daily Briefing</h2>
-      </div>
+    <div className="card">
+      <h2 className="section-heading" style={{ marginBottom: '16px' }}>Daily Briefing</h2>
 
       {/* ─── Trigger Buttons ──────────────────────────────────────── */}
-      <div className="flex gap-3 mb-4">
-        <Button
-          variant="outline"
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+        <button
           onClick={() => triggerBriefing("morning")}
           disabled={isLoading}
-          className="rounded-[30px] px-6 py-5 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-ember-orange)] hover:text-[var(--color-ember-orange)] transition-all shadow-sm hover:shadow-md"
+          className="brief-btn"
+          style={{ flex: 1 }}
         >
           {isLoading && loadingType === "morning" ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin text-[var(--color-slate-blue)]" />
+            <Loader2 size={16} className="animate-spin" />
           ) : (
-            <Sun className="w-5 h-5 mr-2 text-[var(--color-ember-orange)]" />
+            <Sun size={16} />
           )}
-          🌅 Morning Briefing
-        </Button>
-        <Button
-          variant="outline"
+          Morning Briefing
+        </button>
+        <button
           onClick={() => triggerBriefing("evening")}
           disabled={isLoading}
-          className="rounded-[30px] px-6 py-5 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-ember-orange)] hover:text-[var(--color-ember-orange)] transition-all shadow-sm hover:shadow-md"
+          className="brief-btn"
+          style={{ flex: 1 }}
         >
           {isLoading && loadingType === "evening" ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin text-[var(--color-slate-blue)]" />
+            <Loader2 size={16} className="animate-spin" />
           ) : (
-            <Moon className="w-5 h-5 mr-2 text-[var(--color-slate-blue)]" />
+            <Moon size={16} />
           )}
-          🌙 Evening Wrap-up
-        </Button>
+          Evening Wrap-up
+        </button>
       </div>
 
       {/* ─── Loading State ────────────────────────────────────────── */}
       {isLoading && (
-        <div className="p-6 rounded-[8px] border border-[var(--color-mist-border)] bg-[var(--color-fog)] text-center">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--color-slate-blue)]" />
-          <p className="text-sm text-[var(--color-slate-blue)]">Generating your briefing...</p>
+        <div style={{ padding: '24px', textAlign: 'center', background: 'var(--surface2)', borderRadius: '9px' }}>
+          <Loader2 className="animate-spin" style={{ margin: '0 auto 8px', color: 'var(--text3)' }} size={24} />
+          <p style={{ fontSize: '12px', color: 'var(--text2)', margin: 0 }}>Generating your briefing...</p>
         </div>
       )}
 
       {/* ─── Briefing Card ────────────────────────────────────────── */}
       {briefing && !isLoading && (
-        <div className="relative p-6 rounded-[8px] border border-[var(--color-mist-border)] bg-gradient-to-br from-[var(--color-paper)] to-[var(--color-fog)] shadow-[var(--shadow-sm)]">
+        <div style={{ position: 'relative', padding: '20px', background: 'var(--surface2)', borderRadius: '9px', marginBottom: '16px' }}>
           <button
             onClick={() => { setBriefing(null); setShowWellness(false); setWellnessDone(false); }}
-            className="absolute top-3 right-3 p-1 rounded-full hover:bg-black/5 transition-colors"
+            style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}
           >
-            <X className="w-4 h-4 text-[var(--color-slate-blue)]" />
+            <X size={14} />
           </button>
-          <div className="prose prose-sm max-w-none text-[var(--color-midnight-navy)] leading-relaxed">
+          <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: 1.6 }}>
             <ReactMarkdown
               components={{
-                p: ({node, ...props}: any) => <p className="mb-2 last:mb-0" {...props} />,
-                ul: ({node, ...props}: any) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                ol: ({node, ...props}: any) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                li: ({node, ...props}: any) => <li className="mb-1" {...props} />,
-                strong: ({node, ...props}: any) => <strong className="font-semibold" {...props} />,
+                p: ({node, ...props}: any) => <p style={{ margin: '0 0 8px' }} {...props} />,
+                ul: ({node, ...props}: any) => <ul style={{ margin: '0 0 8px', paddingLeft: '20px' }} {...props} />,
+                ol: ({node, ...props}: any) => <ol style={{ margin: '0 0 8px', paddingLeft: '20px' }} {...props} />,
+                li: ({node, ...props}: any) => <li style={{ marginBottom: '4px' }} {...props} />,
+                strong: ({node, ...props}: any) => <strong style={{ fontWeight: 600, color: 'var(--text1)' }} {...props} />,
               }}
             >
               {briefing}
@@ -187,73 +182,63 @@ export function BriefingWidget() {
 
       {/* ─── Wellness MCQ Check-in ────────────────────────────────── */}
       {showWellness && !wellnessDone && !isLoading && (
-        <div className="mt-4 p-6 rounded-[8px] border border-[var(--color-mist-border)] bg-[var(--color-paper)] shadow-[var(--shadow-sm)]">
+        <div style={{ padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '9px', marginTop: '4px' }}>
           {/* Header */}
-          <div className="flex items-center gap-2 mb-1">
-            <Heart className="w-5 h-5 text-rose-500" />
-            <h3 className="font-semibold text-[var(--color-midnight-navy)]">Quick Wellness Check-in</h3>
-            <span className="ml-auto text-xs font-medium text-[var(--color-slate-blue)] bg-[var(--color-fog)] px-2 py-0.5 rounded-full">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <Heart size={14} style={{ color: 'var(--acc)' }} />
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text1)', margin: 0 }}>Quick Check-in</h3>
+            <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 500, color: 'var(--text3)', background: 'var(--surface2)', padding: '2px 6px', borderRadius: '20px' }}>
               {currentQuestion + 1} / {dynamicQuestions.length}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full h-1.5 bg-[var(--color-pearl)] rounded-full mb-5 overflow-hidden">
+          <div className="progress-bar" style={{ marginBottom: '20px' }}>
             <div
-              className="h-full bg-[var(--color-ember-orange)] rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              className="progress-fill"
+              style={{ width: `${progress}%`, transition: 'width 0.5s ease' }}
             />
           </div>
 
           {/* Current Question */}
           {isSubmitting ? (
-            <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[var(--color-ember-orange)]" />
-              <p className="text-sm text-[var(--color-slate-blue)]">Saving your check-in...</p>
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <Loader2 className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--acc)' }} size={24} />
+              <p style={{ fontSize: '12px', color: 'var(--text2)', margin: 0 }}>Saving your check-in...</p>
             </div>
           ) : (
-            <div className="animate-in fade-in duration-300">
-              <p className="text-[16px] font-medium text-[var(--color-midnight-navy)] mb-4">
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text1)', marginBottom: '16px', margin: 0 }}>
                 {currentQ.question}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', marginTop: '16px' }}>
                 {currentQ.options.map((opt) => {
                   const isSelected = answers[currentQ.id] === opt.value;
                   return (
                     <button
                       key={String(opt.value)}
                       onClick={() => handleAnswer(currentQ.id, opt.value)}
-                      className={`
-                        text-left px-4 py-3 rounded-[8px] border-2 text-[14px] font-medium transition-all duration-200
-                        ${isSelected
-                          ? "border-[var(--color-ember-orange)] bg-[var(--color-ember-orange)]/5 text-[var(--color-ember-orange)] shadow-sm"
-                          : "border-[var(--color-mist-border)] bg-[var(--color-canvas-white)] text-[var(--color-midnight-navy)] hover:border-[var(--color-ember-orange)]/50 hover:bg-[var(--color-fog)] hover:shadow-sm"
-                        }
-                      `}
+                      style={{
+                        textAlign: 'left',
+                        padding: '12px 16px',
+                        borderRadius: '9px',
+                        border: `1.5px solid ${isSelected ? 'var(--acc)' : 'var(--border)'}`,
+                        background: isSelected ? 'var(--acc-soft)' : 'var(--surface)',
+                        color: isSelected ? 'var(--acc)' : 'var(--text2)',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'all 0.2s ease'
+                      }}
                     >
-                      <span className="flex items-center justify-between">
-                        {opt.label}
-                        {isSelected && <Check className="w-4 h-4 text-[var(--color-ember-orange)]" />}
-                      </span>
+                      {opt.label}
+                      {isSelected && <Check size={14} style={{ color: 'var(--acc)' }} />}
                     </button>
                   );
                 })}
-              </div>
-
-              {/* Navigation dots */}
-              <div className="flex justify-center gap-1.5 mt-5">
-                {dynamicQuestions.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      i === currentQuestion
-                        ? "bg-[var(--color-ember-orange)] w-6"
-                        : i < currentQuestion
-                        ? "bg-[var(--color-ember-orange)]/50"
-                        : "bg-[var(--color-pearl)]"
-                    }`}
-                  />
-                ))}
               </div>
             </div>
           )}
@@ -262,23 +247,16 @@ export function BriefingWidget() {
 
       {/* ─── Confirmation ─────────────────────────────────────────── */}
       {wellnessDone && (
-        <div className="mt-4 p-6 rounded-[8px] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-green-50/60 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 shrink-0">
-              <Check className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-emerald-800 mb-1">Check-in Complete!</h3>
-              <p className="text-sm text-emerald-700 leading-relaxed">{confirmationMsg}</p>
-              <div className="flex gap-2 mt-3 text-xs text-emerald-600">
-                <span className="bg-emerald-100 px-2 py-0.5 rounded-full">😴 Sleep: {answers.sleep}h</span>
-                <span className="bg-emerald-100 px-2 py-0.5 rounded-full">😊 Mood: {answers.mood}/10</span>
-                <span className="bg-emerald-100 px-2 py-0.5 rounded-full">😰 Stress: {answers.stress}/10</span>
-              </div>
-            </div>
+        <div className="empty-state" style={{ marginTop: '16px', background: '#E2F4EC', border: '1px solid #1B7A4A33' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: '#1B7A4A22', flexShrink: 0 }}>
+            <Check size={14} style={{ color: '#1B7A4A' }} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#1B7A4A', margin: '0 0 4px' }}>Check-in Complete!</h3>
+            <p style={{ fontSize: '12px', color: '#1B7A4A', margin: 0, opacity: 0.8 }}>{confirmationMsg}</p>
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

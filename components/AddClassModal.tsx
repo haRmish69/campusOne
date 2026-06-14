@@ -71,7 +71,7 @@ export function AddClassModal({ open, onClose, onSuccess }: AddClassModalProps) 
 
       {/* Modal */}
       <div
-        className="relative bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden"
+        className="relative bg-[var(--color-canvas-white)] rounded-[20px] w-full max-w-md mx-4 overflow-hidden"
         style={{ boxShadow: "rgba(71, 103, 136, 0.08) 0px 8px 30px 0px, rgba(71, 103, 136, 0.04) 0px 4px 10px 0px" }}
       >
         {/* Close button */}

@@ -62,29 +62,38 @@ export default async function MessPage() {
     groupedMenus.push({ day: "Other / Unknown", menus: unknownMenus });
   }
 
+  const todayString = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Mess Menu Module</h1>
-        <p className="text-muted-foreground">
-          Upload a picture of the mess menu. AI will automatically parse the dishes, check if it's Veg or Non-Veg, and add it to your campus timeline.
-        </p>
+    <div className="container mx-auto py-8 px-4 max-w-6xl bg-[#F7F7F5] min-h-screen">
+      <div className="mb-10 flex items-start justify-between">
+        <div>
+          <h1 className="text-[22px] font-[600] text-[#111827] mb-1">Mess Menu</h1>
+          <p className="text-[14px] text-[#6B7280] max-w-[520px]">
+            Upload a picture of the mess menu. AI will automatically parse the dishes, check if it's Veg or Non-Veg, and add it to your campus timeline.
+          </p>
+        </div>
+        {menus.length > 0 && (
+          <a href="#" className="text-[13px] font-[500] text-[#E8470A] hover:underline mt-2">
+            View full week →
+          </a>
+        )}
       </div>
       
       <div className="flex flex-col space-y-12">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight mb-6 text-[var(--color-midnight-navy)]">Add Menu</h2>
-            <div className="max-w-2xl">
-              <FileUpload apiEndpoint="/api/mess/ingest" />
-            </div>
-          </div>
+        <div className="max-w-2xl">
+          <FileUpload apiEndpoint="/api/mess/ingest" />
         </div>
         
         <div>
-          <h2 className="text-2xl font-bold tracking-tight mb-8 text-[var(--color-midnight-navy)]">
-            Current Menus <span className="text-muted-foreground text-sm font-normal ml-2">({menus.length})</span>
-          </h2>
+          <div className="flex items-center mb-8">
+            <h2 className="text-[16px] font-[600] text-[#111827]">
+              Current Menus
+            </h2>
+            <span className="bg-[#F3F4F6] text-[#6B7280] rounded-[10px] px-[8px] py-[1px] text-[12px] font-[500] ml-[8px]">
+              {menus.length}
+            </span>
+          </div>
           
           {menus.length === 0 ? (
             <EmptyState 
@@ -95,20 +104,40 @@ export default async function MessPage() {
               onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
             />
           ) : (
-            <div className="space-y-10">
+            <div className="space-y-12">
               {groupedMenus.map((group) => {
-                const isToday = group.day.toLowerCase() === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const isToday = group.day.toLowerCase() === todayString.toLowerCase();
+                
+                // Get the date based on the current week (simplified for display)
+                const today = new Date();
+                const dayIndex = daysOrder.findIndex(d => d.toLowerCase() === group.day.toLowerCase());
+                const currentDayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; // 0 is Monday
+                const diff = dayIndex - currentDayIndex;
+                const groupDate = new Date(today);
+                groupDate.setDate(today.getDate() + diff);
+                const dateString = groupDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+
                 return (
-                  <div key={group.day} className="relative">
-                    <h3 className={`text-xl font-bold mb-4 flex items-center gap-3 ${isToday ? 'text-[var(--color-ember-orange)]' : 'text-[var(--color-graphite)]'}`}>
-                      {isToday && <span className="px-2 py-0.5 rounded-[4px] bg-[var(--color-ember-orange)] text-white text-[12px] font-bold uppercase tracking-wider">Today</span>}
-                      {!isToday && <span className="w-2 h-2 rounded-full bg-primary/60"></span>}
-                      {group.day}
-                    </h3>
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ${isToday ? 'p-4 rounded-[12px] bg-[var(--color-ember-orange)]/5 border border-[var(--color-ember-orange)]/20' : ''}`}>
-                      {group.menus.map((menu) => (
-                        <MessCard key={menu.id} menu={menu} />
-                      ))}
+                  <div key={group.day} className="flex flex-col">
+                    <div className="flex items-center mb-[16px] border-b border-[#E5E7EB] pb-[16px]">
+                      {isToday && (
+                        <span className="bg-[#111827] text-white rounded-[6px] px-[8px] py-[2px] text-[11px] font-[600] tracking-[0.06em] mr-[8px]">
+                          TODAY
+                        </span>
+                      )}
+                      <h3 className="text-[15px] font-[600] text-[#111827]">
+                        {group.day}, {dateString}
+                      </h3>
+                    </div>
+                    
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 ${group.menus.length >= 4 ? 'lg:grid-cols-4' : group.menus.length === 3 ? 'lg:grid-cols-3' : group.menus.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1'} gap-[12px]`}>
+                      {group.menus.map((menu) => {
+                        return (
+                          <div key={menu.id}>
+                            <MessCard menu={menu} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );

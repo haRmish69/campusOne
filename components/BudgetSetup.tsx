@@ -81,7 +81,7 @@ export function BudgetSetup({ currentBudget, month }: BudgetSetupProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <div className="space-y-2 p-4 bg-primary/5 rounded-[12px] border border-primary/20">
             <Label htmlFor="totalLimit" className="text-base font-semibold text-primary">Total Monthly Limit (₹)</Label>
             <Input 
               id="totalLimit" 

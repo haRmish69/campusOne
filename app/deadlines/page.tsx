@@ -128,7 +128,7 @@ export default function DeadlinesPage() {
             
             <TabsContent value="completed" className="mt-0">
               {completed.length === 0 ? (
-                <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
+                <div className="text-center py-12 border border-dashed rounded-[12px] bg-muted/10">
                   <p className="text-muted-foreground">No completed deadlines.</p>
                   <p className="text-sm text-muted-foreground mt-1">Get to work!</p>
                 </div>

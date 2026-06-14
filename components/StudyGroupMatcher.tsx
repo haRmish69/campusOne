@@ -73,7 +73,7 @@ export function StudyGroupMatcher({ subject }: { subject: string }) {
               <p>Analyzing campus profiles...</p>
             </div>
           ) : error ? (
-            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm">
+            <div className="bg-[var(--color-canvas-white)] text-red-600 p-4 rounded-[12px] text-sm">
               {error}
             </div>
           ) : matches.length === 0 ? (
@@ -84,7 +84,7 @@ export function StudyGroupMatcher({ subject }: { subject: string }) {
           ) : (
             <div className="space-y-3">
               {matches.map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-3 border rounded-xl hover:bg-muted/50 transition-colors">
+                <div key={match.id} className="flex items-center justify-between p-3 border rounded-[20px] hover:bg-muted/50 transition-colors">
                   <div>
                     <p className="font-medium text-sm text-foreground">{match.name}</p>
                     <p className="text-xs text-muted-foreground">{match.major} &bull; Class of {match.gradYear}</p>

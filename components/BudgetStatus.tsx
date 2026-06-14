@@ -85,7 +85,7 @@ export function BudgetStatus({ categoryStatus }: BudgetStatusProps) {
             if (cat.status === "over") {
               colorClass = "bg-red-500";
               textColor = "text-red-700";
-              bgLight = "bg-red-50";
+              bgLight = "bg-[var(--color-canvas-white)]";
               icon = <AlertTriangle className="w-4 h-4 mr-1 text-red-600" />;
             } else if (cat.status === "near") {
               colorClass = "bg-amber-500";
@@ -123,7 +123,7 @@ export function BudgetStatus({ categoryStatus }: BudgetStatusProps) {
 
                 {/* AI Suggestions Dropdown/Cards */}
                 {catSuggestions && catSuggestions.length > 0 && (
-                  <div className={`mt-3 p-3 rounded-lg border border-dashed ${bgLight} text-sm space-y-2`}>
+                  <div className={`mt-3 p-3 rounded-[12px] border border-dashed ${bgLight} text-sm space-y-2`}>
                     <div className="flex items-center font-semibold text-midnight-navy mb-1">
                       <Lightbulb className="w-4 h-4 mr-2 text-amber-500" />
                       Smart Suggestions

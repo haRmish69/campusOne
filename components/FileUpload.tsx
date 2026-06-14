@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { UploadCloud, FileText, Loader2, Image as ImageIcon } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CloudUpload, ClipboardList, Loader2, Image as ImageIcon } from "lucide-react";
 import { MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import "@/app/notices/notices.css";
 
 export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndpoint?: string; onSuccess?: () => void }) {
+  const [activeTab, setActiveTab] = useState<"image" | "text" | "whatsapp">("image");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -173,122 +172,130 @@ export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndp
   };
 
   return (
-    <Card className="w-full shadow-sm">
-      <CardContent className="pt-6">
-        <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="upload" disabled={isUploading}>
-              <ImageIcon className="w-4 h-4 mr-2" /> Upload Image/PDF
-            </TabsTrigger>
-            <TabsTrigger value="text" disabled={isUploading}>
-              <FileText className="w-4 h-4 mr-2" /> Paste Text
-            </TabsTrigger>
-            <TabsTrigger value="whatsapp" disabled={isUploading}>
-              <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp Import
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload">
-            <div 
-              className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[250px]
-                ${isDragging ? "border-primary bg-primary/5" : "border-border/50 bg-muted/20 hover:bg-muted/50"}
-                ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*,application/pdf"
-                onChange={handleFileSelect}
-              />
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-                  <h3 className="text-lg font-medium">Processing with AI...</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{uploadStatus || "Extracting details from your file"}</p>
-                </>
-              ) : (
-                <>
-                  <UploadCloud className="w-10 h-10 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">Drag & drop your notice</h3>
-                  <p className="text-sm text-muted-foreground mt-2 mb-6">or click to browse files (Image/PDF)</p>
-                  <Button variant="outline" size="sm" type="button" className="pointer-events-none">Select File</Button>
-                </>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="text">
-            <div className="flex flex-col space-y-4">
-              <textarea 
-                className="flex min-h-[250px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                placeholder="Paste the raw text of the notice here..."
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                disabled={isUploading}
-              />
-              <Button 
-                onClick={handleTextSubmit} 
-                disabled={isUploading || !textInput.trim()}
-                className="w-full sm:w-auto self-end"
-              >
-                {isUploading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                ) : (
-                  "Extract Notice"
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="whatsapp">
-            <div 
-              className={`border-2 border-dashed border-green-500/30 bg-green-500/5 rounded-lg p-12 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[250px]
-                ${isDragging ? "border-green-500 bg-green-500/10" : "hover:bg-green-500/10"}
-                ${isUploading ? "opacity-50 pointer-events-none" : ""}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={async (e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                const file = e.dataTransfer.files[0];
-                if (file) handleWhatsAppUpload(file);
-              }}
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".txt";
-                input.onchange = (e: any) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleWhatsAppUpload(file);
-                };
-                input.click();
-              }}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
-                  <h3 className="text-lg font-medium text-green-700">Scanning Chat Export...</h3>
-                  <p className="text-sm text-green-600/80 mt-2">{uploadStatus || "This may take a minute for large chats."}</p>
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="w-10 h-10 text-green-500 mb-4" />
-                  <h3 className="text-lg font-medium text-green-700">Import WhatsApp Export</h3>
-                  <p className="text-sm text-green-600/80 mt-2 max-w-[280px] mx-auto mb-6">
-                    Open WhatsApp → Chat → Export Chat → Without Media → upload the .txt file here.
-                  </p>
-                  <Button variant="outline" size="sm" type="button" className="pointer-events-none border-green-500/30 text-green-600">Select .txt File</Button>
-                </>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <div className="tab-group">
+        <button 
+          className={`tab-item ${activeTab === "image" ? "active" : ""}`}
+          onClick={() => setActiveTab("image")}
+          disabled={isUploading}
+        >
+          <ImageIcon size={14} />
+          Upload Image/PDF
+        </button>
+        <button 
+          className={`tab-item ${activeTab === "text" ? "active" : ""}`}
+          onClick={() => setActiveTab("text")}
+          disabled={isUploading}
+        >
+          <ClipboardList size={14} />
+          Paste Text
+        </button>
+        <button 
+          className={`tab-item ${activeTab === "whatsapp" ? "active" : ""}`}
+          onClick={() => setActiveTab("whatsapp")}
+          disabled={isUploading}
+        >
+          <MessageCircle size={14} />
+          WhatsApp Import
+        </button>
+      </div>
+
+      {activeTab === "image" && (
+        <div 
+          className="dropzone"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          style={isDragging ? { borderColor: "var(--acc)", background: "var(--acc-soft)" } : {}}
+        >
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*,application/pdf"
+            onChange={handleFileSelect}
+          />
+          {isUploading ? (
+            <>
+              <Loader2 className="dropzone-icon animate-spin" style={{ color: "var(--acc)" }} />
+              <p className="dropzone-headline" style={{ color: "var(--text1)" }}>Processing with AI...</p>
+              <p className="dropzone-sub">{uploadStatus || "Extracting details from your file"}</p>
+            </>
+          ) : (
+            <>
+              <CloudUpload className="dropzone-icon" />
+              <p className="dropzone-headline">Drag and drop a notice, or <span className="link">Select File</span></p>
+              <p className="dropzone-sub">Supports JPG, PNG, PDF up to 10MB</p>
+              <button type="button" className="btn-secondary pointer-events-none mt-[8px]">Select File</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === "text" && (
+        <div className="flex flex-col space-y-4 mb-[30px]">
+          <textarea 
+            className="flex min-h-[140px] w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[14px] shadow-sm placeholder-[var(--text3)] focus-visible:outline-none focus-visible:border-[var(--acc)] disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+            placeholder="Paste the raw text of the notice here..."
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            disabled={isUploading}
+          />
+          <button 
+            onClick={handleTextSubmit} 
+            disabled={isUploading || !textInput.trim()}
+            className="btn-primary w-full sm:w-auto self-end flex items-center justify-center gap-2"
+          >
+            {isUploading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+            ) : (
+              "Extract Notice"
+            )}
+          </button>
+        </div>
+      )}
+
+      {activeTab === "whatsapp" && (
+        <div 
+          className="dropzone"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={async (e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const file = e.dataTransfer.files[0];
+            if (file) handleWhatsAppUpload(file);
+          }}
+          onClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".txt";
+            input.onchange = (e: any) => {
+              const file = e.target.files?.[0];
+              if (file) handleWhatsAppUpload(file);
+            };
+            input.click();
+          }}
+          style={isDragging ? { borderColor: "var(--acc)", background: "var(--acc-soft)" } : {}}
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="dropzone-icon animate-spin" style={{ color: "var(--acc)" }} />
+              <p className="dropzone-headline" style={{ color: "var(--acc)" }}>Scanning Chat Export...</p>
+              <p className="dropzone-sub">{uploadStatus || "This may take a minute for large chats."}</p>
+            </>
+          ) : (
+            <>
+              <MessageCircle className="dropzone-icon" />
+              <p className="dropzone-headline" style={{ color: "var(--text1)" }}>Import WhatsApp Export</p>
+              <p className="dropzone-sub" style={{ maxWidth: "280px" }}>Open WhatsApp → Chat → Export Chat → Without Media</p>
+              <button type="button" className="btn-secondary pointer-events-none mt-[8px]">Select .txt File</button>
+            </>
+          )}
+        </div>
+      )}
+
+    </div>
   );
 }

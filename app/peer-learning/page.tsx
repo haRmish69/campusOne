@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { ArrowLeft, HelpCircle, Heart, Calendar, Trophy, Plus, X, Clock, Users, AlertTriangle, ChevronRight, Star, Loader2 } from "lucide-react";
+import { HelpCircle, Heart, Calendar, Trophy, Plus, X, Clock, Users, ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/PageHeader";
 
 type HelpRequestItem = {
   id: string;
@@ -56,26 +57,26 @@ type LeaderboardEntry = {
 };
 
 const TABS = [
-  { key: "get-help", label: "🙋 Get Help", icon: HelpCircle },
-  { key: "help-campus", label: "🤝 Help Campus", icon: Heart },
-  { key: "sessions", label: "📅 My Sessions", icon: Calendar },
-  { key: "leaderboard", label: "🏆 Leaderboard", icon: Trophy },
+  { key: "get-help", label: "Get Help", icon: HelpCircle },
+  { key: "help-campus", label: "Help Campus", icon: Heart },
+  { key: "sessions", label: "My Sessions", icon: Calendar },
+  { key: "leaderboard", label: "Leaderboard", icon: Trophy },
 ] as const;
 
 const URGENCY_STYLES: Record<string, string> = {
-  high: "bg-red-100 text-red-700 border-red-200",
-  normal: "bg-amber-100 text-amber-700 border-amber-200",
-  low: "bg-green-100 text-green-700 border-green-200",
+  high: "bg-[var(--color-pearl)] text-[var(--color-graphite)] border-[var(--color-paper)]",
+  normal: "bg-[var(--color-pearl)] text-[var(--color-graphite)] border-[var(--color-paper)]",
+  low: "bg-[var(--color-pearl)] text-[var(--color-stone)] border-[var(--color-paper)]",
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  open: "bg-blue-100 text-blue-700",
-  selecting: "bg-indigo-100 text-indigo-700",
-  matched: "bg-purple-100 text-purple-700",
-  scheduled: "bg-teal-100 text-teal-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-gray-100 text-gray-500",
-  expired: "bg-gray-100 text-gray-500",
+  open: "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+  selecting: "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+  matched: "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+  scheduled: "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+  completed: "bg-[var(--color-pearl)] text-[var(--color-stone)]",
+  cancelled: "bg-[var(--color-fog)] text-[var(--color-stone)]",
+  expired: "bg-[var(--color-fog)] text-[var(--color-stone)]",
 };
 
 export default function PeerLearningPage() {
@@ -93,33 +94,28 @@ export default function PeerLearningPage() {
   }, [userId]);
 
   return (
-    <div className="p-6 md:p-10 lg:p-14 max-w-6xl mx-auto">
-      {/* Back */}
-      <Link href="/campus-ecosystem" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors mb-6">
-        <ArrowLeft className="w-4 h-4" /> Back to Campus Ecosystem
-      </Link>
-
-      {/* Hero */}
-      <div className="relative mb-10 rounded-2xl bg-gradient-to-br from-violet-50 via-indigo-50 to-blue-50 border border-violet-100/60 p-10 md:p-14 overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-br from-violet-200/30 to-indigo-200/30 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0b3558] mb-3">Study Peers</h1>
-          <p className="text-lg text-gray-500 max-w-xl leading-relaxed">
-            Post a help request, volunteer to teach, and build your campus reputation — all powered by AI matching.
-          </p>
-        </div>
-      </div>
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      
+      {/* Page Header */}
+      <PageHeader
+        backHref="/campus-ecosystem"
+        backLabel="Back to Campus Ecosystem"
+        title="Study Peers"
+        subtitle="Request help, volunteer to teach, and build your campus reputation."
+        ctaLabel="New Request"
+        onCtaClick={() => setActiveTab("get-help")}
+      />
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-10 bg-gray-100/80 rounded-full p-1.5 w-fit overflow-x-auto">
+      <div className="flex items-center gap-2 mb-8 bg-[var(--color-canvas-white)] border border-[var(--color-paper)] rounded-[20px] p-1.5 w-fit overflow-x-auto">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap ${
+            className={`px-5 py-2.5 rounded-[20px] text-[13px] font-medium transition-colors whitespace-nowrap ${
               activeTab === key
-                ? "bg-white text-[#006bff] shadow-sm"
-                : "text-gray-500 hover:text-gray-800"
+                ? "bg-[var(--color-pearl)] text-[var(--color-ember-orange)] shadow-sm"
+                : "bg-transparent text-[var(--color-stone)] hover:text-[var(--color-graphite)]"
             }`}
           >
             {label}
@@ -196,23 +192,23 @@ function GetHelpTab({ profileId }: { profileId: string | null }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#0b3558]">Your Help Requests</h2>
-        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#006bff] text-white text-sm font-medium hover:bg-[#005ae0] transition-colors">
-          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+        <h2 className="text-[18px] font-semibold text-[var(--color-graphite)]">Your Help Requests</h2>
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-4 py-2 rounded-[20px] bg-[var(--color-pearl)] text-[var(--color-graphite)] text-[13px] font-medium border border-[var(--color-paper)] hover:border-[var(--color-mist)] transition-colors">
+          {showForm ? <X size={14} /> : <Plus size={14} />}
           {showForm ? "Cancel" : "New Request"}
         </button>
       </div>
 
       {showForm && (
-        <div className="rounded-2xl border border-indigo-100 bg-white p-6 space-y-4 shadow-sm">
-          <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="What do you need help with? (e.g. Binary Search Trees)" className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-all" maxLength={200} />
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add details (optional) — your exam date, what you're stuck on..." className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-all resize-none h-24" maxLength={1000} />
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-6 space-y-4">
+          <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="What do you need help with? (e.g. Binary Search Trees)" className="w-full px-4 py-3 rounded-[20px] border border-[var(--color-paper)] text-[14px] focus:outline-none focus:border-[var(--color-ember-orange)] transition-colors" maxLength={200} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add details (optional) — your exam date, what you're stuck on..." className="w-full px-4 py-3 rounded-[20px] border border-[var(--color-paper)] text-[14px] focus:outline-none focus:border-[var(--color-ember-orange)] transition-colors resize-none h-24" maxLength={1000} />
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-gray-600">
+            <label className="flex items-center gap-2 text-[13px] text-[var(--color-stone)]">
               <input type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} className="rounded" />
               Post anonymously
             </label>
-            <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 rounded-xl bg-[#0b3558] text-white text-sm font-medium hover:bg-[#0b3558]/90 transition-colors disabled:opacity-50">
+            <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 rounded-[30px] bg-[var(--color-ember-orange)] text-white text-[14px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post Request"}
             </button>
           </div>
@@ -220,42 +216,44 @@ function GetHelpTab({ profileId }: { profileId: string | null }) {
       )}
 
       {isLoading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />)}</div>
       ) : activeRequests.length === 0 && !showForm ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <HelpCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No active requests</p>
-          <p className="text-sm text-gray-400 mt-1">Post a help request and we'll find matching peers on your campus.</p>
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+          <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+            <HelpCircle size={20} className="text-[var(--color-pewter)]" />
+          </div>
+          <p className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">No active requests</p>
+          <p className="text-[14px] text-[var(--color-stone)]">Post a help request and we'll find matching peers on your campus.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {activeRequests.map((req) => (
-            <div key={req.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div key={req.id} className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-5 hover:border-[var(--color-ember-orange)] transition-colors">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-semibold text-[#0b3558]">{req.topic}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${URGENCY_STYLES[req.urgency]}`}>
-                      {req.urgency === "high" ? "🚨 Urgent" : req.urgency}
+                    <h3 className="font-semibold text-[var(--color-graphite)]">{req.topic}</h3>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-[20px] font-medium border ${URGENCY_STYLES[req.urgency] || URGENCY_STYLES.low}`}>
+                      {req.urgency === "high" ? "Urgent" : req.urgency}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[req.status]}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-[20px] font-medium border border-[var(--color-paper)] ${STATUS_STYLES[req.status] || STATUS_STYLES.open}`}>
                       {req.status}
                     </span>
                   </div>
-                  {req.description && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{req.description}</p>}
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Expires {new Date(req.expiresAt).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {req.volunteerCount} volunteer{req.volunteerCount !== 1 ? "s" : ""}</span>
+                  {req.description && <p className="text-[14px] text-[var(--color-stone)] mb-3 line-clamp-2">{req.description}</p>}
+                  <div className="flex items-center gap-4 text-[12px] text-[var(--color-pewter)]">
+                    <span className="flex items-center gap-1"><Clock size={13} /> Expires {new Date(req.expiresAt).toLocaleDateString()}</span>
+                    <span className="flex items-center gap-1"><Users size={13} /> {req.volunteerCount} volunteer{req.volunteerCount !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
                   {req.volunteerCount > 0 && ["open", "selecting"].includes(req.status) && (
-                    <Link href={`/peer-learning/request/${req.id}/volunteers`} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-xs font-medium hover:bg-indigo-600 transition-colors">
-                      Choose a helper <ChevronRight className="w-3 h-3" />
+                    <Link href={`/peer-learning/request/${req.id}/volunteers`} className="flex items-center gap-1 px-4 py-2 rounded-[20px] bg-[var(--color-ember-orange)] text-white text-[13px] font-medium hover:opacity-90 transition-opacity">
+                      Choose helper <ChevronRight size={14} />
                     </Link>
                   )}
                   {["open", "selecting"].includes(req.status) && (
-                    <button onClick={() => handleWithdraw(req.id)} className="text-xs text-red-500 hover:text-red-700 transition-colors">
+                    <button onClick={() => handleWithdraw(req.id)} className="text-[12px] text-[var(--color-stone)] hover:text-[var(--color-ember-orange)] transition-colors">
                       Withdraw
                     </button>
                   )}
@@ -268,12 +266,12 @@ function GetHelpTab({ profileId }: { profileId: string | null }) {
 
       {pastRequests.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Past Requests</h3>
+          <h3 className="text-[12px] font-semibold text-[var(--color-pewter)] uppercase tracking-wider mb-3">Past Requests</h3>
           <div className="space-y-2">
             {pastRequests.slice(0, 5).map((req) => (
-              <div key={req.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex items-center justify-between">
-                <span className="text-sm text-gray-600">{req.topic}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[req.status]}`}>{req.status}</span>
+              <div key={req.id} className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-pearl)] p-4 flex items-center justify-between">
+                <span className="text-[14px] text-[var(--color-stone)]">{req.topic}</span>
+                <span className={`text-[11px] px-2 py-0.5 rounded-[20px] font-medium border border-[var(--color-paper)] ${STATUS_STYLES[req.status] || STATUS_STYLES.completed}`}>{req.status}</span>
               </div>
             ))}
           </div>
@@ -323,40 +321,42 @@ function HelpCampusTab({ profileId }: { profileId: string | null }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-[#0b3558]">Help Requests Near You</h2>
+      <h2 className="text-[18px] font-semibold text-[var(--color-graphite)]">Help Requests Near You</h2>
 
       {isLoading ? (
-        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
+        <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-32 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />)}</div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <Heart className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No help requests right now</p>
-          <p className="text-sm text-gray-400 mt-1">When a peer needs help with a topic you know, you'll see it here.</p>
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+          <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+            <Heart size={20} className="text-[var(--color-pewter)]" />
+          </div>
+          <p className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">No help requests right now</p>
+          <p className="text-[14px] text-[var(--color-stone)]">When a peer needs help with a topic you know, you'll see it here.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {notifications.map((n) => (
-            <div key={n.id} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <p className="text-sm text-gray-700 mb-4 leading-relaxed">{n.message}</p>
+            <div key={n.id} className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-6 shadow-sm">
+              <p className="text-[14px] text-[var(--color-graphite)] mb-4 leading-relaxed">{n.message}</p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   value={messages[n.referenceId] || ""}
                   onChange={(e) => setMessages((m) => ({ ...m, [n.referenceId]: e.target.value }))}
                   placeholder="Add context to increase your chances (optional)"
-                  className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  className="flex-1 px-4 py-2 rounded-[20px] border border-[var(--color-paper)] text-[13px] focus:outline-none focus:border-[var(--color-ember-orange)]"
                   maxLength={200}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleVolunteer(n.referenceId)}
                     disabled={volunteering.has(n.referenceId)}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 whitespace-nowrap"
+                    className="px-4 py-2 rounded-[20px] bg-[var(--color-ember-orange)] text-white text-[13px] font-medium hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
                   >
-                    {volunteering.has(n.referenceId) ? "Volunteering..." : "✅ I can help"}
+                    {volunteering.has(n.referenceId) ? "Volunteering..." : "I can help"}
                   </button>
                   <button
                     onClick={() => setNotifications((prev) => prev.filter((x) => x.id !== n.id))}
-                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-500 text-sm font-medium hover:bg-gray-200 transition-colors whitespace-nowrap"
+                    className="px-4 py-2 rounded-[20px] bg-[var(--color-pearl)] border border-[var(--color-paper)] text-[var(--color-stone)] text-[13px] font-medium hover:text-[var(--color-graphite)] transition-colors whitespace-nowrap"
                   >
                     Not my area
                   </button>
@@ -411,29 +411,31 @@ function SessionsTab({ profileId }: { profileId: string | null }) {
 
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold text-[#0b3558]">My Sessions</h2>
+      <h2 className="text-[18px] font-semibold text-[var(--color-graphite)]">My Sessions</h2>
 
       {isLoading ? (
-        <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
+        <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-24 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />)}</div>
       ) : sessions.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No sessions yet</p>
-          <p className="text-sm text-gray-400 mt-1">Post a help request or volunteer to get matched.</p>
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+          <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+            <Calendar size={20} className="text-[var(--color-pewter)]" />
+          </div>
+          <p className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">No sessions yet</p>
+          <p className="text-[14px] text-[var(--color-stone)]">Post a help request or volunteer to get matched.</p>
         </div>
       ) : (
         <>
           {pending.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-amber-600 uppercase tracking-wider mb-3">⏳ Pending Schedule</h3>
+              <h3 className="text-[12px] font-semibold text-[var(--color-ember-orange)] uppercase tracking-wider mb-3">Pending Schedule</h3>
               <div className="space-y-3">
                 {pending.map((s) => (
-                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-2xl border border-amber-100 bg-amber-50/50 p-5 hover:shadow-md transition-shadow">
+                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-5 hover:border-[var(--color-ember-orange)] transition-colors">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[#0b3558]">{s.topic}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold text-[var(--color-graphite)]">{s.topic}</span>
+                      <ChevronRight size={16} className="text-[var(--color-pewter)]" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">Choose a study time to confirm the session</p>
+                    <p className="text-[13px] text-[var(--color-stone)] mt-1">Choose a study time to confirm the session</p>
                   </Link>
                 ))}
               </div>
@@ -442,15 +444,15 @@ function SessionsTab({ profileId }: { profileId: string | null }) {
 
           {confirmed.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-emerald-600 uppercase tracking-wider mb-3">✅ Upcoming Sessions</h3>
+              <h3 className="text-[12px] font-semibold text-[var(--color-stone)] uppercase tracking-wider mb-3">Upcoming Sessions</h3>
               <div className="space-y-3">
                 {confirmed.map((s) => (
-                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5 hover:shadow-md transition-shadow">
+                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-5 hover:border-[var(--color-ember-orange)] transition-colors">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-[#0b3558]">{s.topic}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold text-[var(--color-graphite)]">{s.topic}</span>
+                      <ChevronRight size={16} className="text-[var(--color-pewter)]" />
                     </div>
-                    {s.scheduledFor && <p className="text-sm text-emerald-600 mt-1">📅 {new Date(s.scheduledFor).toLocaleString()}</p>}
+                    {s.scheduledFor && <p className="text-[13px] text-[var(--color-stone)] mt-1">Date: {new Date(s.scheduledFor).toLocaleString()}</p>}
                   </Link>
                 ))}
               </div>
@@ -459,13 +461,13 @@ function SessionsTab({ profileId }: { profileId: string | null }) {
 
           {completed.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">✔️ Completed</h3>
+              <h3 className="text-[12px] font-semibold text-[var(--color-pewter)] uppercase tracking-wider mb-3">Completed</h3>
               <div className="space-y-2">
                 {completed.map((s) => (
-                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-xl border border-gray-100 bg-gray-50 p-4 hover:shadow-sm transition-shadow">
+                  <Link key={s.id} href={`/peer-learning/session/${s.id}`} className="block rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-pearl)] p-4 hover:border-[var(--color-mist)] transition-colors">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{s.topic}</span>
-                      {s.requesterRating && <span className="text-xs text-amber-500">{"⭐".repeat(s.requesterRating)}</span>}
+                      <span className="text-[14px] text-[var(--color-stone)]">{s.topic}</span>
+                      {s.requesterRating && <span className="text-[12px] text-[var(--color-ember-orange)]">{"★".repeat(s.requesterRating)}</span>}
                     </div>
                   </Link>
                 ))}
@@ -494,55 +496,57 @@ function LeaderboardTab({ profileId }: { profileId: string | null }) {
   }, [period]);
 
   const rankColors: Record<number, string> = {
-    1: "border-l-4 border-l-yellow-400 bg-yellow-50/50",
-    2: "border-l-4 border-l-gray-300 bg-gray-50/30",
-    3: "border-l-4 border-l-amber-600 bg-amber-50/30",
+    1: "border-l-4 border-l-[var(--color-ember-orange)] bg-[var(--color-canvas-white)]",
+    2: "border-l-4 border-l-[var(--color-pewter)] bg-[var(--color-pearl)]",
+    3: "border-l-4 border-l-[var(--color-paper)] bg-[var(--color-pearl)]",
   };
 
   const BADGE_STYLES: Record<string, string> = {
-    "Top Helper": "bg-yellow-100 text-yellow-700",
-    "Subject Expert": "bg-purple-100 text-purple-700",
-    "Quick Responder": "bg-blue-100 text-blue-700",
+    "Top Helper": "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+    "Subject Expert": "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
+    "Quick Responder": "bg-[var(--color-pearl)] text-[var(--color-graphite)]",
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-[#0b3558]">Campus Leaderboard</h2>
-        <div className="flex bg-gray-100 rounded-full p-1">
-          <button onClick={() => setPeriod("all")} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${period === "all" ? "bg-white text-[#006bff] shadow-sm" : "text-gray-500"}`}>All Time</button>
-          <button onClick={() => setPeriod("month")} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${period === "month" ? "bg-white text-[#006bff] shadow-sm" : "text-gray-500"}`}>This Month</button>
+        <h2 className="text-[18px] font-semibold text-[var(--color-graphite)]">Campus Leaderboard</h2>
+        <div className="flex bg-[var(--color-pearl)] rounded-[20px] p-1 border border-[var(--color-paper)]">
+          <button onClick={() => setPeriod("all")} className={`px-4 py-1.5 rounded-[20px] text-[12px] font-semibold transition-all ${period === "all" ? "bg-[var(--color-canvas-white)] text-[var(--color-ember-orange)] shadow-sm" : "text-[var(--color-stone)]"}`}>All Time</button>
+          <button onClick={() => setPeriod("month")} className={`px-4 py-1.5 rounded-[20px] text-[12px] font-semibold transition-all ${period === "month" ? "bg-[var(--color-canvas-white)] text-[var(--color-ember-orange)] shadow-sm" : "text-[var(--color-stone)]"}`}>This Month</button>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-xl" />)}</div>
+        <div className="space-y-3">{[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-[var(--color-pearl)] animate-pulse rounded-[20px]" />)}</div>
       ) : !data || data.topHelpers.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl">
-          <Trophy className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No helpers ranked yet</p>
-          <p className="text-sm text-gray-400 mt-1">Complete sessions to appear on the leaderboard!</p>
+        <div className="rounded-[20px] border border-[var(--color-paper)] bg-[var(--color-canvas-white)] px-8 py-16 text-center">
+          <div className="w-12 h-12 rounded-[12px] bg-[var(--color-pearl)] flex items-center justify-center mx-auto mb-4">
+            <Trophy size={20} className="text-[var(--color-pewter)]" />
+          </div>
+          <p className="text-[16px] font-semibold text-[var(--color-graphite)] mb-1">No helpers ranked yet</p>
+          <p className="text-[14px] text-[var(--color-stone)]">Complete sessions to appear on the leaderboard!</p>
         </div>
       ) : (
         <div className="space-y-2">
           {data.topHelpers.map((h) => (
-            <div key={h.profileId} className={`rounded-xl border border-gray-100 p-4 flex items-center gap-4 ${rankColors[h.rank] || "bg-white"}`}>
-              <span className={`text-lg font-bold w-8 text-center ${h.rank <= 3 ? "text-[#0b3558]" : "text-gray-400"}`}>
-                {h.rank <= 3 ? ["🥇", "🥈", "🥉"][h.rank - 1] : `#${h.rank}`}
+            <div key={h.profileId} className={`rounded-[20px] border border-[var(--color-paper)] p-4 flex items-center gap-4 ${rankColors[h.rank] || "bg-[var(--color-canvas-white)]"}`}>
+              <span className={`text-[16px] font-bold w-8 text-center ${h.rank <= 3 ? "text-[var(--color-graphite)]" : "text-[var(--color-pewter)]"}`}>
+                {h.rank <= 3 ? ["#1", "#2", "#3"][h.rank - 1] : `#${h.rank}`}
               </span>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-pearl)] flex items-center justify-center text-[var(--color-graphite)] font-bold text-[14px] shrink-0 border border-[var(--color-paper)]">
                 {h.name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-[#0b3558] truncate">{h.name}</span>
-                  {h.badge && <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${BADGE_STYLES[h.badge] || "bg-gray-100 text-gray-600"}`}>{h.badge}</span>}
+                  <span className="font-semibold text-[var(--color-graphite)] truncate">{h.name}</span>
+                  {h.badge && <span className={`text-[10px] px-2 py-0.5 rounded-[20px] font-semibold border border-[var(--color-paper)] ${BADGE_STYLES[h.badge] || "bg-[var(--color-pearl)] text-[var(--color-stone)]"}`}>{h.badge}</span>}
                 </div>
-                <p className="text-xs text-gray-400">{h.branch} · Year {h.year}</p>
+                <p className="text-[12px] text-[var(--color-pewter)]">{h.branch} · Year {h.year}</p>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-500 shrink-0">
-                <span>📚 {h.totalHelped} helped</span>
-                <span>⭐ {h.avgRating?.toFixed(1) || "New"}</span>
+              <div className="flex items-center gap-4 text-[12px] text-[var(--color-stone)] shrink-0">
+                <span>{h.totalHelped} helped</span>
+                <span>★ {h.avgRating?.toFixed(1) || "New"}</span>
               </div>
             </div>
           ))}
@@ -550,12 +554,12 @@ function LeaderboardTab({ profileId }: { profileId: string | null }) {
           {/* Current user rank if not in top 10 */}
           {data.currentUserRank && data.currentUserRank > 10 && (
             <>
-              <div className="text-center text-gray-300 py-1">···</div>
-              <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-4 flex items-center gap-4">
-                <span className="text-sm font-bold text-indigo-600 w-8 text-center">#{data.currentUserRank}</span>
+              <div className="text-center text-[var(--color-pewter)] py-1">···</div>
+              <div className="rounded-[20px] border-2 border-[var(--color-paper)] bg-[var(--color-canvas-white)] p-4 flex items-center gap-4">
+                <span className="text-[14px] font-bold text-[var(--color-ember-orange)] w-8 text-center">#{data.currentUserRank}</span>
                 <div className="flex-1">
-                  <span className="font-semibold text-[#0b3558]">You</span>
-                  <p className="text-xs text-gray-400">Score: {data.currentUserScore?.toFixed(0) || 0}</p>
+                  <span className="font-semibold text-[var(--color-graphite)]">You</span>
+                  <p className="text-[12px] text-[var(--color-pewter)]">Score: {data.currentUserScore?.toFixed(0) || 0}</p>
                 </div>
               </div>
             </>

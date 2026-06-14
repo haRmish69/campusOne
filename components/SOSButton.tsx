@@ -34,7 +34,7 @@ export function SOSButton() {
       <Button 
         onClick={handleOpen}
         variant="destructive" 
-        className="w-full gap-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 justify-start mt-4"
+        className="w-full gap-2 bg-[var(--color-canvas-white)] text-red-600 hover:bg-red-100 border border-red-200 justify-start mt-4"
       >
         <LifeBuoy className="w-4 h-4" />
         <span className="hidden md:inline">Feeling Overwhelmed?</span>
@@ -44,7 +44,7 @@ export function SOSButton() {
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
-              <LifeBuoy className="w-6 h-6 text-red-500" />
+              <LifeBuoy className="w-6 h-6 text-[var(--color-ember-orange)]" />
               SOS / Pause Mode
             </DialogTitle>
             <DialogDescription className="text-base pt-2">
@@ -72,12 +72,12 @@ export function SOSButton() {
                 <p>Analyzing your upcoming deadlines to clear your plate...</p>
               </div>
             ) : error ? (
-              <div className="p-4 bg-red-50 text-red-600 rounded-lg text-sm text-center">
+              <div className="p-4 bg-[var(--color-canvas-white)] text-red-600 rounded-[12px] text-sm text-center">
                 {error}
               </div>
             ) : data ? (
               <div className="space-y-6">
-                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-900 leading-relaxed font-medium">
+                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-[12px] text-indigo-900 leading-relaxed font-medium">
                   {data.message}
                 </div>
 
@@ -92,8 +92,8 @@ export function SOSButton() {
                     ) : (
                       <ul className="space-y-2">
                         {data.critical?.map((task: any) => (
-                          <li key={task.id} className="p-3 bg-red-50/50 border border-red-100 rounded-md text-sm font-medium text-red-900">
-                            {task.title} <span className="text-xs text-red-500 block font-normal mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                          <li key={task.id} className="p-3 bg-[var(--color-canvas-white)]/50 border border-red-100 rounded-[12px] text-sm font-medium text-red-900">
+                            {task.title} <span className="text-xs text-[var(--color-ember-orange)] block font-normal mt-1">Due: {new Date(task.dueDate).toLocaleDateString()}</span>
                           </li>
                         ))}
                       </ul>
@@ -110,7 +110,7 @@ export function SOSButton() {
                     ) : (
                       <ul className="space-y-2 opacity-60 grayscale">
                         {data.reschedule?.map((task: any) => (
-                          <li key={task.id} className="p-2 border border-slate-200 rounded-md text-sm text-slate-700">
+                          <li key={task.id} className="p-2 border border-slate-200 rounded-[12px] text-sm text-slate-700">
                             {task.title}
                           </li>
                         ))}

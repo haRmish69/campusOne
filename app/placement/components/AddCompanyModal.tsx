@@ -89,7 +89,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-card w-full max-w-md rounded-[20px] shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="p-5 border-b border-border/60 flex items-center justify-between sticky top-0 bg-card z-10">
           <h2 className="text-xl font-semibold text-[var(--color-midnight-navy)] flex items-center gap-2">
             <Building2 className="w-5 h-5 text-[var(--color-electric-indigo)]" />
@@ -97,7 +97,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:bg-[var(--color-fog)] rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:bg-[var(--color-fog)] rounded-[12px] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -106,13 +106,13 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
         {/* Duplicate detected */}
         {duplicate && (
           <div className="p-5 space-y-4">
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="p-4 bg-[var(--color-pearl)] border border-[var(--color-paper)] rounded-[20px] flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[var(--color-stone)] shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-800">
+                <p className="text-sm font-medium text-[var(--color-graphite)]">
                   &quot;{duplicate.companyName}&quot; already exists for your college!
                 </p>
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-[var(--color-stone)] mt-1">
                   Would you like to share your experience or add questions instead?
                 </p>
               </div>
@@ -128,7 +128,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
               <button
                 type="button"
                 onClick={goToExistingCompany}
-                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
+                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-[20px] shadow-sm transition-colors"
               >
                 Go to Company Page →
               </button>
@@ -140,7 +140,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
         {!duplicate && (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-xl border border-red-100">
+              <div className="p-3 text-sm text-[var(--color-ember-orange)] bg-[var(--color-canvas-white)] rounded-[20px] border border-[var(--color-paper)]">
                 {error}
               </div>
             )}
@@ -155,7 +155,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. Google"
-                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
               />
             </div>
 
@@ -167,7 +167,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                 required
                 value={formData.domain}
                 onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
               >
                 <option value="tech">Tech</option>
                 <option value="finance">Finance</option>
@@ -190,7 +190,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                   value={formData.packageMin}
                   onChange={(e) => setFormData({ ...formData, packageMin: e.target.value })}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                  className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
                 />
               </div>
               <div className="space-y-1.5">
@@ -204,7 +204,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                   value={formData.packageMax}
                   onChange={(e) => setFormData({ ...formData, packageMax: e.target.value })}
                   placeholder="e.g. 20"
-                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                  className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
                 />
               </div>
             </div>
@@ -220,7 +220,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                   value={formData.interviewRounds}
                   onChange={(e) => setFormData({ ...formData, interviewRounds: e.target.value })}
                   placeholder="e.g. 4"
-                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                  className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
                 />
               </div>
               <div className="space-y-1.5">
@@ -233,7 +233,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                   max={new Date().getFullYear()}
                   value={formData.lastVisitedYear}
                   onChange={(e) => setFormData({ ...formData, lastVisitedYear: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                  className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
                 />
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                 value={formData.topSkillsRequired}
                 onChange={(e) => setFormData({ ...formData, topSkillsRequired: e.target.value })}
                 placeholder="e.g. React, Node.js, System Design"
-                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
               />
             </div>
 
@@ -260,7 +260,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief info about the company, role offered, etc."
-                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 h-20 resize-none"
+                className="w-full px-3 py-2 rounded-[20px] border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 h-20 resize-none"
               />
             </div>
 
@@ -276,7 +276,7 @@ export default function AddCompanyModal({ onClose, onSuccess }: Props) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-[20px] shadow-sm transition-colors disabled:opacity-50"
               >
                 {isLoading ? "Adding..." : "Add Company"}
               </button>

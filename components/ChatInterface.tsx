@@ -70,7 +70,7 @@ function FlashcardDeck({ payload }: { payload: { topic: string; cards: { front: 
         >
           {/* Front Face */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-indigo-200 bg-white p-6 shadow-sm"
+            className="absolute inset-0 flex flex-col items-center justify-center rounded-[20px] border border-indigo-200 bg-[var(--color-canvas-white)] p-6 shadow-sm"
             style={{ backfaceVisibility: "hidden" }}
           >
             <span className="mb-2 text-xs font-medium uppercase tracking-wider text-indigo-400">Question</span>
@@ -80,7 +80,7 @@ function FlashcardDeck({ payload }: { payload: { topic: string; cards: { front: 
 
           {/* Back Face */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm"
+            className="absolute inset-0 flex flex-col items-center justify-center rounded-[20px] border border-emerald-200 bg-emerald-50 p-6 shadow-sm"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
             <span className="mb-2 text-xs font-medium uppercase tracking-wider text-emerald-500">Answer</span>
@@ -94,7 +94,7 @@ function FlashcardDeck({ payload }: { payload: { topic: string; cards: { front: 
       <div className="mt-3 flex items-center justify-between">
         <button
           onClick={(e) => { e.stopPropagation(); goPrev(); }}
-          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
+          className="flex items-center gap-1 rounded-[12px] border border-slate-200 bg-[var(--color-canvas-white)] px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Prev
         </button>
@@ -113,7 +113,7 @@ function FlashcardDeck({ payload }: { payload: { topic: string; cards: { front: 
 
         <button
           onClick={(e) => { e.stopPropagation(); goNext(); }}
-          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
+          className="flex items-center gap-1 rounded-[12px] border border-slate-200 bg-[var(--color-canvas-white)] px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
         >
           Next <ChevronRight className="h-3.5 w-3.5" />
         </button>
@@ -422,7 +422,7 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto w-full border rounded-xl overflow-hidden bg-card/50 shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto w-full border rounded-[20px] overflow-hidden bg-card/50 shadow-sm">
       <div className="p-4 border-b bg-card flex justify-between items-center">
         <div>
           <h2 className="font-semibold tracking-tight">CampusFlow Assistant</h2>
@@ -512,7 +512,7 @@ export function ChatInterface() {
               <div className={`flex items-center justify-center w-8 h-8 rounded-full shrink-0 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                 {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
-              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted rounded-tl-sm"}`}>
+              <div className={`px-4 py-3 rounded-[20px] text-sm leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted rounded-tl-sm"}`}>
                 {msg.role === "assistant" && msg.content === "" ? (
                   <Loader2 className="w-4 h-4 animate-spin opacity-50" />
                 ) : (
@@ -544,14 +544,14 @@ export function ChatInterface() {
                     })()}
 
                     {msg.videoPayload && (
-                      <div className="bg-neutral-900 border border-purple-500/50 rounded-xl p-4 mt-3 shadow-lg shadow-purple-900/20 w-full min-w-[300px] sm:min-w-[400px]">
+                      <div className="bg-neutral-900 border border-purple-500/50 rounded-[20px] p-4 mt-3 shadow-lg shadow-purple-900/20 w-full min-w-[300px] sm:min-w-[400px]">
                         <div className="flex items-center gap-2 mb-3 border-b border-purple-500/30 pb-2">
                           <span className="text-xl">🎥</span>
                           <h4 className="text-sm font-semibold text-purple-200">
                             AI Timestamp Found: {Math.floor(msg.videoPayload.timestamp / 60)}:{(msg.videoPayload.timestamp % 60).toString().padStart(2, '0')}
                           </h4>
                         </div>
-                        <div className="relative w-full pt-[56.25%] rounded-lg overflow-hidden border border-neutral-800">
+                        <div className="relative w-full pt-[56.25%] rounded-[12px] overflow-hidden border border-neutral-800">
                           <iframe
                             className="absolute top-0 left-0 w-full h-full"
                             src={msg.videoPayload.url}
@@ -577,7 +577,7 @@ export function ChatInterface() {
       <div className="p-6 bg-[var(--color-paper)] border-t border-[var(--color-mist-border)]">
         {/* Wellness mode indicator */}
         {isAwaitingWellness && (
-          <div className="mb-3 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-sm flex items-center gap-2">
+          <div className="mb-3 px-4 py-2 rounded-[12px] bg-blue-50 border border-blue-200 text-blue-700 text-sm flex items-center gap-2">
             <span className="animate-pulse">💙</span>
             <span>Wellness check-in active — share how you're feeling and I'll log it for you.</span>
           </div>

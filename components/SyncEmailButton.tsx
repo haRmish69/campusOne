@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import "@/app/notices/notices.css";
 
 export function SyncEmailButton() {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -52,14 +52,14 @@ export function SyncEmailButton() {
   };
 
   return (
-    <Button 
+    <button 
       onClick={handleSync} 
       disabled={isSyncing}
-      variant="outline"
-      className="flex items-center gap-2"
+      className="btn-secondary"
+      style={isSyncing ? { opacity: 0.5, pointerEvents: 'none' } : {}}
     >
-      {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+      {isSyncing ? <Loader2 className="animate-spin" size={15} /> : <Mail size={15} />}
       Sync Gmail
-    </Button>
+    </button>
   );
 }

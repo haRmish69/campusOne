@@ -70,13 +70,13 @@ export function Sidebar() {
             <Link 
               key={link.href} 
               href={link.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 shrink-0 ${
+              className={`flex items-center gap-3 py-2.5 transition-all text-[14px] shrink-0 ${
                 isActive 
-                  ? "bg-[var(--color-fog)] text-[var(--color-midnight-navy)] font-semibold shadow-sm" 
-                  : "text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] hover:text-[var(--color-midnight-navy)]"
+                  ? 'bg-[var(--acc-soft)] text-[var(--acc)] font-semibold border-l-[3px] border-[var(--acc)] pl-[calc(16px-3px)] pr-4 rounded-r-[8px]'
+                  : 'text-[var(--text2)] hover:bg-[var(--surface2)] hover:text-[var(--text1)] border-l-[3px] border-transparent px-4 rounded-[12px] md:rounded-none'
               }`}
             >
-              <Icon className="w-6 h-6 md:w-5 md:h-5 shrink-0" />
+              <Icon className={`w-6 h-6 md:w-5 md:h-5 shrink-0 ${isActive ? 'text-[var(--acc)]' : 'text-[var(--text3)]'}`} />
               <span className="hidden md:inline">{link.label}</span>
             </Link>
           );
@@ -96,13 +96,13 @@ export function Sidebar() {
             <Link 
               key={link.href} 
               href={link.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 shrink-0 ${
+              className={`flex items-center gap-3 py-2.5 transition-all text-[14px] shrink-0 ${
                 isActive 
-                  ? "bg-[var(--color-fog)] text-[var(--color-midnight-navy)] font-semibold shadow-sm" 
-                  : "text-[var(--color-slate-blue)] hover:bg-[var(--color-fog)] hover:text-[var(--color-midnight-navy)]"
+                  ? 'bg-[var(--acc-soft)] text-[var(--acc)] font-semibold border-l-[3px] border-[var(--acc)] pl-[calc(16px-3px)] pr-4 rounded-r-[8px]'
+                  : 'text-[var(--text2)] hover:bg-[var(--surface2)] hover:text-[var(--text1)] border-l-[3px] border-transparent px-4 rounded-[12px] md:rounded-none'
               }`}
             >
-              <Icon className="w-6 h-6 md:w-5 md:h-5 shrink-0" />
+              <Icon className={`w-6 h-6 md:w-5 md:h-5 shrink-0 ${isActive ? 'text-[var(--acc)]' : 'text-[var(--text3)]'}`} />
               <span className="hidden md:inline">{link.label}</span>
             </Link>
           );

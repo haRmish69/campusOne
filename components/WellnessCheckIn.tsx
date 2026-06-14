@@ -80,13 +80,13 @@ export function WellnessCheckIn() {
           {/* Mood Selector */}
           <div className="space-y-3">
             <Label className="text-base">Mood</Label>
-            <div className="flex justify-between items-center bg-muted/20 p-2 rounded-lg border border-border/50">
+            <div className="flex justify-between items-center bg-muted/20 p-2 rounded-[12px] border border-border/50">
               {MOODS.map((m) => (
                 <button
                   key={m.value}
                   type="button"
                   onClick={() => setMood(m.value)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-md transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-[12px] transition-all ${
                     mood === m.value 
                       ? "bg-primary/10 ring-2 ring-primary transform scale-110" 
                       : "hover:bg-muted opacity-70 hover:opacity-100"
@@ -101,7 +101,7 @@ export function WellnessCheckIn() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Sleep Slider */}
-            <div className="space-y-3 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+            <div className="space-y-3 bg-blue-50/50 p-4 rounded-[12px] border border-blue-100">
               <div className="flex justify-between items-center">
                 <Label className="text-blue-900 font-medium">Sleep</Label>
                 <span className="text-sm font-bold text-blue-700">{sleepHours} hours</span>
@@ -122,7 +122,7 @@ export function WellnessCheckIn() {
             </div>
 
             {/* Stress Slider */}
-            <div className="space-y-3 bg-amber-50/50 p-4 rounded-lg border border-amber-100">
+            <div className="space-y-3 bg-amber-50/50 p-4 rounded-[12px] border border-amber-100">
               <div className="flex justify-between items-center">
                 <Label className="text-amber-900 font-medium">Stress Level</Label>
                 <span className="text-sm font-bold text-amber-700">{stressLevel} / 5</span>

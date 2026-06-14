@@ -47,7 +47,7 @@ export function NotificationBell() {
     <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative text-gray-500 hover:text-gray-900" />
+          <Button variant="ghost" size="icon" className="relative text-[var(--color-stone)] hover:text-gray-900" />
         }
       >
         <Bell className="w-5 h-5" />
@@ -68,14 +68,14 @@ export function NotificationBell() {
         
         <div className="mt-6 space-y-4">
           {notifications.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-[var(--color-stone)] py-8">
               No notifications yet.
             </div>
           ) : (
             notifications.map((notif) => (
               <div 
                 key={notif.id} 
-                className={`p-4 rounded-lg border ${notif.isRead ? 'bg-white border-gray-100' : 'bg-blue-50 border-blue-100'}`}
+                className={`p-4 rounded-[12px] border ${notif.isRead ? 'bg-[var(--color-canvas-white)] border-[var(--color-paper)]' : 'bg-blue-50 border-blue-100'}`}
               >
                 <div className="flex justify-between items-start gap-2">
                   <p className={`text-sm ${notif.isRead ? 'text-gray-700' : 'text-blue-900 font-medium'}`}>
@@ -83,7 +83,7 @@ export function NotificationBell() {
                   </p>
                   {!notif.isRead && <span className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0" />}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-[var(--color-pewter)] mt-2">
                   {new Date(notif.createdAt).toLocaleString(undefined, { 
                     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' 
                   })}

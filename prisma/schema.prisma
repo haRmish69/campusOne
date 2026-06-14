@@ -627,3 +627,18 @@ model SurvivalTip {
   embedding   Json
   createdAt   DateTime @default(now())
 }
+
+
+model Note {
+  id            String   @id @default(cuid())
+  userId        String?
+  title         String
+  content       String   @db.Text
+  subject       String
+  fileName      String?
+  fileUrl       String?  @db.LongText
+  embedding     Json?
+  instituteName String?
+  major         String?
+  createdAt     DateTime @default(now())
+}

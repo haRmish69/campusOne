@@ -65,13 +65,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check for duplicate (case-insensitive within same college, MySQL collation handles this)
-    const existing = await prisma.company.findFirst({
-      where: {
-        instituteName,
-        name: name,
-      },
+    // Check for duplicate
+    const allInstituteCompanies = await prisma.company.findMany({
+      where: { instituteName },
+      select: { id: true, name: true }
     });
+
+    const existing = allInstituteCompanies.find(
+      (c) => c.name.toLowerCase() === name.toLowerCase()
+    );
 
     if (existing) {
       return NextResponse.json(

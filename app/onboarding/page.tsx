@@ -54,7 +54,7 @@ export default function OnboardingPage() {
   }, [userId, router]);
 
   if (!isLoaded) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[var(--color-pearl)]">Loading...</div>;
   }
 
   const handleAddTopic = () => {
@@ -121,18 +121,18 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl border border-gray-100 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-[var(--color-pearl)] flex items-center justify-center p-4">
+      <div className="bg-[var(--color-canvas-white)] w-full max-w-xl rounded-[20px] shadow-sm border border-[var(--color-paper)] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="p-8 pb-4 border-b border-gray-50">
+        <div className="p-8 pb-4 border-b border-[var(--color-paper)]">
           <div className="flex gap-2 mb-4">
             {[1, 2, 3].map(s => (
-              <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-blue-600' : 'bg-gray-200'}`} />
+              <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-[var(--color-graphite)]' : 'bg-[var(--color-pearl)]'}`} />
             ))}
           </div>
-          <h2 className="text-2xl font-bold text-[#0b3558]">Welcome to CampusFlow</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-[24px] font-semibold text-[var(--color-graphite)]">Welcome to CampusFlow</h2>
+          <p className="text-[14px] text-[var(--color-stone)] mt-1">
             {step === 1 && "Let's start with the basics."}
             {step === 2 && "Tell us about your academics."}
             {step === 3 && "Set up your Peer Learning profile."}
@@ -142,7 +142,7 @@ export default function OnboardingPage() {
         {/* Body */}
         <div className="p-8 pt-6 flex-1 overflow-y-auto max-h-[60vh]">
           {error && (
-            <div className="mb-6 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm">
+            <div className="mb-6 p-3 bg-[var(--color-canvas-white)] border border-[var(--color-ember-orange)] text-[var(--color-ember-orange)] rounded-[12px] text-[13px]">
               {error}
             </div>
           )}
@@ -150,13 +150,13 @@ export default function OnboardingPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                <label className="block text-[13px] font-medium text-[var(--color-graphite)] mb-1">Full Name <span className="text-[var(--color-ember-orange)]">*</span></label>
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Doe" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <label className="block text-[13px] font-medium text-[var(--color-graphite)] mb-1">Gender</label>
                 <select
-                  className="w-full h-11 px-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                  className="w-full h-11 px-4 border border-[var(--color-paper)] rounded-[20px] focus:ring-1 focus:ring-[var(--color-ember-orange)] focus:border-[var(--color-ember-orange)] outline-none transition-all bg-[var(--color-canvas-white)] text-[14px]"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                 >
@@ -172,15 +172,15 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Institute Name <span className="text-red-500">*</span></label>
+                <label className="block text-[13px] font-medium text-[var(--color-graphite)] mb-1">Institute Name <span className="text-[var(--color-ember-orange)]">*</span></label>
                 <Input value={instituteName} onChange={e => setInstituteName(e.target.value)} placeholder="e.g. MIT" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Branch / Major <span className="text-red-500">*</span></label>
+                <label className="block text-[13px] font-medium text-[var(--color-graphite)] mb-1">Branch / Major <span className="text-[var(--color-ember-orange)]">*</span></label>
                 <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="e.g. Computer Science" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year <span className="text-red-500">*</span></label>
+                <label className="block text-[13px] font-medium text-[var(--color-graphite)] mb-1">Graduation Year <span className="text-[var(--color-ember-orange)]">*</span></label>
                 <Input 
                   type="number"
                   value={gradYear} 
@@ -197,8 +197,8 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">Topics you can help peers with (Optional)</p>
-                <p className="text-xs text-gray-500 mb-3">List up to 5 topics you feel confident in.</p>
+                <p className="text-[13px] font-medium text-[var(--color-graphite)] mb-1">Topics you can help peers with (Optional)</p>
+                <p className="text-[12px] text-[var(--color-stone)] mb-3">List up to 5 topics you feel confident in.</p>
                 
                 <div className="flex gap-2">
                   <Input 
@@ -208,36 +208,36 @@ export default function OnboardingPage() {
                     placeholder="e.g. Calculus, UI Design..." 
                     disabled={selectedTopics.length >= 5}
                   />
-                  <Button type="button" onClick={handleAddTopic} disabled={selectedTopics.length >= 5 || !topicsInput.trim()}>Add</Button>
+                  <Button type="button" onClick={handleAddTopic} disabled={selectedTopics.length >= 5 || !topicsInput.trim()} className="bg-[var(--color-graphite)] hover:opacity-90 text-white rounded-[30px]">Add</Button>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-4">
                   {selectedTopics.map(topic => (
-                    <div key={topic} className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium border border-blue-100">
+                    <div key={topic} className="flex items-center gap-2 bg-[var(--color-pearl)] text-[var(--color-graphite)] px-3 py-1 rounded-[20px] text-[13px] font-medium border border-[var(--color-paper)]">
                       {topic}
-                      <button onClick={() => handleRemoveTopic(topic)} className="hover:text-blue-900">&times;</button>
+                      <button onClick={() => handleRemoveTopic(topic)} className="hover:text-[var(--color-ember-orange)]">&times;</button>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <hr className="border-gray-100" />
+              <hr className="border-[var(--color-paper)]" />
 
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">WhatsApp / Phone Number (Optional)</p>
-                <p className="text-xs text-gray-500 mb-3">If you accept a peer learning match, how should they reach you? This is only revealed to peers you explicitly approve.</p>
+                <p className="text-[13px] font-medium text-[var(--color-graphite)] mb-1">WhatsApp / Phone Number (Optional)</p>
+                <p className="text-[12px] text-[var(--color-stone)] mb-3">If you accept a peer learning match, how should they reach you? This is only revealed to peers you explicitly approve.</p>
                 <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="+1234567890" />
                 
                 <label className="flex items-start gap-3 mt-4 cursor-pointer group">
                   <div className="flex items-center h-5">
                     <input
                       type="checkbox"
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-[var(--color-ember-orange)] border-[var(--color-paper)] rounded focus:ring-[var(--color-ember-orange)]"
                       checked={contactOptIn}
                       onChange={(e) => setContactOptIn(e.target.checked)}
                     />
                   </div>
-                  <div className="text-sm text-gray-700 group-hover:text-gray-900">
+                  <div className="text-[13px] text-[var(--color-stone)] group-hover:text-[var(--color-graphite)]">
                     I agree to share my contact number with matched peers upon my approval.
                   </div>
                 </label>
@@ -248,14 +248,14 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer */}
-        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between rounded-b-2xl">
-          <Button variant="outline" onClick={() => setStep(step - 1)} disabled={step === 1 || isLoading}>
+        <div className="p-6 bg-[var(--color-pearl)] border-t border-[var(--color-paper)] flex justify-between rounded-b-[20px]">
+          <Button variant="outline" onClick={() => setStep(step - 1)} disabled={step === 1 || isLoading} className="rounded-[30px]">
             Back
           </Button>
           
           {step < 3 ? (
             <Button 
-              className="bg-[#006bff] hover:bg-blue-700 text-white" 
+              className="bg-[var(--color-ember-orange)] hover:opacity-90 text-white rounded-[30px]" 
               onClick={() => setStep(step + 1)}
               disabled={
                 (step === 1 && (!name.trim())) || 
@@ -265,7 +265,7 @@ export default function OnboardingPage() {
               Continue
             </Button>
           ) : (
-            <Button className="bg-[#006bff] hover:bg-blue-700 text-white" onClick={handleSubmit} disabled={isLoading || (!!whatsappNumber && !contactOptIn)}>
+            <Button className="bg-[var(--color-ember-orange)] hover:opacity-90 text-white rounded-[30px]" onClick={handleSubmit} disabled={isLoading || (!!whatsappNumber && !contactOptIn)}>
               {isLoading ? "Saving..." : "Finish Setup"}
             </Button>
           )}

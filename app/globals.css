@@ -71,14 +71,32 @@
   
   --radius: 8px;
   
-  --sidebar: var(--color-canvas-white);
-  --sidebar-foreground: var(--color-stone);
-  --sidebar-primary: var(--color-graphite);
-  --sidebar-primary-foreground: var(--color-canvas-white);
-  --sidebar-accent: var(--color-pearl);
-  --sidebar-accent-foreground: var(--color-graphite);
-  --sidebar-border: var(--color-paper);
-  --sidebar-ring: var(--color-ember-orange);
+  /* Unified Design System Tokens */
+  --acc:        #D4522A;
+  --acc-soft:   #FBF0EC;
+
+  --bg:         #F5F3EF;
+  --surface:    #FFFFFF;
+  --surface2:   #EFEDE8;
+
+  --border:     #E4E2DC;
+
+  --text1:      #1C1B18;
+  --text2:      #6B6A65;
+  --text3:      #A8A7A2;
+
+  --urgent:     #D4522A;
+  --warn-text:  #B07A1A;
+
+  /* Aliasing old sidebar vars to new system to not break it */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text2);
+  --sidebar-primary: var(--text1);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--surface2);
+  --sidebar-accent-foreground: var(--text1);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--acc);
 }
 
 @layer base {
