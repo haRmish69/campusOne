@@ -239,3 +239,330 @@ model ProcessedEmail {
 
   @@index([profileId, receivedAt])
 }
+
+// ────────────────────────────────────────
+// Phase 15 — Company Profiles + Interview Experience Bank
+// ────────────────────────────────────────
+
+model Company {
+  id                String   @id @default(cuid())
+  instituteName     String
+  name              String
+  domain            String
+  // "tech" | "finance" | "consulting" | "core" | "product" | "other"
+  packageMin        Float?   // in LPA
+  packageMax        Float?   // in LPA
+  interviewRounds   Int?
+  roundDescriptions Json?
+  // ["Online Assessment", "Technical Round 1", "HR Round"]
+  topSkillsRequired Json
+  // ["DSA", "System Design", "SQL"] — used for skill gap analysis
+  campusVisitCount  Int      @default(0)
+  // how many times this company has visited this campus
+  lastVisitedYear   Int?
+  description       String?  @db.Text
+  websiteUrl        String?
+  embedding         Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model InterviewExperience {
+  id             String   @id @default(cuid())
+  instituteName  String
+  companyId      String
+  userId         String?
+  studentName    String?
+  // null if isAnonymous=true
+  batch          String
+  // "2024", "2025" — year of placement
+  branch         String
+  outcome        String
+  // "selected" | "rejected_r1" | "rejected_r2" | "rejected_hr" | "offer_declined"
+  packageOffered Float?
+  // only if outcome="selected" and student chose to share
+  rounds         Json
+  // array of { roundName, duration, questions: string[], tips: string }
+  overallTips    String   @db.Text
+  isAnonymous    Boolean  @default(true)
+  isVerified     Boolean  @default(false)
+  // placement cell can verify authenticity
+  upvotes        Int      @default(0)
+  embedding      Json
+  // embed: companyName + branch + outcome + overallTips
+  createdAt      DateTime @default(now())
+}
+
+model PrepQuestion {
+  id          String   @id @default(cuid())
+  instituteName String
+  companyId   String
+  round       String
+  // "oa" | "technical" | "hr" | "managerial" | "case_study"
+  question    String   @db.Text
+  answer      String?  @db.Text
+  // community-contributed answer, optional
+  difficulty  String   @default("medium")
+  // "easy" | "medium" | "hard"
+  upvotes     Int      @default(0)
+  submittedBy String?
+  // userId of contributor
+  isVerified  Boolean  @default(false)
+  embedding   Json
+  createdAt   DateTime @default(now())
+}
+
+model SkillGapAnalysis {
+  id           String   @id @default(cuid())
+  userId       String
+  companyId    String
+  gaps         Json
+  // [{ skill: "System Design", status: "missing"|"weak"|"strong", priority: 1 }]
+  peerMatchIds Json
+  // [userId] — peers who can help close each gap
+  generatedAt  DateTime @default(now())
+  expiresAt    DateTime
+  // regenerate after 7 days or after new expertise signals
+
+  @@unique([userId, companyId])
+}
+
+// ────────────────────────────────────────
+// Phase 16 — AI Prep Guides + Personalized Plans
+// ────────────────────────────────────────
+
+model CompanyPrepGuide {
+  id            String   @id @default(cuid())
+  instituteName String
+  companyId     String   @unique
+  synthesisText String   @db.Text
+  keyThemes     Json
+  doList        Json
+  dontList      Json
+  generatedAt   DateTime @default(now())
+  basedOnCount  Int
+}
+
+model PersonalizedPrepPlan {
+  id              String   @id @default(cuid())
+  userId          String
+  companyId       String
+  daysUntilDrive  Int
+  planText        String   @db.Text
+  skillGapIds     Json
+  generatedAt     DateTime @default(now())
+
+  @@unique([userId, companyId])
+}
+
+// ────────────────────────────────────────
+// Phase 17 — Transport Intelligence
+// ────────────────────────────────────────
+
+model TransportRoute {
+  id            String   @id @default(cuid())
+  instituteName String
+  name          String
+  type          String
+  // "bus" | "shuttle" | "auto_stand" | "cab_point"
+  stops         Json
+  // [{ name: "Main Gate", time: "08:45" }, ...]
+  operatingDays Json
+  // ["Monday", "Tuesday", ...] or ["Weekdays"] or ["All"]
+  frequency     String?
+  notes         String?
+  isActive      Boolean  @default(true)
+  embedding     Json
+  createdAt     DateTime @default(now())
+}
+
+model TransportUpdate {
+  id          String   @id @default(cuid())
+  instituteName String
+  routeId     String?
+  updateType  String
+  // "delay" | "cancelled" | "full" | "early" | "general"
+  message     String
+  reportedBy  String
+  severity    String   @default("info")
+  // "info" | "warning" | "critical"
+  expiresAt   DateTime
+  upvotes     Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model CabPoolRequest {
+  id             String   @id @default(cuid())
+  instituteName  String
+  initiatorId    String
+  destination    String
+  departureTime  DateTime
+  seatsAvailable Int
+  estimatedCost  Float?
+  participants   Json
+  // [userId, ...]
+  pendingRequests Json?   @default("[]")
+  // [{userId, status: "pending" | "rejected"}]
+  status         String   @default("open")
+  // "open" | "full" | "departed" | "cancelled"
+  notes          String?
+  createdAt      DateTime @default(now())
+}
+
+// ────────────────────────────────────────
+// Phase 18 — Campus Services Directory
+// ────────────────────────────────────────
+
+model CampusService {
+  id              String    @id @default(cuid())
+  instituteName   String
+  name            String
+  category        String
+  // "academic" | "admin" | "hostel" | "library" | "medical" | "sports" | "other"
+  location        String
+  timings         Json
+  // [{ days: "Monday-Friday", hours: "10:00-17:00" }]
+  contactEmail    String?
+  contactPhone    String?
+  currentStatus   String    @default("unknown")
+  // "open" | "closed" | "crowded" | "unknown"
+  statusUpdatedAt DateTime?
+  statusUpdatedBy String?
+  embedding       Json
+  createdAt       DateTime  @default(now())
+}
+
+model ProcessGuide {
+  id                String   @id @default(cuid())
+  instituteName     String
+  serviceId         String
+  title             String
+  steps             Json
+  // [{ order: 1, instruction: "Go to Room 102 with your ID" }]
+  documentsRequired Json
+  estimatedDays     Int
+  fees              Float?
+  tips              String?  @db.Text
+  submittedBy       String?
+  upvotes           Int      @default(0)
+  isVerified        Boolean  @default(false)
+  embedding         Json
+  createdAt         DateTime @default(now())
+}
+
+// ────────────────────────────────────────
+// Phase 19 — Food Intelligence
+// ────────────────────────────────────────
+
+model MealRating {
+  id         String   @id @default(cuid())
+  messMenuId String
+  userId     String
+  rating     Int      // 1-5 stars
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([messMenuId, userId])
+}
+
+model NutritionEstimate {
+  id         String   @id @default(cuid())
+  instituteName String
+  messMenuId String   @unique
+  calories   Int
+  proteinG   Float
+  carbsG     Float
+  fatG       Float
+  fibreG     Float?
+  isEstimated Boolean @default(true)
+  generatedAt DateTime @default(now())
+}
+
+model CanteenItem {
+  id          String   @id @default(cuid())
+  instituteName String
+  canteenName String
+  itemName    String
+  price       Float
+  category    String
+  // "snack" | "meal" | "beverage" | "dessert"
+  isVeg       Boolean  @default(true)
+  isAvailable Boolean  @default(true)
+  rating      Float?
+  embedding   Json
+  createdAt   DateTime @default(now())
+}
+
+model GroupOrder {
+  id               String   @id @default(cuid())
+  instituteName    String
+  initiatorId      String
+  platform         String
+  // "swiggy" | "zomato" | "direct" | "other"
+  restaurantName   String
+  orderDeadline    DateTime
+  deliveryLocation String
+  participants     Json
+  // [{ userId, items: string, amount: number }]
+  status           String   @default("open")
+  // "open" | "placed" | "delivered" | "cancelled"
+  totalAmount      Float?
+  notes            String?
+  createdAt        DateTime @default(now())
+}
+
+// ────────────────────────────────────────
+// Phase 20 — Local Discovery + Survival Guide
+// ────────────────────────────────────────
+
+model LocalPlace {
+  id             String   @id @default(cuid())
+  instituteName  String
+  name           String
+  category       String
+  // "food" | "stationery" | "medical" | "atm" | "salon" | "gym" | "entertainment" | "emergency" | "other"
+  distanceMeters Int?
+  direction      String?
+  description    String   @db.Text
+  priceRange     String?
+  timings        String?
+  phone          String?
+  mustTry        String?
+  submittedBy    String
+  upvotes        Int      @default(0)
+  isVerified     Boolean  @default(false)
+  embedding      Json
+  createdAt      DateTime @default(now())
+}
+
+model TripRecommendation {
+  id            String   @id @default(cuid())
+  instituteName String
+  destination   String
+  distanceKm    Int
+  estimatedCost Float
+  howToGet      String   @db.Text
+  bestFor       String
+  // "day_trip" | "weekend" | "evening"
+  bestSeason    String?
+  highlights    Json
+  // ["waterfall", "street food", "temple"]
+  submittedBy   String
+  upvotes       Int      @default(0)
+  embedding     Json
+  createdAt     DateTime @default(now())
+}
+
+model SurvivalTip {
+  id          String   @id @default(cuid())
+  instituteName String
+  category    String
+  // "fresher" | "hostel" | "food" | "academic" | "money" | "health" | "social" | "general"
+  title       String
+  tip         String   @db.Text
+  submittedBy String
+  upvotes     Int      @default(0)
+  isVerified  Boolean  @default(false)
+  embedding   Json
+  createdAt   DateTime @default(now())
+}

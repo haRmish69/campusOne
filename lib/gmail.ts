@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+// @ts-ignore — 'he' package has no type declarations
 import { decode } from "he";
 
 // ── Types ──

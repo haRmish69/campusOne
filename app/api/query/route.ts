@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRealEmbedding } from "@/lib/embeddings";
-import { semanticSearch } from "@/lib/vectorStore";
+import { searchEverything } from "@/lib/searchEverything";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI } from "@google/genai";
@@ -45,14 +45,12 @@ export async function POST(req: NextRequest) {
       where: { userId }
     });
 
-    // 2. Generate Real Embedding via Gemini
+    // 2. Unified Cross-Domain Search (16 tables)
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' });
-    // Only prepend day for pure questions, not for update/modify requests
-    const queryEmbedding = await getRealEmbedding(`${dayName} ${query}`);
+    const instituteName = profile?.instituteName || "";
 
-    // 3. FAISS Semantic Search
-    const matchedIds = semanticSearch(queryEmbedding, 50);
+    const searchResults = await searchEverything(`${dayName} ${query}`, instituteName, userId, 10);
 
     // 4. Fetch Actual Records from MySQL (with strict tenant isolation)
     const [notices, menus, deadlines, classes] = await Promise.all([
@@ -82,25 +80,25 @@ export async function POST(req: NextRequest) {
     // 6. System Prompt with Function Calling Instructions
     const istDateTime = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const systemInstruction = `You are CampusFlow, an elite AI assistant for students.
+    const systemInstruction = `You are CampusFlow, an elite AI campus ecosystem assistant for students.
 Current Date & Time (IST): ${istDateTime}
 
 You have TWO capabilities:
-1. ANSWER questions using the FAISS context below.
-2. MODIFY campus data using your tools. The tools search the MySQL database directly — they do NOT depend on the FAISS context below. The data EXISTS in the database even if you don't see it in the context.
+1. ANSWER questions using the cross-domain context below (covering campus notices, mess menus, deadlines, classes, placement info, interview experiences, transport, local places, survival tips, and more).
+2. MODIFY campus data using your tools. The tools search the MySQL database directly — they do NOT depend on the context below. The data EXISTS in the database even if you don't see it in the context.
 
 CRITICAL: WHEN THE USER WANTS TO UPDATE, CHANGE, REPLACE, ADD, OR MODIFY ANY DATA — YOU MUST ALWAYS CALL THE APPROPRIATE TOOL. DO NOT say "I don't have that data". The tool will find it in the database.
 
 Tool usage guidelines:
-- update_mess_menu: When user wants to change food items for a specific day+meal. Pass the FULL updated items list (keep unchanged items, replace only what user asked to change). Example: If current items are "TEA WITH BISCUITS" and user says "change tea to coffee", pass newItems="COFFEE WITH BISCUITS".
+- update_mess_menu: When user wants to change food items for a specific day+meal. Pass the FULL updated items list (keep unchanged items, replace only what user asked to change).
 - update_notice / update_deadline / update_schedule: When user wants to edit existing entries.
 - add_notice / add_deadline: When user wants to create new entries.
 
-For QUESTIONS only: Answer from the context below. If missing, say: 'I don't have that information in my campus data.'
+For QUESTIONS: Answer from the cross-domain context below. Connect information across domains when relevant (e.g., combine placement info with transport options, or food with wellness). If missing, say: 'I don't have that information in my campus data.'
 
 User Profile: Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear || "Unknown"}, College: ${profile?.instituteName || "Unknown"}.
 
-Context retrieved from FAISS:
+Cross-domain context (from 16 campus data sources):
 ${context}`;
 
     // 7. First Gemini Call — use gemini-2.5-flash (no thinking) for fast tool detection

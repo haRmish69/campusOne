@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Bus, Compass } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { SOSButton } from "@/components/SOSButton";
@@ -20,6 +20,9 @@ export function Sidebar() {
     { href: "/mess", label: "Mess Menu", icon: Utensils },
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
+    { href: "/placement", label: "Placement", icon: Briefcase },
+    { href: "/transport", label: "Transport", icon: Bus },
+    { href: "/discover", label: "Discover", icon: Compass },
     { href: "/peer-learning", label: "Study Peers", icon: Users },
   ];
 
