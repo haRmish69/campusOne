@@ -63,11 +63,11 @@ export default async function NoticesPage() {
           
           {notices.length === 0 ? (
             <EmptyState 
-              icon={Bell} 
+              iconName="Bell" 
               heading="No notices yet" 
               subtitle="Upload a notice or sync your email to get started" 
               ctaLabel="Upload Notice" 
-              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+              ctaAction="upload"
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

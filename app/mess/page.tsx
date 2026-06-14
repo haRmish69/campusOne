@@ -88,11 +88,11 @@ export default async function MessPage() {
           
           {menus.length === 0 ? (
             <EmptyState 
-              icon={Utensils} 
+              iconName="Utensils" 
               heading="No menus uploaded" 
               subtitle="Upload today's menu to see what's for dinner" 
               ctaLabel="Upload Menu" 
-              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+              ctaAction="upload"
             />
           ) : (
             <div className="space-y-10">

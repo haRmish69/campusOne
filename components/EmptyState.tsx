@@ -1,38 +1,67 @@
 "use client";
 
-import { LucideIcon } from "lucide-react";
+import { Calendar, Receipt, Bell, Utensils, HeartPulse } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+const iconMap = {
+  Calendar,
+  Receipt,
+  Bell,
+  Utensils,
+  HeartPulse,
+};
+
+export type EmptyStateIconName = keyof typeof iconMap;
 
 interface EmptyStateProps {
-  icon: LucideIcon;
+  iconName: EmptyStateIconName;
   heading: string;
   subtitle: string;
   ctaLabel: string;
-  onCtaClick: () => void;
+  ctaAction?: "upload" | "chat" | "none";
+  onCtaClick?: () => void;
 }
 
 export function EmptyState({
-  icon: Icon,
+  iconName,
   heading,
   subtitle,
   ctaLabel,
+  ctaAction = "none",
   onCtaClick,
 }: EmptyStateProps) {
+  const Icon = iconMap[iconName];
+  const router = useRouter();
+
+  const handleAction = () => {
+    if (onCtaClick) {
+      onCtaClick();
+      return;
+    }
+    if (ctaAction === "upload") {
+      document.getElementById('file-upload-input')?.click();
+    } else if (ctaAction === "chat") {
+      router.push('/chat');
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center pt-20 pb-10 text-center">
-      <Icon size={48} className="text-[var(--color-fog)] mb-6" />
-      <h3 className="text-[24px] font-semibold text-[var(--color-graphite)] mb-2">
+    <div className="flex flex-col items-center justify-center p-[40px] text-center bg-[#f5f5f5] rounded-[20px] shadow-[0px_4px_10px_0px_rgba(0,0,0,0.25)] border border-[#e5e7eb]">
+      <Icon size={48} className="text-[#cbcbcb] mb-6" />
+      <h3 className="text-[20px] font-bold text-[#1f1f1f] mb-2">
         {heading}
       </h3>
-      <p className="text-[16px] text-[var(--color-stone)] mb-8 max-w-sm">
+      <p className="text-[14px] text-[#707070] mb-8 max-w-sm">
         {subtitle}
       </p>
-      <button
-        onClick={onCtaClick}
-        style={{ boxShadow: "rgba(0,0,0,0.25) 0px 4px 10px 0px" }}
-        className="px-6 py-3 rounded-[30px] bg-[var(--color-ember-orange)] text-white text-[16px] font-medium hover:opacity-90 transition-opacity"
-      >
-        {ctaLabel}
-      </button>
+      {(ctaAction !== "none" || onCtaClick) && (
+        <button
+          onClick={handleAction}
+          className="px-[24px] py-[12px] w-auto rounded-[50px] bg-[#ff5a2f] text-white text-[16px] font-[600] hover:bg-[#e04e28] transition-colors inline-flex items-center justify-center"
+        >
+          {ctaLabel}
+        </button>
+      )}
     </div>
   );
 }

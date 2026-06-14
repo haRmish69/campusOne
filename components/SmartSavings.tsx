@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, Loader2, TrendingDown } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 export function SmartSavings() {
   const [insight, setInsight] = useState<string | null>(null);
@@ -28,38 +27,21 @@ export function SmartSavings() {
 
   if (isLoading) {
     return (
-      <Card className="w-full shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100">
-        <CardContent className="flex items-center justify-center p-8 gap-3 text-emerald-700">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          <p className="font-medium">PocketBuddy is analyzing your spending patterns...</p>
-        </CardContent>
-      </Card>
+      <div className="bg-[#ffffff]/80 backdrop-blur-md border border-[#f0f0f0] rounded-[12px] p-[12px_16px] flex items-center gap-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
+        <Loader2 className="w-4 h-4 animate-spin text-[#a5a5a5]" />
+        <p className="text-[12px] text-[#707070] font-medium">Analyzing your spending patterns...</p>
+      </div>
     );
   }
 
   if (!insight) return null;
 
   return (
-    <Card className="w-full shadow-sm bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-100 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-      <div className="absolute top-0 -left-4 w-32 h-32 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
-      
-      <CardHeader className="pb-2 relative z-10">
-        <CardTitle className="text-xl flex items-center gap-2 text-emerald-900">
-          <TrendingDown className="w-5 h-5 text-emerald-600" />
-          Smart Savings Insight
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="relative z-10">
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-emerald-100 rounded-full shrink-0">
-            <Sparkles className="w-6 h-6 text-emerald-600" />
-          </div>
-          <p className="text-emerald-800 leading-relaxed font-medium pt-1">
-            {insight}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="bg-[#ffffff]/80 backdrop-blur-md border border-[#f0f0f0] rounded-[12px] p-[12px_16px] flex items-start gap-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] mb-6">
+      <Sparkles className="w-4 h-4 text-[#ff5a2f] shrink-0 mt-[2px]" />
+      <p className="text-[12px] text-[#707070] leading-relaxed">
+        {insight}
+      </p>
+    </div>
   );
 }

@@ -106,11 +106,11 @@ export default function DeadlinesPage() {
                 <div className="text-center py-12">Loading...</div>
               ) : upcoming.length === 0 ? (
                 <EmptyState 
-                  icon={Calendar} 
+                  iconName="Calendar" 
                   heading="You're all caught up" 
                   subtitle="Upload your syllabus to auto-extract deadlines" 
                   ctaLabel="Upload Syllabus" 
-                  onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+                  ctaAction="upload"
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4">

@@ -1,9 +1,7 @@
-import { Wallet, Calendar, Receipt } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { ExpenseEntry } from "@/components/ExpenseEntry";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
-import { EmptyState } from "@/components/EmptyState";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -69,66 +67,73 @@ export default async function ExpensesPage() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-          <Wallet className="w-8 h-8 text-primary" />
-          Expenses
-        </h1>
-        <p className="text-muted-foreground">
-          Track your spending and easily capture receipts with PocketBuddy.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-8 mb-10">
-        <ExpenseEntry />
-        <ExpenseSummary 
-          total={currentTotal}
-          previousTotal={prevTotal}
-          percentChange={percentChange}
-          categoryBreakdown={categoryBreakdown}
-        />
-      </div>
-
-      <h2 className="text-xl font-bold tracking-tight mb-4">Recent Expenses</h2>
-      {recentExpenses.length === 0 ? (
-        <EmptyState 
-          icon={Receipt} 
-          heading="No expenses logged" 
-          subtitle="Say 'I spent ₹200 on lunch' in the chat to log your first expense" 
-          ctaLabel="Open Chat" 
-          onCtaClick={() => window.location.href = '/chat'} 
-        />
-      ) : (
-        <div className="space-y-3">
-          {recentExpenses.map((expense) => (
-            <Card key={expense.id} className="shadow-sm">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">{expense.description}</h4>
-                  <div className="flex items-center text-xs text-muted-foreground mt-1 gap-3">
-                    <span className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {new Date(expense.date).toLocaleDateString()}
-                    </span>
-                    <span className="px-2 py-0.5 bg-muted rounded-full capitalize">
-                      {expense.category}
-                    </span>
-                    {expense.source === "receipt" && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
-                        Receipt
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="font-semibold">
-                  ₹{expense.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="container mx-auto pt-[28px] pb-10 px-4 max-w-[960px] font-[family-name:var(--font-plus-jakarta-sans)]">
+      <div className="bg-[#f9f9f9] rounded-[20px] p-[28px]">
+        
+        <div className="mb-[24px]">
+          <h1 className="text-[20px] font-bold text-[#1f1f1f] flex items-center gap-3 leading-tight">
+            <div className="w-[12px] h-[12px] rounded-[6px] bg-[#ff5a2f]" />
+            Expenses
+          </h1>
+          <p className="text-[12px] text-[#a5a5a5] mt-1">
+            Track your spending and easily capture receipts with PocketBuddy.
+          </p>
         </div>
-      )}
+
+        <div className="flex flex-col md:flex-row gap-[32px]">
+          {/* LEFT COLUMN: ~55% */}
+          <div className="w-full md:w-[55%] flex flex-col gap-[20px]">
+            <ExpenseEntry />
+          </div>
+
+          {/* RIGHT COLUMN: ~45% */}
+          <div className="w-full md:w-[45%] flex flex-col gap-[20px]">
+            <ExpenseSummary 
+              total={currentTotal}
+              previousTotal={prevTotal}
+              percentChange={percentChange}
+              categoryBreakdown={categoryBreakdown}
+            />
+            
+            {/* Recent Expenses moved into the Right Column below the summary */}
+            <div className="mt-2">
+              <h4 className="text-[10px] font-[700] uppercase text-[#a5a5a5] tracking-[0.1em] mb-[16px]">Recent Activity</h4>
+              
+              {recentExpenses.length === 0 ? (
+                <div className="bg-[#fafafa] rounded-[16px] border border-dashed border-[#e5e7eb] p-[32px] flex flex-col items-center justify-center text-center">
+                  <span className="text-[12px] text-[#cbcbcb] max-w-[240px] mx-auto leading-relaxed mb-4">Nothing logged yet.</span>
+                  <a href="/chat" className="text-[12px] text-[#ff5a2f] underline hover:opacity-80 transition-opacity">Open Chat &rarr;</a>
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {recentExpenses.map((expense) => (
+                    <div key={expense.id} className="h-[44px] flex items-center justify-between border-b border-[#f0f0f0] last:border-0 hover:bg-[#fafafa] transition-colors -mx-2 px-2 rounded-[8px]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-[28px] h-[28px] rounded-full bg-[#f5f5f5] flex items-center justify-center text-[#707070]">
+                          <Calendar className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <h4 className="text-[13px] font-[500] text-[#1f1f1f]">{expense.description}</h4>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {expense.source === "receipt" && (
+                          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-[20px] text-[10px]">
+                            Receipt
+                          </span>
+                        )}
+                        <div className="text-[13px] font-[600] text-[#1f1f1f]">
+                          ₹{expense.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
