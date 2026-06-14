@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Briefcase, Search, TrendingUp, Users, ChevronRight, Building2, Star } from "lucide-react";
+import { Briefcase, Search, TrendingUp, ChevronRight, Building2, Plus, CheckCircle2, Flag } from "lucide-react";
 import { toast } from "sonner";
+import AddCompanyModal from "./components/AddCompanyModal";
 
 type Company = {
   id: string;
@@ -16,6 +17,7 @@ type Company = {
   campusVisitCount: number;
   lastVisitedYear: number | null;
   description: string | null;
+  isUserSubmitted?: boolean;
 };
 
 const DOMAIN_COLORS: Record<string, string> = {
@@ -32,6 +34,7 @@ export default function PlacementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -125,6 +128,13 @@ export default function PlacementPage() {
             </button>
           ))}
         </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white px-5 py-2.5 rounded-xl font-medium shadow-sm transition-all shrink-0 h-[44px]"
+        >
+          <Plus className="w-5 h-5" />
+          Add Company
+        </button>
       </div>
 
       {/* Company Grid */}
@@ -159,11 +169,35 @@ export default function PlacementPage() {
                 href={`/placement/${company.id}`}
                 className="group block"
               >
-                <div className="rounded-2xl border border-border/60 bg-card p-5 hover:shadow-lg hover:border-[var(--color-electric-indigo)]/30 transition-all duration-300 h-full flex flex-col">
+                <div className="rounded-2xl border border-border/60 bg-card p-5 hover:shadow-lg hover:border-[var(--color-electric-indigo)]/30 transition-all duration-300 h-full flex flex-col relative overflow-hidden">
+                  
+                  {/* Badge for user submitted */}
+                  {company.isUserSubmitted && (
+                    <button
+                      title="Report incorrect or fake information"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!confirm("Are you sure you want to report this submission?")) return;
+                        try {
+                          const res = await fetch(`/api/companies/submissions/${company.id}/report`, { method: "POST" });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Failed to report");
+                          toast.success("Company reported successfully");
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        }
+                      }}
+                      className="absolute bottom-3 right-3 p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors z-10"
+                    >
+                      <Flag className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-3 mt-1">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[var(--color-midnight-navy)] truncate group-hover:text-[var(--color-electric-indigo)] transition-colors">
+                      <h3 className="font-semibold text-[var(--color-midnight-navy)] truncate group-hover:text-[var(--color-electric-indigo)] transition-colors pr-2">
                         {company.name}
                       </h3>
                       <span
@@ -219,6 +253,18 @@ export default function PlacementPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Modal */}
+      {isModalOpen && (
+        <AddCompanyModal 
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => {
+            setIsModalOpen(false);
+            toast.success("Company submitted successfully!");
+            fetchCompanies();
+          }}
+        />
       )}
     </div>
   );

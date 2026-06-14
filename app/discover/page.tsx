@@ -35,8 +35,9 @@ export default function DiscoverPage() {
       const params = new URLSearchParams();
       if (categoryFilter) params.set("category", categoryFilter);
       const res = await fetch(`/api/local/places?${params}`);
-      setPlaces(await res.json());
-    } catch { } finally { setIsLoading(false); }
+      const data = await res.json();
+      setPlaces(Array.isArray(data) ? data : []);
+    } catch { setPlaces([]); } finally { setIsLoading(false); }
   };
 
   const handleSearch = async () => {

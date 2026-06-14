@@ -13,9 +13,32 @@ export async function GET(
 
     const { id } = await params;
 
-    const company = await prisma.company.findUnique({ where: { id } });
+    let company: any = await prisma.company.findUnique({ where: { id } });
     if (!company) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+      const submission = await prisma.companySubmission.findUnique({ where: { id } });
+      if (!submission || submission.status !== "approved") {
+        return NextResponse.json({ error: "Company not found" }, { status: 404 });
+      }
+
+      company = {
+        id: submission.id,
+        instituteName: submission.instituteName,
+        name: submission.companyName,
+        domain: submission.category,
+        packageMin: submission.ctcMin,
+        packageMax: submission.ctcMax,
+        interviewRounds: submission.rounds,
+        roundDescriptions: null,
+        topSkillsRequired: submission.skills,
+        campusVisitCount: 1,
+        lastVisitedYear: submission.year || new Date().getFullYear(),
+        description: null,
+        websiteUrl: null,
+        embedding: "{}",
+        createdAt: submission.createdAt,
+        updatedAt: submission.updatedAt,
+        isUserSubmitted: true,
+      };
     }
 
     const [experiences, questions, allExperiences] = await Promise.all([

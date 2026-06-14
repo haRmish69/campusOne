@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Bus, Compass } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Bus, Compass, FolderOpen } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { SOSButton } from "@/components/SOSButton";
@@ -12,6 +13,20 @@ import { Users } from "lucide-react";
 export function Sidebar() {
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      fetch("/api/user/profile")
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.role === "admin") {
+            setIsAdmin(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isSignedIn]);
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +35,7 @@ export function Sidebar() {
     { href: "/mess", label: "Mess Menu", icon: Utensils },
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
+    { href: "/notes", label: "My Notes", icon: FolderOpen },
     { href: "/placement", label: "Placement", icon: Briefcase },
     { href: "/transport", label: "Transport", icon: Bus },
     { href: "/discover", label: "Discover", icon: Compass },

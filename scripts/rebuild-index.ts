@@ -90,6 +90,13 @@ async function main() {
     await addToIndex(w.id, `[WELLNESS] Mood: ${w.mood}/5, Stress: ${w.stressLevel}/5, Sleep: ${w.sleepHours}h. Notes: ${w.notes}. Date: ${w.date.toISOString().split("T")[0]}`);
   }
 
+  // 7. Index all Notes
+  const notes = await prisma.note.findMany();
+  console.log(`\n📝 Indexing ${notes.length} Notes...`);
+  for (const n of notes) {
+    await addToIndex(n.id, `[NOTE] ${n.title} (Subject/Folder: ${n.subject}): ${n.content}`);
+  }
+
   // Write to disk
   const dataDir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);

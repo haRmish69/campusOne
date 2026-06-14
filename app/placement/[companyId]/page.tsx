@@ -295,21 +295,23 @@ export default function CompanyDetailPage({
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           {/* Required Skills */}
-          <div className="rounded-2xl border border-border/60 bg-card p-5">
-            <h3 className="font-semibold text-[var(--color-midnight-navy)] mb-3">
-              Required Skills
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {skills.map((skill, i) => (
-                <span
-                  key={skill}
-                  className="px-3 py-1.5 rounded-lg bg-[var(--color-fog)] text-sm font-medium text-[var(--color-midnight-navy)]"
-                >
-                  {i + 1}. {skill}
-                </span>
-              ))}
+          {skills.length > 0 && (
+            <div className="rounded-2xl border border-border/60 bg-card p-5">
+              <h3 className="font-semibold text-[var(--color-midnight-navy)] mb-3">
+                Required Skills
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, i) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1.5 rounded-lg bg-[var(--color-fog)] text-sm font-medium text-[var(--color-midnight-navy)]"
+                  >
+                    {i + 1}. {skill}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Interview Process */}
           {company.roundDescriptions && company.roundDescriptions.length > 0 && (

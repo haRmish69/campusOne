@@ -40,13 +40,25 @@ export default function TransportPage() {
   }, []);
 
   const fetchRoutes = async () => {
-    try { const r = await fetch("/api/transport/routes"); setRoutes(await r.json()); } catch {}
+    try { 
+      const r = await fetch("/api/transport/routes"); 
+      const data = await r.json(); 
+      setRoutes(Array.isArray(data) ? data : []); 
+    } catch { setRoutes([]); }
   };
   const fetchUpdates = async () => {
-    try { const r = await fetch("/api/transport/updates"); setUpdates(await r.json()); } catch {}
+    try { 
+      const r = await fetch("/api/transport/updates"); 
+      const data = await r.json(); 
+      setUpdates(Array.isArray(data) ? data : []); 
+    } catch { setUpdates([]); }
   };
   const fetchPools = async () => {
-    try { const r = await fetch("/api/transport/cab-pools"); setPools(await r.json()); } catch {}
+    try { 
+      const r = await fetch("/api/transport/cab-pools"); 
+      const data = await r.json(); 
+      setPools(Array.isArray(data) ? data : []); 
+    } catch { setPools([]); }
   };
 
   const handleCreatePool = async () => {

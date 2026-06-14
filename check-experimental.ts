@@ -19,9 +19,9 @@ async function checkModel(modelName: string) {
 }
 
 async function main() {
-  await checkModel("gemini-3.1-flash-lite");
+  await checkModel("gemini-2.5-flash");
+  await checkModel("gemini-2.0-flash");
   await checkModel("gemini-3.5-flash");
-  await checkModel("gemini-2.0-flash-lite");
 }
 
 main();

@@ -16,16 +16,49 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const domain = searchParams.get("domain");
 
-    const where: any = { instituteName };
-    if (domain) where.domain = domain;
+    const companyWhere: any = { instituteName };
+    if (domain) companyWhere.domain = domain;
 
     let companies = await prisma.company.findMany({
-      where,
+      where: companyWhere,
       orderBy: [
         { lastVisitedYear: "desc" },
         { campusVisitCount: "desc" },
       ],
     });
+
+    const submissionWhere: any = { instituteName, status: "approved" };
+    if (domain) submissionWhere.category = domain;
+
+    // Also fetch approved user submissions
+    const submissions = await prisma.companySubmission.findMany({
+      where: submissionWhere,
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Map submissions into the Company shape so the frontend can render them uniformly
+    const mappedSubmissions = submissions.map(sub => ({
+      id: sub.id,
+      instituteName: sub.instituteName,
+      name: sub.companyName,
+      domain: sub.category,
+      packageMin: sub.ctcMin,
+      packageMax: sub.ctcMax,
+      interviewRounds: sub.rounds,
+      roundDescriptions: null,
+      topSkillsRequired: JSON.stringify(sub.skills),
+      campusVisitCount: 1,
+      lastVisitedYear: sub.year || new Date().getFullYear(),
+      description: null,
+      websiteUrl: null,
+      embedding: "{}", // Not used on frontend
+      createdAt: sub.createdAt,
+      updatedAt: sub.updatedAt,
+      isUserSubmitted: true, // Flag for frontend badge
+    }));
+
+    // @ts-ignore
+    companies = [...companies, ...mappedSubmissions];
 
     // Fuzzy search by name if search param provided
     if (search) {
