@@ -1,20 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Loader2, HeartPulse } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const MOODS = [
-  { value: 1, emoji: "😢", label: "Awful" },
-  { value: 2, emoji: "🙁", label: "Bad" },
-  { value: 3, emoji: "😐", label: "Okay" },
-  { value: 4, emoji: "🙂", label: "Good" },
-  { value: 5, emoji: "😄", label: "Great" },
+  { value: 1, label: "Awful" },
+  { value: 2, label: "Bad" },
+  { value: 3, label: "Okay" },
+  { value: 4, label: "Good" },
+  { value: 5, label: "Great" },
 ];
 
 export function WellnessCheckIn() {
@@ -52,7 +49,6 @@ export function WellnessCheckIn() {
 
       toast.success("Check-in saved! Have a great day.", { id: toastId });
       
-      // Reset form (though typically users only do this once a day, so we could just hide it)
       setMood(null);
       setSleepHours(7);
       setStressLevel(3);
@@ -92,12 +88,12 @@ export function WellnessCheckIn() {
                       : "hover:bg-muted opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <span className="text-3xl mb-1">{m.emoji}</span>
-                  <span className="text-xs font-medium text-muted-foreground">{m.label}</span>
+                  {m.label}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Sleep Slider */}
@@ -156,11 +152,54 @@ export function WellnessCheckIn() {
             />
           </div>
 
-          <Button type="submit" disabled={isSubmitting || mood === null} className="w-full bg-pink-600 hover:bg-pink-700">
-            {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</> : "Save Check-in"}
+          {/* Stress Slider */}
+          <div className="space-y-[12px]">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-[600] text-[#a5a5a5] uppercase tracking-wider">Stress Level</label>
+              <span className="text-[13px] font-[600] text-[#1f1f1f]">{stressLevel} <span className="text-[#a5a5a5] font-[400]">/ 5</span></span>
+            </div>
+            <input 
+              type="range" 
+              min="1" 
+              max="5" 
+              step="1"
+              value={stressLevel}
+              onChange={(e) => setStressLevel(parseInt(e.target.value))}
+              className="w-full h-[4px] bg-[#f5f5f5] rounded-full appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[16px] [&::-webkit-slider-thumb]:h-[16px] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#1f1f1f] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm"
+              style={{
+                background: `linear-gradient(to right, #1f1f1f 0%, #1f1f1f ${((stressLevel - 1) / 4) * 100}%, #f5f5f5 ${((stressLevel - 1) / 4) * 100}%, #f5f5f5 100%)`
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Notes / Journal */}
+        <div className="space-y-[12px] pt-[8px]">
+          <label htmlFor="notes" className="text-[11px] font-[600] text-[#a5a5a5] uppercase tracking-wider">Journal</label>
+          <textarea 
+            id="notes" 
+            placeholder="What's on your mind? Did anything specific trigger your stress today?" 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full bg-transparent border-b border-[#f0f0f0] pb-[16px] pt-[8px] focus:border-[#ff7a55] transition-colors resize-none outline-none text-[14px] text-[#1f1f1f] placeholder-[#d1d1d1]"
+            rows={2}
+          />
+        </div>
+
+        <div className="pt-4 flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || mood === null} 
+            className="w-[180px] h-[40px] bg-[#ff7a55] hover:bg-[#ff6b45] text-white rounded-[50px] text-[13px] font-[600] tracking-[0.02em] shadow-[0px_2px_6px_rgba(255,122,85,0.12)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+            ) : (
+              <>Save Check-in <span className="text-[14px] leading-none ml-1">&rarr;</span></>
+            )}
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      </form>
+    </div>
   );
 }

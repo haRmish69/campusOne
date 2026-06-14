@@ -1,11 +1,7 @@
-import { Heart } from "lucide-react";
-import { WellnessCheckIn } from "@/components/WellnessCheckIn";
-import { WellnessTrendChart } from "@/components/WellnessTrendChart";
-import { BurnoutRadar } from "@/components/BurnoutRadar";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { WellnessDashboard } from "@/components/WellnessDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -41,30 +37,21 @@ export default async function WellnessPage() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-          <Heart className="w-8 h-8 text-primary" />
-          Wellness & Burnout
-        </h1>
-        <p className="text-muted-foreground">
-          Log your daily feelings and let AI help you balance your academic life.
-        </p>
-      </div>
-
-      <BurnoutRadar />
-
-      <div className="flex flex-col gap-8 mb-10">
-        <WellnessCheckIn />
+    <div className="container mx-auto pt-[28px] pb-10 px-4 max-w-[960px] font-[family-name:var(--font-plus-jakarta-sans)]">
+      <div className="bg-[#f5f5f5] border border-[#ebebeb] rounded-[20px] p-[28px]">
         
-        <Card className="w-full shadow-sm mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">14-Day Trend</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col justify-end min-h-[300px]">
-            <WellnessTrendChart data={trendData} />
-          </CardContent>
-        </Card>
+        <div className="mb-[24px]">
+          <h1 className="text-[20px] font-bold text-[#1f1f1f] flex items-center gap-3 leading-tight">
+            <div className="w-[12px] h-[12px] rounded-[6px] bg-[#ff5a2f]" />
+            Wellness & Burnout
+          </h1>
+          <p className="text-[12px] text-[#a5a5a5] mt-1">
+            Log your daily feelings and let AI help you balance your academic life.
+          </p>
+        </div>
+
+        <WellnessDashboard trendData={trendData} />
+        
       </div>
     </div>
   );
