@@ -55,11 +55,26 @@ export async function GET(req: NextRequest) {
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // 1. Fetch Wellness Data
+    // 1. Fetch User Profile
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: { name: true, major: true, instituteName: true }
+    });
+    const userName = profile?.name || "the student";
+    const userMajor = profile?.major || "Undeclared";
+    const userInstitute = profile?.instituteName || "University";
+
+    // 2. Fetch Wellness Data
     const wellnessLogs = await prisma.wellnessLog.findMany({
       where: { userId, date: { gte: fourteenDaysAgo } },
       orderBy: { date: "asc" },
       select: { date: true, mood: true, sleepHours: true, stressLevel: true }
+    });
+
+    // 3. Fetch Weekly Class Schedule
+    const classSchedule = await prisma.classSchedule.findMany({
+      where: { userId },
+      select: { day: true, subject: true, startTime: true, endTime: true }
     });
 
     // 2. Fetch Academic Data
@@ -83,16 +98,26 @@ export async function GET(req: NextRequest) {
     const totalWeeklyExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
 
     // Prepare prompt
-    const prompt = `Student's last 14 days mood/sleep/stress: ${JSON.stringify(wellnessLogs)}.
-Upcoming academic load (next 7 days): ${JSON.stringify(academicLoad)}.
-Recent expenses (last 7 days): Total ₹${totalWeeklyExpense}, Food ₹${foodWeeklyExpense}.
+    const prompt = `You are "PocketBuddy", a highly empathetic, advanced AI wellness analyst.
+    
+    Student Context:
+    - Name: ${userName}
+    - Major: ${userMajor}
+    - Institute: ${userInstitute}
+    
+    Data Context:
+    - Last 14 days mood/sleep/stress: ${JSON.stringify(wellnessLogs)}
+    - Weekly Class Schedule (density): ${JSON.stringify(classSchedule)}
+    - Upcoming Deadlines (next 7 days): ${JSON.stringify(academicLoad)}
+    - Recent expenses (last 7 days): Total ₹${totalWeeklyExpense}, Food ₹${foodWeeklyExpense}
 
-Act as "PocketBuddy", a caring AI assistant.
-Identify any signs of burnout or unhealthy patterns across these domains. 
-CRITICAL RULE: If the student has high stress or upcoming exams BUT their food expenses are abnormally low or zero, gently suggest they might be skipping meals and offer a quick budget-friendly meal idea!
-If they are doing well, offer a quick word of encouragement.
-Keep your response supportive, conversational, and under 3 sentences.
-Return ONLY JSON: { "score": number (1-100, 100=highest risk), "message": string }. No markdown.`;
+    Instructions:
+    1. Calculate a dynamic "Burnout Risk Score" (1-100, where 100 is extreme burnout risk). Base this heavily on the COMBINATION of their sleep deficit, stress trend, schedule density (do they have packed classes?), upcoming deadlines, and their specific major (e.g., tough engineering majors with deadlines).
+    2. Write a highly personalized, caring 2-3 sentence message addressing them by name. 
+    3. CRITICAL RULE: If the student has high stress or upcoming exams BUT their food expenses are abnormally low or zero, gently suggest they might be skipping meals and offer a quick budget-friendly meal idea!
+    4. Reference their specific major, college, or a specific difficult class in your message to make it feel deeply personal.
+    
+    Return ONLY JSON: { "score": number, "message": string }. No markdown.`;
 
     const response = await withRetry(() => ai.models.generateContent({
       model: MODEL,

@@ -19,12 +19,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ─── 1. Determine today's day string ─────────────────────────────────
+    // ─── 1. Determine today's day string & Fetch Profile ───────────────
     const now = new Date();
     const todayDay = now.toLocaleDateString("en-US", {
       weekday: "long",
       timeZone: "Asia/Kolkata",
     });
+
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: { name: true, major: true, instituteName: true }
+    });
+    const userName = profile?.name || "there";
+    const userMajor = profile?.major || "your major";
+    const userInstitute = profile?.instituteName || "campus";
 
     // ─── 2. Fetch today's classes ────────────────────────────────────────
     const classes = await prisma.classSchedule.findMany({
@@ -137,16 +145,10 @@ export async function POST(req: NextRequest) {
       ? tomorrowClasses.map(c => `• ${c.startTime}–${c.endTime}: ${c.subject} (${c.room || "TBA"})`).join("\n")
       : "No classes scheduled tomorrow.";
 
-    // ─── 7. Build system prompt ─────────────────────────────────────────
-    const briefingType = type === "morning"
-      ? "MORNING BRIEFING — The user is starting their day. Your role is to be their supportive, motivating campus mentor. Give them a clear overview of today's schedule, flag any urgent deadlines or campus events coming up this week, and mention their monthly spending snapshot. Be warm but concise."
-      : "EVENING WRAP-UP — The user is wrapping up their day. Your role is to be a supportive, reflective campus mentor. Acknowledge what they had today, remind them of what's coming up tomorrow and this week, and share a quick spending check. Be warm and encouraging.";
-
-    const systemPrompt = `You are CampusFlow, an elite AI campus mentor.
-Current Date & Time (IST): ${istDateTime}
-Today is: ${todayDay}
-
-=== ${briefingType} ===
+    // ─── 7. Construct System Prompt ─────────────────────────────────────
+    const systemPrompt = `You are "PocketBuddy", a highly intelligent, empathetic, and personal AI assistant for ${userName}.
+${userName} is a ${userMajor} student at ${userInstitute}. 
+You are giving them their ${type} briefing.
 
 📚 TODAY'S CLASSES:
 ${classesText}
@@ -167,13 +169,16 @@ ${expenseText}
 ${wellnessText}
 
 INSTRUCTIONS:
-1. Greet the user warmly with a ${type === "morning" ? "good morning" : "good evening"} energy.
-2. Generate a 'briefingMarkdown' string summarizing today's data in a clear, structured, motivating way (bullets, bold). Highlight anything URGENT. If wellness history exists, REFERENCE it naturally in the advice. Keep the text under 300 words.
-3. Generate exactly 5 'questions' for a multiple-choice wellness check-in:
+1. Greet the user by their name (${userName}) warmly.
+2. Generate a 'briefingMarkdown' string summarizing their data in a highly personalized, motivating way. DO NOT sound like a robot reading a list. Sound like a caring mentor.
+3. Specifically reference their major (${userMajor}) or institute (${userInstitute}) if it makes sense (e.g., "As a ${userMajor} student, this OS class might be heavy...").
+4. If their wellness history shows low sleep or high stress, offer genuine, context-aware advice (e.g., "I noticed you've been sleeping under 6 hours. With your project deadline tomorrow, please try to rest tonight!").
+5. Keep the text under 350 words.
+6. Generate exactly 5 'questions' for a multiple-choice wellness check-in:
    - Question 1 MUST have id="sleep", asking about sleep hours (values must be numbers).
    - Question 2 MUST have id="mood", asking about mood (values must be 1-10).
    - Question 3 MUST have id="stress", asking about stress (values must be 1-10).
-   - Questions 4 & 5 MUST be custom, personalized questions based on the user's schedule, deadlines, expenses, or recent wellness.
+   - Questions 4 & 5 MUST be hyper-personalized based on their specific schedule, deadlines, expenses, or major (e.g. "How prepared do you feel for the upcoming Database Systems exam?").
    - Each question must have 3-5 'options' with a 'label' (string) and 'value' (number or string).`;
 
     // ─── 8. Generate briefing via Gemini ────────────────────────────────
