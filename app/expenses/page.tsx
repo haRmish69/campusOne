@@ -1,7 +1,6 @@
 import { Calendar } from "lucide-react";
 import { ExpenseEntry } from "@/components/ExpenseEntry";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
-import { ExpensesEmptyState } from "./ExpensesEmptyState";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -68,58 +67,17 @@ export default async function ExpensesPage() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-3">
-          <Wallet className="w-8 h-8 text-primary" />
-          Expenses
-        </h1>
-        <p className="text-muted-foreground">
-          Track your spending and easily capture receipts with PocketBuddy.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-8 mb-10">
-        <ExpenseEntry />
-        <ExpenseSummary 
-          total={currentTotal}
-          previousTotal={prevTotal}
-          percentChange={percentChange}
-          categoryBreakdown={categoryBreakdown}
-        />
-      </div>
-
-      <h2 className="text-xl font-bold tracking-tight mb-4">Recent Expenses</h2>
-      {recentExpenses.length === 0 ? (
-        <ExpensesEmptyState />
-      ) : (
-        <div className="space-y-3">
-          {recentExpenses.map((expense) => (
-            <Card key={expense.id} className="shadow-sm">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">{expense.description}</h4>
-                  <div className="flex items-center text-xs text-muted-foreground mt-1 gap-3">
-                    <span className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {new Date(expense.date).toLocaleDateString()}
-                    </span>
-                    <span className="px-2 py-0.5 bg-muted rounded-full capitalize">
-                      {expense.category}
-                    </span>
-                    {expense.source === "receipt" && (
-                      <span className="px-2 py-0.5 bg-[var(--color-pearl)] text-[var(--color-graphite)] border border-[var(--color-paper)] rounded-full">
-                        Receipt
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="font-semibold">
-                  ₹{expense.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+    <div className="container mx-auto pt-[28px] pb-10 px-4 max-w-[960px] font-[family-name:var(--font-plus-jakarta-sans)]">
+      <div className="bg-[#f9f9f9] rounded-[20px] p-[28px]">
+        
+        <div className="mb-[24px]">
+          <h1 className="text-[20px] font-bold text-[#1f1f1f] flex items-center gap-3 leading-tight">
+            <div className="w-[12px] h-[12px] rounded-[6px] bg-[#ff5a2f]" />
+            Expenses
+          </h1>
+          <p className="text-[12px] text-[#a5a5a5] mt-1">
+            Track your spending and easily capture receipts with PocketBuddy.
+          </p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-[32px]">

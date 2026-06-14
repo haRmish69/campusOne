@@ -62,30 +62,29 @@ export function WellnessCheckIn() {
   };
 
   return (
-    <Card className="w-full shadow-sm mb-8">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl flex items-center">
-          <HeartPulse className="w-5 h-5 mr-2 text-pink-500" />
-          Daily Check-in
-        </CardTitle>
-        <CardDescription>How are you feeling today?</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* Mood Selector */}
-          <div className="space-y-3">
-            <Label className="text-base">Mood</Label>
-            <div className="flex justify-between items-center bg-muted/20 p-2 rounded-[12px] border border-border/50">
-              {MOODS.map((m) => (
+    <div className="bg-[#ffffff] border border-[#efefef] rounded-[16px] p-[24px]">
+      <div className="mb-[24px]">
+        <h3 className="text-[10px] uppercase font-[700] text-[#a5a5a5] tracking-[0.1em] mb-1">Daily Check-in</h3>
+        <p className="text-[14px] text-[#1f1f1f] font-[500]">How are you feeling today?</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-[32px]">
+        
+        {/* Mood Selector */}
+        <div className="space-y-[12px]">
+          <label className="text-[11px] font-[600] text-[#a5a5a5] uppercase tracking-wider">Mood</label>
+          <div className="bg-[#f5f5f5] p-1 rounded-[12px] flex justify-between items-center border border-[#efefef]">
+            {MOODS.map((m) => {
+              const isActive = mood === m.value;
+              return (
                 <button
                   key={m.value}
                   type="button"
                   onClick={() => setMood(m.value)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-[12px] transition-all ${
-                    mood === m.value 
-                      ? "bg-primary/10 ring-2 ring-primary transform scale-110" 
-                      : "hover:bg-muted opacity-70 hover:opacity-100"
+                  className={`flex-1 py-[8px] rounded-[8px] text-[13px] font-[500] transition-all duration-200 ${
+                    isActive 
+                      ? "bg-white text-[#1f1f1f] shadow-[0_1px_4px_rgba(0,0,0,0.05)]" 
+                      : "text-[#a5a5a5] hover:text-[#707070]"
                   }`}
                 >
                   {m.label}
@@ -95,60 +94,24 @@ export function WellnessCheckIn() {
           </div>
         </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Sleep Slider */}
-            <div className="space-y-3 bg-blue-50/50 p-4 rounded-[12px] border border-blue-100">
-              <div className="flex justify-between items-center">
-                <Label className="text-blue-900 font-medium">Sleep</Label>
-                <span className="text-sm font-bold text-blue-700">{sleepHours} hours</span>
-              </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="14" 
-                step="0.5"
-                value={sleepHours}
-                onChange={(e) => setSleepHours(parseFloat(e.target.value))}
-                className="w-full accent-blue-500"
-              />
-              <div className="flex justify-between text-xs text-blue-400">
-                <span>0h</span>
-                <span>14h</span>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
+          {/* Sleep Slider */}
+          <div className="space-y-[12px]">
+            <div className="flex justify-between items-center">
+              <label className="text-[11px] font-[600] text-[#a5a5a5] uppercase tracking-wider">Sleep</label>
+              <span className="text-[13px] font-[600] text-[#1f1f1f]">{sleepHours} <span className="text-[#a5a5a5] font-[400]">hrs</span></span>
             </div>
-
-            {/* Stress Slider */}
-            <div className="space-y-3 bg-amber-50/50 p-4 rounded-[12px] border border-amber-100">
-              <div className="flex justify-between items-center">
-                <Label className="text-amber-900 font-medium">Stress Level</Label>
-                <span className="text-sm font-bold text-amber-700">{stressLevel} / 5</span>
-              </div>
-              <input 
-                type="range" 
-                min="1" 
-                max="5" 
-                step="1"
-                value={stressLevel}
-                onChange={(e) => setStressLevel(parseInt(e.target.value))}
-                className="w-full accent-amber-500"
-              />
-              <div className="flex justify-between text-xs text-amber-400">
-                <span>Low (1)</span>
-                <span>High (5)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Journal / Notes (Optional)</Label>
-            <Textarea 
-              id="notes" 
-              placeholder="What's on your mind? Did anything specific trigger your stress today?" 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="resize-y"
-              rows={3}
+            <input 
+              type="range" 
+              min="0" 
+              max="14" 
+              step="0.5"
+              value={sleepHours}
+              onChange={(e) => setSleepHours(parseFloat(e.target.value))}
+              className="w-full h-[4px] bg-[#f5f5f5] rounded-full appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[16px] [&::-webkit-slider-thumb]:h-[16px] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[1.5px] [&::-webkit-slider-thumb]:border-[#ff7a55] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm"
+              style={{
+                background: `linear-gradient(to right, #ff7a55 0%, #ff7a55 ${(sleepHours / 14) * 100}%, #f5f5f5 ${(sleepHours / 14) * 100}%, #f5f5f5 100%)`
+              }}
             />
           </div>
 

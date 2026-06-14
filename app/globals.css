@@ -75,7 +75,7 @@
   --acc:        #D4522A;
   --acc-soft:   #FBF0EC;
 
-  --bg:         #F5F3EF;
+  --bg:         #FAFAFA;
   --surface:    #FFFFFF;
   --surface2:   #EFEDE8;
 
@@ -83,6 +83,16 @@
 
   --text1:      #1C1B18;
   --text2:      #6B6A65;
+
+  /* Premium Chat UI Tokens */
+  --chat-accent: #EF6237;
+  --chat-accent-muted: #F29F8D;
+  --chat-accent-tint: #F8EFEA;
+  --chat-surface: #FEFEFE;
+  --chat-surface-alt: #FAF7F2;
+  --chat-surface-input: #EEF2F3;
+  --chat-text-primary: #201D18;
+  --chat-text-secondary: #928C96;
   --text3:      #A8A7A2;
 
   --urgent:     #D4522A;
@@ -97,6 +107,19 @@
   --sidebar-accent-foreground: var(--text1);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--acc);
+
+  /* Landing Page Tokens */
+  --lp-accent: #EF6237;
+  --lp-accent-dark: #C94A26;
+  --lp-accent-tint: #F8EFEA;
+  --lp-surface: #FEFEFE;
+  --lp-surface-alt: #FAF7F2;
+  --lp-surface-dark: #1B1815;
+  --lp-surface-dark-alt: #2A241F;
+  --lp-text-primary: #201D18;
+  --lp-text-secondary: #928C96;
+  --lp-text-on-dark: #F5F1EC;
+  --lp-text-on-dark-secondary: #A89E96;
 }
 
 @layer base {
@@ -111,4 +134,35 @@
     color: var(--color-graphite);
     font-family: var(--font-plus-jakarta-sans);
   }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--chat-text-secondary) 30%, transparent);
+    border-radius: 10px;
+  }
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--chat-text-secondary) 50%, transparent);
+  }
+}
+
+/* Landing Page Animations */
+@keyframes hero-drift {
+  from { opacity: 0.05; transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scale(0.92); }
+  to { opacity: var(--rest-opacity, 0.2); transform: translate(0, 0) rotate(var(--rest-rot, 0deg)) scale(1); }
+}
+@keyframes hero-card-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }

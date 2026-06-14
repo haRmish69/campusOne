@@ -1,0 +1,17 @@
+{
+  "0": {
+    "table": "Expense",
+    "recordId": "cmqe4enqv0000bl9842pwk702",
+    "userId": "user_3F5D1XlV4o8CGYZMYM7olJQyPml"
+  },
+  "1": {
+    "table": "Expense",
+    "recordId": "cmqe4gjpf0001bl98dmwo72nf",
+    "userId": "user_3F5D1XlV4o8CGYZMYM7olJQyPml"
+  },
+  "2": {
+    "table": "WellnessLog",
+    "recordId": "cmqe5ndlx0004bl98m4tazz5b",
+    "userId": "user_3F5D1XlV4o8CGYZMYM7olJQyPml"
+  }
+}
