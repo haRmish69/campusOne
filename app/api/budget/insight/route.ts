@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     
     // Fetch budget for the month
     const budget = await prisma.budget.findFirst({
-      where: { month: currentMonth }
+      where: { month: currentMonth, userId }
     });
 
     if (!budget) {
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const expenses = await prisma.expense.findMany({
-      where: { date: { gte: startDate, lte: endDate } }
+      where: { userId, date: { gte: startDate, lte: endDate } }
     });
 
     if (expenses.length < 3) {

@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { parseImageToJSON, categorizeExpense } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
 import { addToFaissIndex } from "@/lib/vectorStore";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json();
     let { amount, description, date, source, receiptImage, mimeType } = body;
 
@@ -41,6 +45,7 @@ export async function POST(req: NextRequest) {
 
     const expense = await prisma.expense.create({
       data: {
+        userId,
         amount: parseFloat(amount.toString()),
         description,
         category,
@@ -62,11 +67,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month"); // Format: YYYY-MM
     const category = searchParams.get("category");
 
-    const where: any = {};
+    const where: any = { userId };
     if (category) {
       where.category = category;
     }

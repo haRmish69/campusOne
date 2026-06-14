@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
     // 4. Fetch Actual Records from MySQL
     const [notices, menus, deadlines, classes, notes] = await Promise.all([
       prisma.notice.findMany({ where: { id: { in: matchedIds }, userId } }),
-      prisma.messMenu.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.deadline.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.classSchedule.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.note.findMany({ where: { id: { in: matchedIds } } }),
+      prisma.messMenu.findMany({ where: { id: { in: matchedIds }, userId } }),
+      prisma.deadline.findMany({ where: { id: { in: matchedIds }, userId } }),
+      prisma.classSchedule.findMany({ where: { id: { in: matchedIds }, userId } }),
+      prisma.note.findMany({ where: { id: { in: matchedIds }, userId } }),
     ]);
 
     // 5. Build RAG Context

@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     const log = await prisma.wellnessLog.create({
       data: {
         date: logDate,
+        userId,
         mood: parseInt(mood),
         sleepHours: parseFloat(sleepHours),
         stressLevel: parseInt(stressLevel),
@@ -60,6 +61,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const now = new Date();
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(now.getDate() - 14);
@@ -69,6 +73,7 @@ export async function GET(req: NextRequest) {
 
     const logs = await prisma.wellnessLog.findMany({
       where: {
+        userId,
         date: { gte: fourteenDaysAgo },
       },
       orderBy: { date: "asc" },

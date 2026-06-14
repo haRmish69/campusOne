@@ -220,12 +220,12 @@ function generateNotices(profiles: any[]) {
   ];
 }
 
-function generateMessMenus() {
+function generateMessMenus(profiles: any[]) {
   return [
-    { day: "Monday", meal: "lunch", items: "Paneer Butter Masala, Roti, Rice, Dal, Gulab Jamun", isVeg: true, instituteName: INSTITUTE },
-    { day: "Monday", meal: "dinner", items: "Chicken Biryani, Raita, Salad", isVeg: false, instituteName: INSTITUTE },
-    { day: "Tuesday", meal: "lunch", items: "Chole Bhature, Rice, Jeera Aloo, Papad", isVeg: true, instituteName: INSTITUTE },
-    { day: "Tuesday", meal: "dinner", items: "Egg Curry, Roti, Dal Fry, Kheer", isVeg: false, instituteName: INSTITUTE },
+    { day: "Monday", meal: "lunch", items: "Paneer Butter Masala, Roti, Rice, Dal, Gulab Jamun", isVeg: true, instituteName: INSTITUTE, userId: profiles[0].userId },
+    { day: "Monday", meal: "dinner", items: "Chicken Biryani, Raita, Salad", isVeg: false, instituteName: INSTITUTE, userId: profiles[0].userId },
+    { day: "Tuesday", meal: "lunch", items: "Chole Bhature, Rice, Jeera Aloo, Papad", isVeg: true, instituteName: INSTITUTE, userId: profiles[0].userId },
+    { day: "Tuesday", meal: "dinner", items: "Egg Curry, Roti, Dal Fry, Kheer", isVeg: false, instituteName: INSTITUTE, userId: profiles[0].userId },
   ];
 }
 
@@ -313,7 +313,7 @@ async function freshSeed(): Promise<void> {
   const expenses = generateExpenses(profiles);
   const wellnessLogs = generateWellnessLogs(profiles);
   const notices = generateNotices(profiles);
-  const messMenus = generateMessMenus();
+  const messMenus = generateMessMenus(profiles);
   const pools = generatePools(profiles);
 
   await clearAllTables();

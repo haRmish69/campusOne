@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+import { auth } from "@clerk/nextjs/server";
+
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json();
     const { month, totalLimit, categoryLimits } = body;
 
@@ -12,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     // Find existing budget for month
     const existing = await prisma.budget.findFirst({
-      where: { month },
+      where: { month, userId },
     });
 
     let budget;
@@ -27,6 +32,7 @@ export async function POST(req: NextRequest) {
     } else {
       budget = await prisma.budget.create({
         data: {
+          userId,
           month,
           totalLimit: parseFloat(totalLimit.toString()),
           categoryLimits: categoryLimits,
@@ -43,6 +49,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const month = searchParams.get("month"); // Format: YYYY-MM
     
@@ -56,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch budget
     const budget = await prisma.budget.findFirst({
-      where: { month },
+      where: { month, userId },
     });
 
     // Fetch current month expenses
@@ -65,6 +74,7 @@ export async function GET(req: NextRequest) {
     
     const expenses = await prisma.expense.findMany({
       where: {
+        userId,
         date: { gte: startDate, lte: endDate },
       },
     });

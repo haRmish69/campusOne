@@ -29,6 +29,7 @@ export async function GET() {
     // 1. Aggregate data first (anonymized at DB level)
     const stats = await prisma.wellnessLog.aggregate({
       where: {
+        userId,
         instituteName: profile.instituteName,
         date: { gte: sevenDaysAgo }
       },
@@ -54,6 +55,7 @@ export async function GET() {
     // We strictly select ONLY the notes and major, NO user IDs.
     const recentLogs = await prisma.wellnessLog.findMany({
       where: {
+        userId,
         instituteName: profile.instituteName,
         date: { gte: sevenDaysAgo },
         notes: { not: null }

@@ -27,7 +27,34 @@ export async function GET(req: NextRequest) {
       where,
       orderBy: { departureTime: "asc" },
     });
-    return NextResponse.json(pools);
+
+    // Fetch user profiles for initiators and participants
+    const userIds = new Set<string>();
+    pools.forEach(pool => {
+      userIds.add(pool.initiatorId);
+      const participants = typeof pool.participants === "string" ? JSON.parse(pool.participants) : [];
+      participants.forEach((id: string) => userIds.add(id));
+    });
+
+    const profiles = await prisma.userProfile.findMany({
+      where: { userId: { in: Array.from(userIds) } },
+      select: { userId: true, name: true },
+    });
+    
+    const profileMap = new Map(profiles.map(p => [p.userId, p.name || "Unknown User"]));
+
+    const enrichedPools = pools.map(pool => {
+      const participants = typeof pool.participants === "string" ? JSON.parse(pool.participants) : [];
+      const participantNames = participants.map((id: string) => profileMap.get(id) || "Unknown User");
+      
+      return {
+        ...pool,
+        initiatorName: profileMap.get(pool.initiatorId) || "Unknown User",
+        participantNames,
+      };
+    });
+
+    return NextResponse.json(enrichedPools);
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
@@ -43,10 +70,10 @@ export async function POST(req: NextRequest) {
     const instituteName = profile?.instituteName || "";
 
     const body = await req.json();
-    const { destination, departureTime, seatsAvailable, estimatedCost, notes } = body;
+    const { source, destination, departureTime, seatsAvailable, estimatedCost, notes } = body;
 
-    if (!destination || !departureTime || !seatsAvailable) {
-      return NextResponse.json({ error: "destination, departureTime, seatsAvailable required" }, { status: 400 });
+    if (!source || !destination || !departureTime || !seatsAvailable) {
+      return NextResponse.json({ error: "source, destination, departureTime, seatsAvailable required" }, { status: 400 });
     }
 
     const departure = new Date(departureTime);
@@ -58,6 +85,7 @@ export async function POST(req: NextRequest) {
       data: {
         instituteName,
         initiatorId: userId,
+        source,
         destination,
         departureTime: departure,
         seatsAvailable,

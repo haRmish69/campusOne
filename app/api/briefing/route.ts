@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
     const recentWellness = await prisma.wellnessLog.findMany({
-      where: { date: { gte: threeDaysAgo } },
+      where: { userId, date: { gte: threeDaysAgo } },
       orderBy: { date: "desc" },
       take: 5,
       select: { mood: true, sleepHours: true, stressLevel: true, notes: true, date: true },
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     const tomorrowDay = days[tomorrowIdx];
 
     const tomorrowClasses = await prisma.classSchedule.findMany({
-      where: { day: tomorrowDay },
+      where: { userId, day: tomorrowDay },
       orderBy: { startTime: "asc" },
       select: { subject: true, startTime: true, endTime: true, room: true },
     });
