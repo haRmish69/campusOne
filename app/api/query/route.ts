@@ -52,29 +52,19 @@ export async function POST(req: NextRequest) {
 
     const searchResults = await searchEverything(`${dayName} ${query}`, instituteName, userId, 10);
 
-    // 4. Fetch Actual Records from MySQL (with strict tenant isolation)
-    const [notices, menus, deadlines, classes] = await Promise.all([
-      prisma.notice.findMany({ 
-        where: { id: { in: matchedIds }, OR: [{ userId }, { userId: null }] } 
-      }),
-      prisma.messMenu.findMany({ 
-        where: { id: { in: matchedIds }, OR: [{ userId }, { userId: null }] } 
-      }),
-      prisma.deadline.findMany({ 
-        where: { id: { in: matchedIds }, userId } 
-      }),
-      prisma.classSchedule.findMany({ 
-        where: { id: { in: matchedIds }, userId } 
-      }),
-    ]);
-
-    // 5. Build RAG Context
-    const contextParts = [
-      ...notices.map(n => `[NOTICE] ${n.title}: ${n.body}`),
-      ...menus.map(m => `[MESS] ${m.day} ${m.meal}: ${m.items}`),
-      ...deadlines.map(d => `[DEADLINE] ${d.title}: ${d.subject} due ${d.dueDate}. ${d.notes}`),
-      ...classes.map(c => `[CLASS] ${c.subject}: ${c.day} ${c.startTime}-${c.endTime} at ${c.room}`)
-    ];
+    // 3. Build RAG Context with type-specific headers
+    const TYPE_LABELS: Record<string, string> = {
+      notice: "CAMPUS NOTICE", deadline: "DEADLINE", schedule: "CLASS",
+      mess: "MESS MENU", expense: "EXPENSE", wellness: "WELLNESS",
+      expertise: "PEER EXPERTISE", company: "COMPANY INFO",
+      experience: "INTERVIEW EXPERIENCE", prep_question: "INTERVIEW QUESTION",
+      transport: "TRANSPORT", service: "CAMPUS SERVICE", guide: "PROCESS GUIDE",
+      place: "LOCAL PLACE", trip: "TRIP RECOMMENDATION", tip: "SURVIVAL TIP",
+    };
+    const contextParts = searchResults.map(r => {
+      const label = TYPE_LABELS[r.type] ?? r.type.toUpperCase();
+      return `[${label}] ${r.title}: ${r.body}`;
+    });
     const context = contextParts.join("\n\n");
 
     // 6. System Prompt with Function Calling Instructions

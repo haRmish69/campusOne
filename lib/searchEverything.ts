@@ -50,6 +50,9 @@ export async function searchEverything(
     }
   }
 
+  const userProfile = await prisma.userProfile.findUnique({ where: { userId } });
+  const profileId = userProfile?.id || "";
+
   // Fetch all tables in parallel (Promise.allSettled — never let one failure block search)
   const [
     notices, deadlines, schedules, menus, expenses, wellness, expertise,
@@ -62,7 +65,7 @@ export async function searchEverything(
     prisma.messMenu.findMany({ where: { instituteName } }),
     prisma.expense.findMany({ where: { userId } }),
     prisma.wellnessLog.findMany({ where: { userId } }),
-    prisma.expertiseSeed.findMany({ where: { userId } }),
+    prisma.expertiseSeed.findMany({ where: { profileId } }),
     prisma.company.findMany({ where: { instituteName } }),
     prisma.interviewExperience.findMany({ where: { instituteName } }),
     prisma.prepQuestion.findMany({ where: { instituteName } }),
