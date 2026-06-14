@@ -1,6 +1,7 @@
-import { Wallet, Calendar } from "lucide-react";
+import { Wallet, Calendar, Receipt } from "lucide-react";
 import { ExpenseEntry } from "@/components/ExpenseEntry";
 import { ExpenseSummary } from "@/components/ExpenseSummary";
+import { EmptyState } from "@/components/EmptyState";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@clerk/nextjs/server";
@@ -62,6 +63,7 @@ export default async function ExpensesPage() {
 
   // Get last 10 expenses for list
   const recentExpenses = await prisma.expense.findMany({
+    where: { userId },
     take: 10,
     orderBy: { date: "desc" },
   });
@@ -90,11 +92,13 @@ export default async function ExpensesPage() {
 
       <h2 className="text-xl font-bold tracking-tight mb-4">Recent Expenses</h2>
       {recentExpenses.length === 0 ? (
-        <Card className="border-dashed border-2 shadow-sm bg-muted/10">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-muted-foreground">No expenses logged yet.</p>
-          </CardContent>
-        </Card>
+        <EmptyState 
+          icon={Receipt} 
+          heading="No expenses logged" 
+          subtitle="Say 'I spent ₹200 on lunch' in the chat to log your first expense" 
+          ctaLabel="Open Chat" 
+          onCtaClick={() => window.location.href = '/chat'} 
+        />
       ) : (
         <div className="space-y-3">
           {recentExpenses.map((expense) => (

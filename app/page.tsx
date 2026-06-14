@@ -44,10 +44,26 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <Link href="/dashboard">
-            <Button size="lg" className="h-14 px-8 text-lg rounded-[4px] shadow-[var(--shadow-sm-3)] bg-[var(--color-signal-blue)] text-white hover:opacity-90 transition-opacity gap-2">
+            <Button size="lg" className="h-14 px-8 text-lg rounded-[30px] shadow-[rgba(0,0,0,0.25)_0px_4px_10px_0px] bg-[var(--color-ember-orange)] text-white hover:opacity-90 transition-opacity gap-2">
               Get started for free
             </Button>
           </Link>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 border-y border-[var(--color-paper)] py-8 w-full max-w-3xl">
+          <div className="flex flex-col items-center">
+            <span className="text-[32px] font-bold text-[var(--color-graphite)]">10,000+</span>
+            <span className="text-[14px] text-[var(--color-stone)]">Active Students</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[32px] font-bold text-[var(--color-graphite)]">4.9/5</span>
+            <span className="text-[14px] text-[var(--color-stone)]">App Rating</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-[32px] font-bold text-[var(--color-graphite)]">98%</span>
+            <span className="text-[14px] text-[var(--color-stone)]">Deadlines Met</span>
+          </div>
         </div>
 
         {/* Feature Grid */}

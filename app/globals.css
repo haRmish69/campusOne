@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-gilroy);
-  --font-heading: var(--font-gilroy);
+  --font-sans: var(--font-plus-jakarta-sans);
+  --font-heading: var(--font-plus-jakarta-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -41,44 +41,44 @@
 }
 
 :root {
-  /* Map Shadcn semantic tokens to Calendly brand tokens */
-  --background: var(--color-mist);
-  --foreground: var(--color-carbon);
+  /* Map Shadcn semantic tokens to Ember Orange brand tokens */
+  --background: var(--color-canvas-white);
+  --foreground: var(--color-graphite);
   
-  --card: var(--color-paper);
-  --card-foreground: var(--color-carbon);
+  --card: var(--color-canvas-white);
+  --card-foreground: var(--color-graphite);
   
-  --popover: var(--color-paper);
-  --popover-foreground: var(--color-carbon);
+  --popover: var(--color-canvas-white);
+  --popover-foreground: var(--color-graphite);
   
-  --primary: var(--color-signal-blue);
-  --primary-foreground: var(--color-paper);
+  --primary: var(--color-ember-orange);
+  --primary-foreground: var(--color-canvas-white);
   
-  --secondary: var(--color-fog);
-  --secondary-foreground: var(--color-midnight-navy);
+  --secondary: var(--color-pearl);
+  --secondary-foreground: var(--color-graphite);
   
-  --muted: var(--color-fog);
-  --muted-foreground: var(--color-slate-blue);
+  --muted: var(--color-pearl);
+  --muted-foreground: var(--color-pewter);
   
-  --accent: var(--color-mist);
-  --accent-foreground: var(--color-midnight-navy);
+  --accent: var(--color-pearl);
+  --accent-foreground: var(--color-graphite);
   
   --destructive: oklch(0.577 0.245 27.325);
   
-  --border: var(--color-mist-border);
-  --input: var(--color-mist-border);
-  --ring: var(--color-signal-blue);
+  --border: var(--color-paper);
+  --input: var(--color-paper);
+  --ring: var(--color-ember-orange);
   
-  --radius: 4px;
+  --radius: 8px;
   
-  --sidebar: var(--color-paper);
-  --sidebar-foreground: var(--color-slate-blue);
-  --sidebar-primary: var(--color-midnight-navy);
-  --sidebar-primary-foreground: var(--color-paper);
-  --sidebar-accent: var(--color-mist);
-  --sidebar-accent-foreground: var(--color-midnight-navy);
-  --sidebar-border: var(--color-mist-border);
-  --sidebar-ring: var(--color-signal-blue);
+  --sidebar: var(--color-canvas-white);
+  --sidebar-foreground: var(--color-stone);
+  --sidebar-primary: var(--color-graphite);
+  --sidebar-primary-foreground: var(--color-canvas-white);
+  --sidebar-accent: var(--color-pearl);
+  --sidebar-accent-foreground: var(--color-graphite);
+  --sidebar-border: var(--color-paper);
+  --sidebar-ring: var(--color-ember-orange);
 }
 
 @layer base {
@@ -87,10 +87,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-gilroy);
+    font-family: var(--font-plus-jakarta-sans);
   }
   h1, h2, h3, h4, h5, h6 {
-    color: var(--color-midnight-navy);
-    font-family: var(--font-gilroy);
+    color: var(--color-graphite);
+    font-family: var(--font-plus-jakarta-sans);
   }
 }

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Deadline } from "@prisma/client";
 import { FileUpload } from "@/components/FileUpload";
 import { DeadlineCard } from "@/components/DeadlineCard";
+import { EmptyState } from "@/components/EmptyState";
+import { Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -103,10 +105,13 @@ export default function DeadlinesPage() {
               {isLoading ? (
                 <div className="text-center py-12">Loading...</div>
               ) : upcoming.length === 0 ? (
-                <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
-                  <p className="text-muted-foreground">No upcoming deadlines.</p>
-                  <p className="text-sm text-muted-foreground mt-1">You're all caught up!</p>
-                </div>
+                <EmptyState 
+                  icon={Calendar} 
+                  heading="You're all caught up" 
+                  subtitle="Upload your syllabus to auto-extract deadlines" 
+                  ctaLabel="Upload Syllabus" 
+                  onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+                />
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {upcoming.map((deadline) => (

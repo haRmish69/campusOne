@@ -128,12 +128,12 @@ export function BriefingWidget() {
           variant="outline"
           onClick={() => triggerBriefing("morning")}
           disabled={isLoading}
-          className="rounded-[8px] px-6 py-5 h-auto text-[15px] border-amber-300/50 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-400 transition-all shadow-sm hover:shadow-md"
+          className="rounded-[30px] px-6 py-5 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-ember-orange)] hover:text-[var(--color-ember-orange)] transition-all shadow-sm hover:shadow-md"
         >
           {isLoading && loadingType === "morning" ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <Loader2 className="w-5 h-5 mr-2 animate-spin text-[var(--color-slate-blue)]" />
           ) : (
-            <Sun className="w-5 h-5 mr-2 text-amber-500" />
+            <Sun className="w-5 h-5 mr-2 text-[var(--color-ember-orange)]" />
           )}
           🌅 Morning Briefing
         </Button>
@@ -141,12 +141,12 @@ export function BriefingWidget() {
           variant="outline"
           onClick={() => triggerBriefing("evening")}
           disabled={isLoading}
-          className="rounded-[8px] px-6 py-5 h-auto text-[15px] border-indigo-300/50 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50 hover:border-indigo-400 transition-all shadow-sm hover:shadow-md"
+          className="rounded-[30px] px-6 py-5 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-ember-orange)] hover:text-[var(--color-ember-orange)] transition-all shadow-sm hover:shadow-md"
         >
           {isLoading && loadingType === "evening" ? (
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <Loader2 className="w-5 h-5 mr-2 animate-spin text-[var(--color-slate-blue)]" />
           ) : (
-            <Moon className="w-5 h-5 mr-2 text-indigo-500" />
+            <Moon className="w-5 h-5 mr-2 text-[var(--color-slate-blue)]" />
           )}
           🌙 Evening Wrap-up
         </Button>
@@ -187,20 +187,20 @@ export function BriefingWidget() {
 
       {/* ─── Wellness MCQ Check-in ────────────────────────────────── */}
       {showWellness && !wellnessDone && !isLoading && (
-        <div className="mt-4 p-6 rounded-[8px] border-2 border-blue-200 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 shadow-sm">
+        <div className="mt-4 p-6 rounded-[8px] border border-[var(--color-mist-border)] bg-[var(--color-paper)] shadow-[var(--shadow-sm)]">
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
             <Heart className="w-5 h-5 text-rose-500" />
             <h3 className="font-semibold text-[var(--color-midnight-navy)]">Quick Wellness Check-in</h3>
-            <span className="ml-auto text-xs font-medium text-[var(--color-slate-blue)] bg-white/80 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs font-medium text-[var(--color-slate-blue)] bg-[var(--color-fog)] px-2 py-0.5 rounded-full">
               {currentQuestion + 1} / {dynamicQuestions.length}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full h-1.5 bg-blue-100 rounded-full mb-5 overflow-hidden">
+          <div className="w-full h-1.5 bg-[var(--color-pearl)] rounded-full mb-5 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out"
+              className="h-full bg-[var(--color-ember-orange)] rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -208,7 +208,7 @@ export function BriefingWidget() {
           {/* Current Question */}
           {isSubmitting ? (
             <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-500" />
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-[var(--color-ember-orange)]" />
               <p className="text-sm text-[var(--color-slate-blue)]">Saving your check-in...</p>
             </div>
           ) : (
@@ -226,14 +226,14 @@ export function BriefingWidget() {
                       className={`
                         text-left px-4 py-3 rounded-[8px] border-2 text-[14px] font-medium transition-all duration-200
                         ${isSelected
-                          ? "border-blue-500 bg-blue-50 text-blue-800 shadow-sm ring-2 ring-blue-200"
-                          : "border-[var(--color-mist-border)] bg-white text-[var(--color-midnight-navy)] hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-sm"
+                          ? "border-[var(--color-ember-orange)] bg-[var(--color-ember-orange)]/5 text-[var(--color-ember-orange)] shadow-sm"
+                          : "border-[var(--color-mist-border)] bg-[var(--color-canvas-white)] text-[var(--color-midnight-navy)] hover:border-[var(--color-ember-orange)]/50 hover:bg-[var(--color-fog)] hover:shadow-sm"
                         }
                       `}
                     >
                       <span className="flex items-center justify-between">
                         {opt.label}
-                        {isSelected && <Check className="w-4 h-4 text-blue-600" />}
+                        {isSelected && <Check className="w-4 h-4 text-[var(--color-ember-orange)]" />}
                       </span>
                     </button>
                   );
@@ -247,10 +247,10 @@ export function BriefingWidget() {
                     key={i}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
                       i === currentQuestion
-                        ? "bg-blue-500 w-6"
+                        ? "bg-[var(--color-ember-orange)] w-6"
                         : i < currentQuestion
-                        ? "bg-blue-400"
-                        : "bg-blue-200"
+                        ? "bg-[var(--color-ember-orange)]/50"
+                        : "bg-[var(--color-pearl)]"
                     }`}
                   />
                 ))}

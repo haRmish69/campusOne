@@ -54,18 +54,24 @@ export function DeadlineCard({ deadline, onToggleComplete, onDelete }: DeadlineC
             checked={isComplete} 
             onCheckedChange={onToggleComplete ? ((checked) => onToggleComplete(deadline.id, checked as boolean)) : undefined}
             disabled={!onToggleComplete}
-            className="w-5 h-5 rounded-full border-muted-foreground/40 data-[state=checked]:bg-green-500 data-[state=checked]:text-white data-[state=checked]:border-green-500 transition-colors"
+            className="w-5 h-5 rounded-full border-[var(--color-paper)] data-[state=checked]:bg-[#10b981] data-[state=checked]:text-white data-[state=checked]:border-[#10b981] transition-colors"
           />
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
-            <div className={`text-xs font-semibold px-2 py-0.5 rounded-sm flex items-center gap-1.5 ${isComplete ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+            <div className={`text-[12px] font-semibold px-2 py-0.5 rounded-[4px] flex items-center gap-1.5 ${isComplete ? 'bg-[var(--color-pearl)] text-[var(--color-pewter)]' : 'bg-[var(--color-ember-orange)]/10 text-[var(--color-ember-orange)]'}`}>
               {getTypeIcon(deadline.type)}
               <span className="uppercase tracking-wider">{deadline.subject}</span>
             </div>
             
-            <div className={`text-xs font-medium flex items-center gap-1.5 ${diffDays < 0 && !isComplete ? 'text-red-500' : 'text-muted-foreground'}`}>
+            <div className={`text-[12px] flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] ${
+              isComplete ? 'text-[var(--color-pewter)]' :
+              diffDays < 0 ? 'text-red-600 font-bold bg-red-50' :
+              diffDays <= 1 ? 'text-red-500 font-bold' :
+              diffDays <= 7 ? 'text-amber-500 font-medium' :
+              'text-[var(--color-slate-blue)] font-medium'
+            }`}>
               <CalendarClock className="w-3.5 h-3.5" />
               {timeStr}
             </div>

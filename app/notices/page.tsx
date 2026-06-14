@@ -1,5 +1,7 @@
 import { FileUpload } from "@/components/FileUpload";
 import { NoticeCard } from "@/components/NoticeCard";
+import { EmptyState } from "@/components/EmptyState";
+import { Bell } from "lucide-react";
 import { SyncEmailButton } from "@/components/SyncEmailButton";
 import { prisma } from "@/lib/prisma";
 import { Notice } from "@prisma/client";
@@ -60,10 +62,13 @@ export default async function NoticesPage() {
           </h2>
           
           {notices.length === 0 ? (
-            <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
-              <p className="text-muted-foreground">No notices ingested yet.</p>
-              <p className="text-sm text-muted-foreground mt-1">Upload your first notice to see it here.</p>
-            </div>
+            <EmptyState 
+              icon={Bell} 
+              heading="No notices yet" 
+              subtitle="Upload a notice or sync your email to get started" 
+              ctaLabel="Upload Notice" 
+              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {notices.map((notice) => (

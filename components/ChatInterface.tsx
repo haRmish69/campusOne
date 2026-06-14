@@ -358,10 +358,6 @@ export function ChatInterface() {
       } catch (e) {}
       
       console.error("Chat Error:", errorMsg);
-      try {
-        const parsed = JSON.parse(errorMsg);
-        if (parsed.error && parsed.error.message) errorMsg = parsed.error.message;
-      } catch (e) {}
       
       toast.error("Chat Error", {
         description: errorMsg,
@@ -400,10 +396,30 @@ export function ChatInterface() {
   };
 
   const quickQuestions = [
+    "What's my remaining budget this month?",
+    "How am I doing mentally this week?",
+    "Any cab pools to the airport today?",
     "What's for dinner today?",
-    "Any upcoming exams?",
-    "What is the venue for the last placement notice?"
+    "Tell me about TCS interview experiences",
+    "What are the survival tips for freshers?"
   ];
+
+  const sourceBadges = [
+    { keywords: ['budget', 'expense', 'spend', 'rupee', '₹'], label: '📊 PocketBuddy' },
+    { keywords: ['dinner', 'lunch', 'breakfast', 'menu', 'meal'], label: '🍽️ Mess' },
+    { keywords: ['cab', 'transport', 'pool', 'airport'], label: '🚕 Transport' },
+    { keywords: ['placement', 'company', 'interview', 'package'], label: '🏢 Placement' },
+    { keywords: ['mood', 'stress', 'wellness', 'burnout', 'sleep'], label: '❤️ Wellness' },
+    { keywords: ['notice', 'circular', 'announcement'], label: '📋 Notices' },
+    { keywords: ['deadline', 'assignment', 'exam', 'submit'], label: '📅 Deadlines' },
+    { keywords: ['schedule', 'class', 'lecture', 'timetable'], label: '🗓️ Schedule' },
+  ];
+
+  const getSourceBadges = (text: string) => {
+    return sourceBadges.filter(b =>
+      b.keywords.some(k => text.toLowerCase().includes(k))
+    );
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl mx-auto w-full border rounded-xl overflow-hidden bg-card/50 shadow-sm">
@@ -473,17 +489,15 @@ export function ChatInterface() {
             </div>
 
             {/* ─── Quick Questions ──────────────────────────────────────── */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2 max-w-2xl justify-center">
               {quickQuestions.map(q => (
-                <Button 
-                  key={q} 
-                  variant="outline" 
-                  size="sm" 
+                <button 
+                  key={q}
                   onClick={() => sendMessage(undefined, q)}
-                  className="rounded-[4px] px-6 py-4 h-auto text-[15px] border-[var(--color-mist-border)] text-[var(--color-slate-blue)] hover:text-[var(--color-midnight-navy)] hover:bg-[var(--color-fog)] hover:border-[var(--color-midnight-navy)] transition-colors shadow-sm"
+                  className="text-[14px] font-medium text-[var(--color-slate-dark)] border border-[var(--color-paper)] rounded-[20px] px-4 py-2 hover:bg-[var(--color-pearl)] transition-colors"
                 >
                   {q}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
@@ -513,6 +527,21 @@ export function ChatInterface() {
                     >
                       {msg.content}
                     </ReactMarkdown>
+
+                    {/* Source Attribution Badges */}
+                    {msg.role === "assistant" && msg.content && (() => {
+                      const detected = getSourceBadges(msg.content);
+                      if (detected.length === 0) return null;
+                      return (
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {detected.map(b => (
+                            <span key={b.label} className="text-[12px] font-medium text-[var(--color-stone)] border border-[var(--color-paper)] rounded-[20px] px-3 py-1">
+                              {b.label}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {msg.videoPayload && (
                       <div className="bg-neutral-900 border border-purple-500/50 rounded-xl p-4 mt-3 shadow-lg shadow-purple-900/20 w-full min-w-[300px] sm:min-w-[400px]">

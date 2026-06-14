@@ -1,5 +1,7 @@
 import { FileUpload } from "@/components/FileUpload";
 import { MessCard } from "@/components/MessCard";
+import { EmptyState } from "@/components/EmptyState";
+import { Utensils } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { MessMenu } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
@@ -85,25 +87,32 @@ export default async function MessPage() {
           </h2>
           
           {menus.length === 0 ? (
-            <div className="text-center py-12 border border-dashed rounded-lg bg-muted/10">
-              <p className="text-muted-foreground">No menus uploaded yet.</p>
-              <p className="text-sm text-muted-foreground mt-1">Upload today's menu to get started.</p>
-            </div>
+            <EmptyState 
+              icon={Utensils} 
+              heading="No menus uploaded" 
+              subtitle="Upload today's menu to see what's for dinner" 
+              ctaLabel="Upload Menu" 
+              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
+            />
           ) : (
             <div className="space-y-10">
-              {groupedMenus.map((group) => (
-                <div key={group.day} className="relative">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-[var(--color-midnight-navy)]">
-                    <span className="w-2 h-2 rounded-full bg-primary/60"></span>
-                    {group.day}
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {group.menus.map((menu) => (
-                      <MessCard key={menu.id} menu={menu} />
-                    ))}
+              {groupedMenus.map((group) => {
+                const isToday = group.day.toLowerCase() === new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                return (
+                  <div key={group.day} className="relative">
+                    <h3 className={`text-xl font-bold mb-4 flex items-center gap-3 ${isToday ? 'text-[var(--color-ember-orange)]' : 'text-[var(--color-graphite)]'}`}>
+                      {isToday && <span className="px-2 py-0.5 rounded-[4px] bg-[var(--color-ember-orange)] text-white text-[12px] font-bold uppercase tracking-wider">Today</span>}
+                      {!isToday && <span className="w-2 h-2 rounded-full bg-primary/60"></span>}
+                      {group.day}
+                    </h3>
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ${isToday ? 'p-4 rounded-[12px] bg-[var(--color-ember-orange)]/5 border border-[var(--color-ember-orange)]/20' : ''}`}>
+                      {group.menus.map((menu) => (
+                        <MessCard key={menu.id} menu={menu} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
