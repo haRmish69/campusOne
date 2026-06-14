@@ -7,6 +7,7 @@ import { CampusPulse } from "@/components/CampusPulse";
 import { BriefingWidget } from "@/components/BriefingWidget";
 import { BurnoutWidget } from "@/components/BurnoutWidget";
 import { InsightsFeed } from "@/components/InsightsFeed";
+import ProactiveNudge from "@/components/ProactiveNudge";
 import { computeBurnoutSignals, computeCompositeBurnout } from "@/lib/burnoutModel";
 import { computeAlerts } from "@/lib/alertEngine";
 
@@ -103,6 +104,8 @@ export default async function DashboardPage() {
           Ask CampusFlow
         </Link>
       </div>
+
+      <ProactiveNudge />
 
       {/* LEFT COLUMN */}
       <div className="main-col">

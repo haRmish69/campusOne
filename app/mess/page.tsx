@@ -1,7 +1,6 @@
 import { FileUpload } from "@/components/FileUpload";
 import { MessCard } from "@/components/MessCard";
-import { EmptyState } from "@/components/EmptyState";
-import { Utensils } from "lucide-react";
+import { MessEmptyState } from "./MessEmptyState";
 import { prisma } from "@/lib/prisma";
 import { MessMenu } from "@prisma/client";
 import { auth } from "@clerk/nextjs/server";
@@ -96,13 +95,7 @@ export default async function MessPage() {
           </div>
           
           {menus.length === 0 ? (
-            <EmptyState 
-              icon={Utensils} 
-              heading="No menus uploaded" 
-              subtitle="Upload today's menu to see what's for dinner" 
-              ctaLabel="Upload Menu" 
-              onCtaClick={() => document.getElementById('file-upload-input')?.click()} 
-            />
+            <MessEmptyState />
           ) : (
             <div className="space-y-12">
               {groupedMenus.map((group) => {
