@@ -313,10 +313,8 @@ export default function NotesPage() {
 
           {/* Add Note Button */}
           <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="bg-signal-blue text-white hover:bg-signal-blue/90 shadow-sm h-10 shrink-0">
+            <DialogTrigger className="inline-flex items-center justify-center rounded-lg bg-signal-blue text-white hover:bg-signal-blue/90 shadow-sm h-10 px-4 text-sm font-medium shrink-0">
                 <Plus className="w-4 h-4 mr-2" /> Add Note
-              </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-4xl w-full bg-card border-border/60">
               <DialogHeader>
