@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
-import { addToFaissIndex } from "@/lib/vectorStore";
+import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 
 import { auth } from "@clerk/nextjs/server";
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Add to FAISS for semantic search
-    await addToFaissIndex(deadline.id, `[DEADLINE] ${safeTitle} (${safeSubject}) due ${parsedDate.toISOString()}. ${safeNotes || ""}`);
+    await addToIndex(deadline.id, `[DEADLINE] ${safeTitle} (${safeSubject}) due ${parsedDate.toISOString()}. ${safeNotes || ""}`, "Deadline", userId, "global");
 
     return NextResponse.json({ success: true, deadline: { ...deadline, embedding: undefined } });
   } catch (error: any) {

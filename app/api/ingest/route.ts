@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
-import { addToFaissIndex } from "@/lib/vectorStore";
+import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 
-const PROMPT = `Extract the following fields from the notice. Return ONLY a JSON object.
-Fields to extract:
+// ─── Smart Ingestion Prompt ──────────────────────────────────────────────
+// Instead of blindly creating a Notice, the AI first classifies the entity.
+// ─────────────────────────────────────────────────────────────────────────
+const PROMPT = `You are a campus data classifier. Analyze the following text/image and determine what type of campus entity it is.
+
+Step 1: Decide the entityType. It MUST be one of:
+- "deadline" — if the text describes a submission deadline, assignment due date, exam date, or project due date.
+- "notice" — if the text is a general announcement, event, placement drive, hostel rule, or informational notice.
+
+Step 2: Extract the fields based on the entityType.
+
+If entityType is "deadline", extract:
+- entityType: "deadline"
+- title: string (short and descriptive, e.g. "DBMS Project Submission")
+- subject: string (the academic subject, e.g. "DBMS", "Operating Systems", "Mathematics")
+- dueDate: ISO 8601 string (REQUIRED — the submission/exam date and time)
+- type: string (must be one of: "exam", "assignment", "project", "other")
+- notes: string or null (any additional details)
+
+If entityType is "notice", extract:
+- entityType: "notice"
 - title: string (short and descriptive)
 - body: string (the full content, formatted nicely)
 - category: string (must be exactly one of: placement, exam, event, hostel, general)
@@ -13,7 +32,7 @@ Fields to extract:
 - venue: string or null if no venue is mentioned
 - actionRequired: string or null (e.g. 'Register by Friday', 'Bring ID card')
 
-No markdown, no preamble. Just raw JSON.`;
+Return ONLY a JSON object. No markdown, no preamble. Just raw JSON.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,7 +61,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid type. Must be 'image' or 'text'" }, { status: 400 });
     }
 
-    // Validate category
+    // ─── ROUTE: Deadline ───────────────────────────────────────────────
+    if (parsed.entityType === "deadline") {
+      const title = parsed.title || "Untitled Deadline";
+      const subject = parsed.subject || "General";
+      const deadlineType = ["exam", "assignment", "project", "other"].includes(parsed.type?.toLowerCase())
+        ? parsed.type.toLowerCase()
+        : "other";
+      
+      let dueDate: Date;
+      if (parsed.dueDate) {
+        const d = new Date(parsed.dueDate);
+        dueDate = isNaN(d.getTime()) ? new Date() : d;
+      } else {
+        // If AI couldn't extract a date, default to 7 days from now
+        dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+      }
+
+      const notes = parsed.notes || null;
+      const embedding = await embedText(`${title} ${subject} ${notes || ""}`);
+
+      const deadline = await prisma.deadline.create({
+        data: {
+          title,
+          subject,
+          dueDate,
+          type: deadlineType,
+          notes,
+          embedding,
+        }
+      });
+
+      // Add to FAISS global index
+      await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", null, "global");
+
+      return NextResponse.json({ success: true, entityType: "deadline", deadline }, { status: 201 });
+    }
+
+    // ─── ROUTE: Notice (default) ───────────────────────────────────────
     const validCategories = ["placement", "exam", "event", "hostel", "general"];
     const category = validCategories.includes(parsed.category?.toLowerCase()) 
       ? parsed.category.toLowerCase() 
@@ -56,16 +113,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallbacks
     const title = parsed.title || "Untitled Notice";
     const bodyText = parsed.body || "No content found.";
     const venue = parsed.venue || null;
     const actionRequired = parsed.actionRequired || null;
 
-    // Generate embedding
     const embedding = await embedText(bodyText);
 
-    // Save to DB
     const notice = await prisma.notice.create({
       data: {
         title,
@@ -80,9 +134,9 @@ export async function POST(req: NextRequest) {
     });
 
     // Add to FAISS for semantic search
-    await addToFaissIndex(notice.id, `[NOTICE] ${title}: ${bodyText}`);
+    await addToIndex(notice.id, `[NOTICE] ${title}: ${bodyText}`, "Notice", null, "global");
 
-    return NextResponse.json({ success: true, notice }, { status: 201 });
+    return NextResponse.json({ success: true, entityType: "notice", notice }, { status: 201 });
 
   } catch (error: any) {
     console.error("Error in /api/ingest:", error);

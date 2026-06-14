@@ -1,30 +1,8 @@
 import { prisma } from "./prisma";
 import { getRealEmbedding } from "./embeddings";
-import { addToFaissIndex } from "./vectorStore";
-import { IndexFlatL2 } from "faiss-node";
+import { addToIndex, removeFromIndex } from "./vectorStore";
 import { runEmailSync, SyncResult } from "./emailSync";
-import * as fs from "fs";
-import * as path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const INDEX_PATH = path.join(DATA_DIR, "campus.index");
-const MAP_PATH = path.join(DATA_DIR, "faiss_map.json");
-
-/**
- * Remove a Prisma ID from the FAISS map (marks it as deleted).
- * Since FAISS IndexFlatL2 doesn't support true deletion, we remove the mapping
- * so the vector is never returned in search results.
- */
-function removeFaissMapping(prismaId: string) {
-  if (!fs.existsSync(MAP_PATH)) return;
-  const faissMap: Record<string, string> = JSON.parse(fs.readFileSync(MAP_PATH, "utf-8"));
-  for (const [key, val] of Object.entries(faissMap)) {
-    if (val === prismaId) {
-      delete faissMap[key];
-    }
-  }
-  fs.writeFileSync(MAP_PATH, JSON.stringify(faissMap, null, 2));
-}
 
 // ─── Gemini Function Declarations ────────────────────────────────────────
 
@@ -251,9 +229,9 @@ async function updateMessMenu(args: { day: string; meal: string; newItems: strin
     data: { items: newItems },
   });
 
-  // Update FAISS: remove old mapping, add new embedding
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[MESS] ${updated.day} ${updated.meal}: ${updated.items}`);
+  // Update vector index
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[MESS] ${updated.day} ${updated.meal}: ${updated.items}`, "MessMenu", userId, "global");
 
   return `Successfully updated ${day} ${meal} menu. New items: ${newItems}`;
 }
@@ -278,9 +256,9 @@ async function updateNotice(args: { title: string; newTitle?: string; newBody?: 
     data: updateData,
   });
 
-  // Update FAISS
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[NOTICE] ${updated.title}: ${updated.body}`);
+  // Update vector index
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[NOTICE] ${updated.title}: ${updated.body}`, "Notice", userId, "global");
 
   return `Successfully updated notice "${updated.title}".`;
 }
@@ -306,8 +284,9 @@ async function updateDeadline(args: { title: string; newTitle?: string; newDueDa
     data: updateData,
   });
 
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[DEADLINE] ${updated.title} (${updated.subject}) due ${updated.dueDate}. ${updated.notes || ""}`);
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[DEADLINE] ${updated.title} (${updated.subject}) due ${updated.dueDate}. ${updated.notes || ""}`, "Deadline", userId, "global");
+
 
   return `Successfully updated deadline "${updated.title}". New due date: ${updated.dueDate}.`;
 }
@@ -335,8 +314,9 @@ async function updateSchedule(args: { subject: string; day?: string; newDay?: st
     data: updateData,
   });
 
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[CLASS] ${updated.subject} taught by ${updated.faculty || "Unknown"} on ${updated.day} from ${updated.startTime} to ${updated.endTime} at ${updated.room || "Unknown"}`);
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[CLASS] ${updated.subject} taught by ${updated.faculty || "Unknown"} on ${updated.day} from ${updated.startTime} to ${updated.endTime} at ${updated.room || "Unknown"}`, "ClassSchedule", userId, "global");
+
 
   return `Successfully updated class "${updated.subject}" on ${updated.day}. Time: ${updated.startTime}-${updated.endTime}, Room: ${updated.room}.`;
 }
@@ -358,7 +338,7 @@ async function addNotice(args: { title: string; body: string; category?: string 
     },
   });
 
-  await addToFaissIndex(notice.id, `[NOTICE] ${title}: ${body}`);
+  await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId, "global");
 
   return `Successfully created new notice: "${title}" in category "${safeCategory}".`;
 }
@@ -385,7 +365,7 @@ async function addDeadline(args: { title: string; subject: string; dueDate: stri
     },
   });
 
-  await addToFaissIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate}. ${notes || ""}`);
+  await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate}. ${notes || ""}`, "Deadline", userId, "global");
 
   return `Successfully created new deadline: "${title}" for ${subject}, due ${parsedDate.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}.`;
 }
@@ -408,7 +388,7 @@ async function addSchedule(args: { subject: string; day: string; startTime: stri
     },
   });
 
-  await addToFaissIndex(schedule.id, `[CLASS] ${subject} taught by ${faculty || "Unknown"} on ${day} from ${startTime} to ${endTime} at ${room || "Unknown"}`);
+  await addToIndex(schedule.id, `[CLASS] ${subject} taught by ${faculty || "Unknown"} on ${day} from ${startTime} to ${endTime} at ${room || "Unknown"}`, "ClassSchedule", userId, "global");
 
   return `Successfully added class "${subject}" on ${day} from ${startTime} to ${endTime}.`;
 }
@@ -435,7 +415,7 @@ async function addExpense(args: { amount: number; category: string; description:
     },
   });
 
-  await addToFaissIndex(expense.id, `[EXPENSE] ${safeCategory}: ₹${amount} on ${description} (${expenseDate.toISOString().split("T")[0]})`);
+  await addToIndex(expense.id, `[EXPENSE] ${safeCategory}: ₹${amount} on ${description} (${expenseDate.toISOString().split("T")[0]})`, "Expense", userId, "private");
 
   return `Successfully logged expense: ₹${amount} for ${description} under ${safeCategory}.`;
 }
@@ -462,8 +442,9 @@ async function updateExpense(args: { descriptionSearch: string; newAmount?: numb
     data: updateData,
   });
 
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[EXPENSE] ${updated.category}: ₹${updated.amount} on ${updated.description} (${updated.date.toISOString().split("T")[0]})`);
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[EXPENSE] ${updated.category}: ₹${updated.amount} on ${updated.description} (${updated.date.toISOString().split("T")[0]})`, "Expense", userId, "private");
+
 
   return `Successfully updated expense. Amount is now ₹${updated.amount} for "${updated.description}".`;
 }
@@ -509,7 +490,8 @@ async function addWellnessLog(args: { mood: number; stressLevel: number; sleepHo
     },
   });
 
-  await addToFaissIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours || 0}h. Notes: ${notes || ""}. Date: ${today.toISOString().split("T")[0]}`);
+  await addToIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours || 0}h. Notes: ${notes || ""}. Date: ${today.toISOString().split("T")[0]}`, "WellnessLog", userId, "private");
+
 
   return `Successfully logged today's wellness. Mood: ${mood}/5, Stress: ${stressLevel}/5.`;
 }
@@ -548,8 +530,9 @@ async function updateWellnessLog(args: { dateSearch: string; newMood?: number; n
     data: updateData,
   });
 
-  removeFaissMapping(existing.id);
-  await addToFaissIndex(updated.id, `[WELLNESS] Mood: ${updated.mood}/5, Stress: ${updated.stressLevel}/5, Sleep: ${updated.sleepHours || 0}h. Notes: ${updated.notes || ""}. Date: ${updated.date.toISOString().split("T")[0]}`);
+  await removeFromIndex(existing.id, userId);
+  await addToIndex(updated.id, `[WELLNESS] Mood: ${updated.mood}/5, Stress: ${updated.stressLevel}/5, Sleep: ${updated.sleepHours || 0}h. Notes: ${updated.notes || ""}. Date: ${updated.date.toISOString().split("T")[0]}`, "WellnessLog", userId, "private");
+
 
   return `Successfully updated wellness log for ${updated.date.toISOString().split("T")[0]}. Mood is now ${updated.mood}/5.`;
 }

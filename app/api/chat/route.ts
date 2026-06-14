@@ -4,8 +4,15 @@ import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI, Type } from "@google/genai";
 import youtubeSearch from "youtube-search-api";
 import { YoutubeTranscript } from "youtube-transcript";
-import { searchEverything } from "@/lib/searchEverything";
+import { getRealEmbedding } from "@/lib/embeddings";
+import { dualSearch, SearchResult } from "@/lib/vectorStore";
 import { toolDeclarations, executeTool } from "@/lib/chatTools";
+
+// ─── Context Token Budget ────────────────────────────────────────────────
+const MAX_CONTEXT_CHARS = 24000; // ~6000 tokens at ~4 chars/token
+const TOP_K_PRIVATE = 8;
+const TOP_K_GLOBAL = 8;
+const DIRECT_INJECT_CAP = 10;
 
 export async function GET(req: NextRequest) {
   try {
@@ -76,45 +83,149 @@ export async function POST(req: NextRequest) {
       data: { sessionId, userId, role: "user", content: query }
     });
 
-    // ─── Inject Campus RAG Engine ───────────────────────────────────────────
+    // ─── FAISS-Based RAG Engine ─────────────────────────────────────────────
     const profile = await prisma.userProfile.findUnique({ where: { userId } });
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' });
     const instituteName = profile?.instituteName || "";
 
-    const searchResults = await searchEverything(`${dayName} ${query}`, instituteName, userId, 10);
+    // 1. Generate embedding (NO day-prepend hack — clean query only)
+    const queryEmbedding = await getRealEmbedding(query);
 
-    const TYPE_LABELS: Record<string, string> = {
-      notice: "CAMPUS NOTICE", deadline: "DEADLINE", schedule: "CLASS",
-      mess: "MESS MENU", expense: "EXPENSE", wellness: "WELLNESS",
-      expertise: "PEER EXPERTISE", company: "COMPANY INFO",
-      experience: "INTERVIEW EXPERIENCE", prep_question: "INTERVIEW QUESTION",
-      transport: "TRANSPORT", service: "CAMPUS SERVICE", guide: "PROCESS GUIDE",
-      place: "LOCAL PLACE", trip: "TRIP RECOMMENDATION", tip: "SURVIVAL TIP",
-    };
-    const contextParts = searchResults.map(r => {
-      const label = TYPE_LABELS[r.type] ?? r.type.toUpperCase();
-      return `[${label}] ${r.title}: ${r.body}`;
+    // 2. Dual-Index Semantic Search (private + global)
+    const searchResults = dualSearch(queryEmbedding, userId, TOP_K_PRIVATE, TOP_K_GLOBAL);
+
+    // 3. Hydrate: Direct table lookups (no blind IN(...) across all tables)
+    const contextParts: string[] = [];
+    for (const hit of searchResults) {
+      const text = await hydrateRecord(hit, userId);
+      if (text) contextParts.push(text);
+    }
+
+    // 4. Direct Context Injections (always-on, high-value data)
+    // 4a. Today's mess menu
+    const todayMenus = await prisma.messMenu.findMany({
+      where: { userId, day: { contains: dayName } }
     });
-    const context = contextParts.join("\n\n");
+    for (const m of todayMenus) {
+      contextParts.unshift(`[MESS_TODAY] ${m.day} ${m.meal}: ${m.items}`);
+    }
 
+    // 4b. Active Budget for current month
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const budget = await prisma.budget.findFirst({
+      where: { userId, month: currentMonth }
+    });
+    if (budget) {
+      const totalSpent = await prisma.expense.aggregate({
+        where: {
+          userId,
+          date: {
+            gte: new Date(now.getFullYear(), now.getMonth(), 1),
+            lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+          }
+        },
+        _sum: { amount: true }
+      });
+      const spent = totalSpent._sum.amount || 0;
+      const remaining = budget.totalLimit - spent;
+      contextParts.unshift(
+        `[BUDGET] Month: ${currentMonth}. Total Limit: ₹${budget.totalLimit}. Spent: ₹${spent.toFixed(0)}. Remaining: ₹${remaining.toFixed(0)}. Category Limits: ${JSON.stringify(budget.categoryLimits)}.`
+      );
+    } else {
+      contextParts.unshift(`[BUDGET] The user has NOT set a budget for this month (${currentMonth}). Tell them to go to the Pocket Buddy dashboard to set one up.`);
+    }
+
+    // 4c. Active Cab Pools (PII-scrubbed, capped)
+    if (instituteName) {
+      const cabPools = await prisma.cabPoolRequest.findMany({
+        where: {
+          instituteName,
+          status: "open",
+          departureTime: { gte: now },
+        },
+        orderBy: { departureTime: "asc" },
+        take: DIRECT_INJECT_CAP,
+      });
+      for (const pool of cabPools) {
+        const seatsTotal = pool.seatsAvailable + (Array.isArray(pool.participants) ? (pool.participants as string[]).length : 0);
+        contextParts.push(
+          `[CAB_POOL] To ${pool.destination} at ${pool.departureTime.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}. Seats: ${pool.seatsAvailable}/${seatsTotal} open. ${pool.source ? `From: ${pool.source} area.` : ""} Pool ID: ${pool.id.slice(-6)}. ${pool.notes || ""}`
+        );
+      }
+      if (cabPools.length === DIRECT_INJECT_CAP) {
+        contextParts.push(`[CAB_POOL] +more cab pools available — user can ask to see all.`);
+      }
+
+      // 4d. Active Transport Updates (capped)
+      const transportUpdates = await prisma.transportUpdate.findMany({
+        where: {
+          instituteName,
+          expiresAt: { gt: now },
+        },
+        orderBy: { createdAt: "desc" },
+        take: DIRECT_INJECT_CAP,
+      });
+      for (const update of transportUpdates) {
+        contextParts.push(
+          `[TRANSPORT_UPDATE] [${update.severity.toUpperCase()}] ${update.updateType}: ${update.message}`
+        );
+      }
+    }
+
+    // 5. Token Budget Trimming
+    let context = contextParts.join("\n\n");
+    if (context.length > MAX_CONTEXT_CHARS) {
+      context = context.substring(0, MAX_CONTEXT_CHARS) + "\n\n[...context trimmed for length]";
+    }
+
+    // 6. System Prompt with guardrails
     const istDateTime = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const systemInstruction = `You are CampusFlow, an elite AI campus ecosystem assistant for students.
+    const systemInstruction = `You are CampusFlow, an elite AI assistant for students.
 Current Date & Time (IST): ${istDateTime}
 
 You have THREE capabilities:
-1. ANSWER questions using the cross-domain context below.
-2. MODIFY campus data using your tools (e.g. adding notices, expenses). The tools search the MySQL database directly.
+1. ANSWER questions using the context below (retrieved from FAISS + direct data feeds).
+2. MODIFY campus data using your tools. The tools search the MySQL database directly — they do NOT depend on the context below. The data EXISTS in the database even if you don't see it in the context.
 3. GENERATE flashcards or find video lectures using the provided tools.
 
 CRITICAL: WHEN THE USER WANTS TO UPDATE, CHANGE, REPLACE, ADD, OR MODIFY ANY DATA — YOU MUST ALWAYS CALL THE APPROPRIATE TOOL. DO NOT say "I don't have that data". The tool will find it in the database.
 
-For QUESTIONS: Answer from the cross-domain context below. Connect information across domains when relevant. If missing, say: 'I don't have that information in my campus data.'
+Context Tag Reference:
+[NOTICE] Campus notices and announcements
+[MESS_TODAY] Today's mess menu (always current)
+[MESS] Mess menu for other days (from search)
+[DEADLINE] Upcoming deadlines and assignments
+[CLASS] Class schedule entries
+[EXPENSE] Student's personal expense records (PRIVATE — never share with others)
+[BUDGET] Student's monthly budget summary (PRIVATE)
+[WELLNESS] Student's mood, stress, and sleep logs (PRIVATE — handle with care)
+[HELP_REQUEST] Peer learning help requests
+[EXPERTISE] Skills and topics peers can help with
+[COMPANY] Placement portal company profiles
+[INTERVIEW] Interview experiences shared by students
+[PREP_QUESTION] Interview preparation questions
+[TRANSPORT_ROUTE] Campus bus/shuttle schedules
+[TRANSPORT_UPDATE] Live transport alerts and delays
+[CAB_POOL] Active cab-sharing opportunities (PII-scrubbed — direct user to in-app join flow)
+[SERVICE] Campus services (library, medical, admin offices)
+[GUIDE] Step-by-step process guides for campus procedures
+[PLACE] Local places near campus (food, ATMs, medical)
+[TRIP] Trip recommendations from campus
+[TIP] Campus survival tips from seniors
 
-User Profile: Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear || "Unknown"}, College: ${profile?.instituteName || "Unknown"}.
+Behavioral Guardrails:
+- [WELLNESS]: Treat health data with care. Do NOT diagnose or play therapist. For negative trends, be supportive and gently mention campus counseling resources.
+- [EXPENSE] / [BUDGET]: Present factual summaries only. Do NOT frame responses as financial advice.
+- [CAB_POOL] / [HELP_REQUEST] (others'): NEVER invent or expose contact details. Direct the user to the in-app action.
+- [INTERVIEW] / [COMPANY] / [PREP_QUESTION] / [TRANSPORT_ROUTE] / [SERVICE] / [GUIDE] / [PLACE] / [TRIP] / [TIP]: Freely shareable campus knowledge — no special handling needed.
 
-Cross-domain context (from 16 campus data sources):
+For QUESTIONS only: Answer from the context below. If the context is completely missing the information, say: 'I don't have that information in my campus data.'
+
+User Profile: Name: ${profile?.name || "Student"}, Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear || "Unknown"}, College: ${profile?.instituteName || "Unknown"}.
+
+Context:
 ${context}`;
     // ────────────────────────────────────────────────────────────────────────
 
@@ -322,5 +433,119 @@ ${formattedTranscript}`,
   } catch (error: any) {
     console.error("Chat POST Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ─── Hydration: Direct table lookup by (table, recordId) ─────────────────
+// Copied from /api/query/route.ts — same secure hydration logic.
+
+async function hydrateRecord(hit: SearchResult, currentUserId: string): Promise<string | null> {
+  const { table, recordId } = hit;
+
+  try {
+    switch (table) {
+      case "Notice": {
+        const r = await prisma.notice.findUnique({ where: { id: recordId } });
+        if (!r || (r.userId && r.userId !== currentUserId)) return null;
+        return `[NOTICE] ${r.title}: ${r.body}`;
+      }
+      case "MessMenu": {
+        const r = await prisma.messMenu.findUnique({ where: { id: recordId } });
+        if (!r || (r.userId && r.userId !== currentUserId)) return null;
+        return `[MESS] ${r.day} ${r.meal}: ${r.items}`;
+      }
+      case "Deadline": {
+        const r = await prisma.deadline.findUnique({ where: { id: recordId } });
+        if (!r || (r.userId && r.userId !== currentUserId)) return null;
+        return `[DEADLINE] ${r.title}: ${r.subject} due ${r.dueDate}. ${r.notes || ""}`;
+      }
+      case "ClassSchedule": {
+        const r = await prisma.classSchedule.findUnique({ where: { id: recordId } });
+        if (!r || (r.userId && r.userId !== currentUserId)) return null;
+        return `[CLASS] ${r.subject}: ${r.day} ${r.startTime}-${r.endTime} at ${r.room || "TBD"}`;
+      }
+      // ── PocketBuddy (PRIVATE — strict userId enforcement) ──
+      case "Expense": {
+        const r = await prisma.expense.findUnique({ where: { id: recordId } });
+        if (!r || r.userId !== currentUserId) return null;
+        return `[EXPENSE] ${r.category}: ₹${r.amount} on ${r.description} (${r.date.toISOString().split("T")[0]})`;
+      }
+      case "WellnessLog": {
+        const r = await prisma.wellnessLog.findUnique({ where: { id: recordId } });
+        if (!r || r.userId !== currentUserId) return null;
+        return `[WELLNESS] Mood: ${r.mood}/5, Stress: ${r.stressLevel}/5, Sleep: ${r.sleepHours || "?"}h. Notes: ${r.notes || "none"}. Date: ${r.date.toISOString().split("T")[0]}`;
+      }
+      // ── Campus Ecosystem (GLOBAL — campus-wide knowledge) ──
+      case "Company": {
+        const r = await prisma.company.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[COMPANY] ${r.name} (${r.domain}). Package: ₹${r.packageMin || "?"}–${r.packageMax || "?"}L. Rounds: ${r.interviewRounds || "?"}. Skills: ${JSON.stringify(r.topSkillsRequired)}.`;
+      }
+      case "InterviewExperience": {
+        const r = await prisma.interviewExperience.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        const author = r.isAnonymous ? `a student (${r.batch}, ${r.branch})` : (r.studentName || `a student (${r.batch})`);
+        return `[INTERVIEW] ${author} interviewed at company (${r.outcome}). Tips: ${r.overallTips.substring(0, 500)}`;
+      }
+      case "PrepQuestion": {
+        const r = await prisma.prepQuestion.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[PREP_QUESTION] Round: ${r.round}, Difficulty: ${r.difficulty}. Q: ${r.question.substring(0, 300)}${r.answer ? ` A: ${r.answer.substring(0, 200)}` : ""}`;
+      }
+      case "TransportRoute": {
+        const r = await prisma.transportRoute.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[TRANSPORT_ROUTE] ${r.name} (${r.type}). Stops: ${JSON.stringify(r.stops)}. Days: ${JSON.stringify(r.operatingDays)}.`;
+      }
+      case "ExpertiseSeed": {
+        const r = await prisma.expertiseSeed.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[EXPERTISE] Topic: ${r.topic} (source: ${r.source}, confidence: ${r.confidence}/5). Profile: ${r.profileId.slice(-6)}`;
+      }
+      case "HelpRequest_open":
+      case "HelpRequest_own": {
+        const r = await prisma.helpRequest.findUnique({
+          where: { id: recordId },
+          include: { studySession: true }
+        });
+        if (!r) return null;
+        if (r.requesterId === currentUserId || table === "HelpRequest_own") {
+          return `[HELP_REQUEST] Your request: "${r.topic}" (${r.status}). ${r.description || ""}${r.studySession ? ` Session: ${r.studySession.status}` : ""}`;
+        }
+        return `[HELP_REQUEST] Someone needs help with "${r.topic}" (${r.urgency} urgency). ${r.description ? r.description.substring(0, 200) : ""} Request ID: ${r.id.slice(-6)}.`;
+      }
+      // ── Local Discovery & Campus Knowledge (GLOBAL) ──
+      case "CampusService": {
+        const r = await prisma.campusService.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[SERVICE] ${r.name} (${r.category}) at ${r.location}. Status: ${r.currentStatus}. Timings: ${JSON.stringify(r.timings)}.`;
+      }
+      case "ProcessGuide": {
+        const r = await prisma.processGuide.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[GUIDE] ${r.title}. Steps: ${JSON.stringify(r.steps)}. Documents: ${JSON.stringify(r.documentsRequired)}. Est. ${r.estimatedDays} days. ${r.tips || ""}`;
+      }
+      case "LocalPlace": {
+        const r = await prisma.localPlace.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[PLACE] ${r.name} (${r.category}). ${r.description}. ${r.distanceMeters ? `${r.distanceMeters}m away.` : ""} ${r.mustTry ? `Must try: ${r.mustTry}` : ""}`;
+      }
+      case "TripRecommendation": {
+        const r = await prisma.tripRecommendation.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[TRIP] ${r.destination} (${r.distanceKm}km, ~₹${r.estimatedCost}). ${r.bestFor}. How: ${r.howToGet.substring(0, 300)}. Highlights: ${JSON.stringify(r.highlights)}.`;
+      }
+      case "SurvivalTip": {
+        const r = await prisma.survivalTip.findUnique({ where: { id: recordId } });
+        if (!r) return null;
+        return `[TIP] [${r.category}] ${r.title}: ${r.tip.substring(0, 400)}`;
+      }
+      default:
+        console.warn(`Hydration: Unknown table "${table}" for record ${recordId}`);
+        return null;
+    }
+  } catch (err) {
+    console.error(`Hydration error for ${table}:${recordId}:`, err);
+    return null;
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { embedText } from "@/lib/embeddings";
-import { addToFaissIndex } from "@/lib/vectorStore";
+import { addToIndex } from "@/lib/vectorStore";
 
 import { auth } from "@clerk/nextjs/server";
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Add to FAISS for semantic search
-    await addToFaissIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours}h. Notes: ${notes || "none"}`);
+    await addToIndex(log.id, `[WELLNESS] Mood: ${mood}/5, Stress: ${stressLevel}/5, Sleep: ${sleepHours}h. Notes: ${notes || "none"}`, "WellnessLog", userId, "private");
 
     // Invalidate today's cached Wellness Insight so the score updates dynamically 
     // after the user answers the briefing questions.

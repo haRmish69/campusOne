@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
-import { addToFaissIndex } from "@/lib/vectorStore";
+import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 
 import { auth } from "@clerk/nextjs/server";
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         }
       });
       // Add to FAISS for semantic search
-      await addToFaissIndex(menu.id, `[MESS] ${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`);
+      await addToIndex(menu.id, `[MESS] ${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`, "MessMenu", userId, "global");
       createdMenus.push({ ...menu, embedding: undefined });
     }
 

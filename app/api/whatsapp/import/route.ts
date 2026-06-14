@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseWhatsAppExport } from "@/lib/whatsappParser";
 import { embedText } from "@/lib/embeddings";
+import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenAI } from "@google/genai";
 
@@ -71,19 +72,39 @@ export async function POST(req: NextRequest) {
     }
 
     let noticesImported = 0;
+    let deadlinesImported = 0;
     let skippedBatches = 0;
 
     const PROMPT = `Below are timestamped chat messages from a college WhatsApp group.
-Identify which messages are genuine campus notices (placements, exams, events, hostel rules, general announcements).
+Identify which messages contain genuine campus announcements, notices, or deadlines.
 Ignore casual chat, greetings, and personal conversation.
-For each notice found, return ONLY a JSON array of objects with the following fields:
-- title (string): A short, clear title for the notice
-- body (string): The full content of the notice
-- category (string): Must be exactly one of: "placement", "exam", "event", "hostel", "general"
-- eventDate (string or null): ISO 8601 date string if a specific date/deadline is mentioned, otherwise null
-- venue (string or null): Location if mentioned, otherwise null
-- actionRequired (string or null): Short required action if any, otherwise null
-- originalTimestamp (string): The ISO timestamp of the original message provided
+
+For each item found, return ONLY a JSON array of objects.
+
+Step 1: Decide the entityType ("deadline" or "notice").
+- "deadline" for assignment due dates, exam dates, submissions, projects.
+- "notice" for events, placements, general rules, announcements.
+
+Step 2: Extract fields based on entityType.
+
+If "deadline":
+- entityType: "deadline"
+- title: string (short and descriptive)
+- subject: string (academic subject or "General")
+- dueDate: ISO 8601 string (REQUIRED)
+- type: string (one of: "exam", "assignment", "project", "other")
+- notes: string or null
+- originalTimestamp: string (ISO timestamp of the message)
+
+If "notice":
+- entityType: "notice"
+- title: string (short and descriptive)
+- body: string (full content)
+- category: string (one of: "placement", "exam", "event", "hostel", "general")
+- eventDate: ISO 8601 string or null
+- venue: string or null
+- actionRequired: string or null
+- originalTimestamp: string (ISO timestamp of the message)
 
 Messages to analyze:
 `;
@@ -104,39 +125,74 @@ Messages to analyze:
         let text = response.text || "[]";
         text = text.replace(/```json/g, "").replace(/```/g, "").trim();
         
-        const extractedNotices = JSON.parse(text);
+        const extractedItems = JSON.parse(text);
         
-        if (Array.isArray(extractedNotices)) {
-          for (const noticeData of extractedNotices) {
-            // Deduplication check: Do we already have a notice with this exact title and body?
-            const existing = await prisma.notice.findFirst({
-              where: {
-                userId,
-                title: noticeData.title,
-                body: noticeData.body,
-                source: "whatsapp"
-              }
-            });
-
-            if (!existing) {
-              const embedding = await embedText(noticeData.body);
-              await prisma.notice.create({
-                data: {
-                  userId,
-                  title: noticeData.title,
-                  body: noticeData.body,
-                  category: noticeData.category || "general",
-                  eventDate: noticeData.eventDate ? new Date(noticeData.eventDate) : null,
-                  venue: noticeData.venue || null,
-                  actionRequired: noticeData.actionRequired || null,
-                  source: "whatsapp",
-                  embedding,
-                  instituteName,
-                  major,
-                  createdAt: noticeData.originalTimestamp ? new Date(noticeData.originalTimestamp) : new Date()
-                }
+        if (Array.isArray(extractedItems)) {
+          for (const item of extractedItems) {
+            
+            if (item.entityType === "deadline") {
+              const title = item.title || "Untitled Deadline";
+              const existing = await prisma.deadline.findFirst({
+                where: { userId, title }
               });
-              noticesImported++;
+
+              if (!existing) {
+                const dueDate = item.dueDate ? new Date(item.dueDate) : new Date();
+                const notes = item.notes || null;
+                const subject = item.subject || "General";
+                const type = ["exam", "assignment", "project", "other"].includes(item.type?.toLowerCase()) ? item.type.toLowerCase() : "other";
+                const embedding = await embedText(`${title} ${subject} ${notes || ""}`);
+
+                const deadline = await prisma.deadline.create({
+                  data: {
+                    userId,
+                    title,
+                    subject,
+                    dueDate,
+                    type,
+                    notes,
+                    embedding,
+                    instituteName,
+                    major,
+                    createdAt: item.originalTimestamp ? new Date(item.originalTimestamp) : new Date()
+                  }
+                });
+
+                await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", userId || null, "global");
+                deadlinesImported++;
+              }
+            } else {
+              // Assume notice
+              const title = item.title || "Untitled Notice";
+              const existing = await prisma.notice.findFirst({
+                where: { userId, title, source: "whatsapp" }
+              });
+
+              if (!existing) {
+                const body = item.body || "No content";
+                const category = ["placement", "exam", "event", "hostel", "general"].includes(item.category?.toLowerCase()) ? item.category.toLowerCase() : "general";
+                const embedding = await embedText(body);
+
+                const notice = await prisma.notice.create({
+                  data: {
+                    userId,
+                    title,
+                    body,
+                    category,
+                    eventDate: item.eventDate ? new Date(item.eventDate) : null,
+                    venue: item.venue || null,
+                    actionRequired: item.actionRequired || null,
+                    source: "whatsapp",
+                    embedding,
+                    instituteName,
+                    major,
+                    createdAt: item.originalTimestamp ? new Date(item.originalTimestamp) : new Date()
+                  }
+                });
+
+                await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId || null, "global");
+                noticesImported++;
+              }
             }
           }
         }
@@ -154,6 +210,7 @@ Messages to analyze:
       totalMessages: messages.length,
       scannedBatches: batches.length,
       noticesImported,
+      deadlinesImported,
       skippedBatches
     });
 

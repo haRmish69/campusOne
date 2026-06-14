@@ -31,3 +31,35 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { subject, day, startTime, endTime, room, faculty } = body;
+
+    if (!subject || !day || !startTime || !endTime) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const entry = await prisma.classSchedule.create({
+      data: {
+        userId,
+        subject,
+        day,
+        startTime,
+        endTime,
+        room: room || null,
+        faculty: faculty || null,
+        embedding: [],
+      },
+    });
+
+    return NextResponse.json({ success: true, schedule: entry }, { status: 201 });
+  } catch (error: any) {
+    console.error("Create Schedule Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
