@@ -395,6 +395,7 @@ model CabPoolRequest {
   id             String   @id @default(cuid())
   instituteName  String
   initiatorId    String
+  source         String?
   destination    String
   departureTime  DateTime
   seatsAvailable Int

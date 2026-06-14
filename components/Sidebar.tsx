@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Bus, Compass, FolderOpen } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Car, Compass, FolderOpen } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { SOSButton } from "@/components/SOSButton";
@@ -37,8 +37,8 @@ export function Sidebar() {
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
     { href: "/notes", label: "My Notes", icon: FolderOpen },
     { href: "/placement", label: "Placement", icon: Briefcase },
-    { href: "/transport", label: "Transport", icon: Bus },
-    { href: "/discover", label: "Discover", icon: Compass },
+    { href: "/transport", label: "Travel Pool", icon: Car },
+
     { href: "/peer-learning", label: "Study Peers", icon: Users },
   ];
 
