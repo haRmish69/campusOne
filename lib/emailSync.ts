@@ -56,7 +56,7 @@ export async function runEmailSync(
           status,
           completedAt: new Date(),
           ...counts,
-          extractionLog: extractionLogData,
+          extractionLog: extractionLogData as any,
           errorMessage,
         },
       });

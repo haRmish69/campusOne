@@ -12,76 +12,9 @@ interface WellnessQuestion {
   question: string;
   options: { label: string; value: number | string }[];
 }
-
-const wellnessQuestions: WellnessQuestion[] = [
-  {
-    id: "sleep",
-    question: "How many hours did you sleep last night?",
-    options: [
-      { label: "😫 Less than 4h", value: 3 },
-      { label: "😴 4–5 hours", value: 4.5 },
-      { label: "😐 5–6 hours", value: 5.5 },
-      { label: "🙂 6–7 hours", value: 6.5 },
-      { label: "😊 7–8 hours", value: 7.5 },
-      { label: "😇 8+ hours", value: 9 },
-    ],
-  },
-  {
-    id: "mood",
-    question: "How's your mood right now?",
-    options: [
-      { label: "😞 Terrible (1-2)", value: 2 },
-      { label: "😕 Not great (3-4)", value: 4 },
-      { label: "😐 Okay (5-6)", value: 5 },
-      { label: "🙂 Good (7-8)", value: 7 },
-      { label: "😄 Great! (9-10)", value: 9 },
-    ],
-  },
-  {
-    id: "stress",
-    question: "What's your stress level?",
-    options: [
-      { label: "😌 Very chill (1-2)", value: 2 },
-      { label: "🙂 Manageable (3-4)", value: 4 },
-      { label: "😐 Moderate (5-6)", value: 5 },
-      { label: "😰 High (7-8)", value: 7 },
-      { label: "🤯 Overwhelmed (9-10)", value: 9 },
-    ],
-  },
-  {
-    id: "energy",
-    question: "How's your energy level today?",
-    options: [
-      { label: "🪫 Running on empty", value: "very_low" },
-      { label: "🔋 Low energy", value: "low" },
-      { label: "⚡ Moderate", value: "moderate" },
-      { label: "💪 Feeling energized", value: "high" },
-      { label: "🚀 Supercharged!", value: "very_high" },
-    ],
-  },
-  {
-    id: "meals",
-    question: "Have you had a proper meal today?",
-    options: [
-      { label: "✅ Yes, ate well", value: "yes" },
-      { label: "🥪 Just a snack", value: "partial" },
-      { label: "❌ Skipped meals", value: "no" },
-    ],
-  },
-  {
-    id: "academic",
-    question: "Are you feeling overwhelmed by academics?",
-    options: [
-      { label: "😎 Not at all", value: "not_at_all" },
-      { label: "🤔 A little", value: "a_little" },
-      { label: "😓 Moderately", value: "moderate" },
-      { label: "😵 Very much", value: "very" },
-    ],
-  },
-];
-
 export function BriefingWidget() {
   const [briefing, setBriefing] = useState<string | null>(null);
+  const [dynamicQuestions, setDynamicQuestions] = useState<WellnessQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingType, setLoadingType] = useState<"morning" | "evening" | null>(null);
 
@@ -117,8 +50,10 @@ export function BriefingWidget() {
 
       const data = await res.json();
       setBriefing(data.briefing);
-      // Auto-start wellness check-in after briefing
-      setShowWellness(true);
+      if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+        setDynamicQuestions(data.questions);
+        setShowWellness(true);
+      }
     } catch (error: any) {
       console.error("Briefing error:", error);
       setBriefing(`❌ ${error.message}`);
@@ -133,7 +68,7 @@ export function BriefingWidget() {
     setAnswers(newAnswers);
 
     // Move to next question or submit
-    if (currentQuestion < wellnessQuestions.length - 1) {
+    if (currentQuestion < dynamicQuestions.length - 1) {
       setTimeout(() => setCurrentQuestion(prev => prev + 1), 300);
     } else {
       // All questions answered — submit
@@ -145,21 +80,19 @@ export function BriefingWidget() {
     setIsSubmitting(true);
 
     // Build a natural language summary from the MCQ answers
-    const sleepHours = finalAnswers.sleep as number;
-    const mood = finalAnswers.mood as number;
-    const stressLevel = finalAnswers.stress as number;
-    const energy = finalAnswers.energy as string;
-    const meals = finalAnswers.meals as string;
-    const academic = finalAnswers.academic as string;
-
-    const notes = `Energy: ${energy}, Meals: ${meals}, Academic pressure: ${academic}`;
+    const payloadText = Object.entries(finalAnswers)
+      .map(([id, val]) => {
+        const q = dynamicQuestions.find((q) => q.id === id);
+        return `${q?.question || id}: ${val}`;
+      })
+      .join(". ");
 
     try {
       const res = await fetch("/api/wellness-sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: `Sleep: ${sleepHours} hours, Mood: ${mood}/10, Stress: ${stressLevel}/10. ${notes}`,
+          text: payloadText,
         }),
       });
 
@@ -180,8 +113,8 @@ export function BriefingWidget() {
     }
   };
 
-  const currentQ = wellnessQuestions[currentQuestion];
-  const progress = ((currentQuestion + (answers[currentQ?.id] !== undefined ? 1 : 0)) / wellnessQuestions.length) * 100;
+  const currentQ = dynamicQuestions[currentQuestion];
+  const progress = ((currentQuestion + (answers[currentQ?.id] !== undefined ? 1 : 0)) / dynamicQuestions.length) * 100;
 
   return (
     <section>
@@ -260,7 +193,7 @@ export function BriefingWidget() {
             <Heart className="w-5 h-5 text-rose-500" />
             <h3 className="font-semibold text-[var(--color-midnight-navy)]">Quick Wellness Check-in</h3>
             <span className="ml-auto text-xs font-medium text-[var(--color-slate-blue)] bg-white/80 px-2 py-0.5 rounded-full">
-              {currentQuestion + 1} / {wellnessQuestions.length}
+              {currentQuestion + 1} / {dynamicQuestions.length}
             </span>
           </div>
 
@@ -309,7 +242,7 @@ export function BriefingWidget() {
 
               {/* Navigation dots */}
               <div className="flex justify-center gap-1.5 mt-5">
-                {wellnessQuestions.map((_, i) => (
+                {dynamicQuestions.map((_, i) => (
                   <div
                     key={i}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${

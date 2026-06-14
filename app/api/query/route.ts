@@ -54,12 +54,20 @@ export async function POST(req: NextRequest) {
     // 3. FAISS Semantic Search
     const matchedIds = semanticSearch(queryEmbedding, 50);
 
-    // 4. Fetch Actual Records from MySQL
+    // 4. Fetch Actual Records from MySQL (with strict tenant isolation)
     const [notices, menus, deadlines, classes] = await Promise.all([
-      prisma.notice.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.messMenu.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.deadline.findMany({ where: { id: { in: matchedIds } } }),
-      prisma.classSchedule.findMany({ where: { id: { in: matchedIds } } }),
+      prisma.notice.findMany({ 
+        where: { id: { in: matchedIds }, OR: [{ userId }, { userId: null }] } 
+      }),
+      prisma.messMenu.findMany({ 
+        where: { id: { in: matchedIds }, OR: [{ userId }, { userId: null }] } 
+      }),
+      prisma.deadline.findMany({ 
+        where: { id: { in: matchedIds }, userId } 
+      }),
+      prisma.classSchedule.findMany({ 
+        where: { id: { in: matchedIds }, userId } 
+      }),
     ]);
 
     // 5. Build RAG Context
@@ -95,14 +103,14 @@ User Profile: Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear |
 Context retrieved from FAISS:
 ${context}`;
 
-    // 7. First Gemini Call — use gemini-1.5-flash (no thinking) for fast tool detection
+    // 7. First Gemini Call — use gemini-2.5-flash (no thinking) for fast tool detection
     console.log("⏳ Starting tool-detection call...");
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: query,
       config: {
         systemInstruction,
-        tools: [{ functionDeclarations: toolDeclarations }],
+        tools: [{ functionDeclarations: toolDeclarations as any }],
       },
     });
     console.log("✅ Tool-detection call complete");
@@ -124,10 +132,10 @@ ${context}`;
 
       // Send the tool result back to Gemini for a natural language confirmation
       const followUp = await ai.models.generateContentStream({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         contents: [
           { role: "user", parts: [{ text: query }] },
-          { role: "model", parts: candidate.content.parts },
+          { role: "model", parts: parts },
           { role: "user", parts: [{ functionResponse: { name: toolName!, response: { result: toolResult } } }] },
         ],
         config: {
@@ -167,7 +175,7 @@ ${context}`;
     }
 
     // 9. Normal text response (no tool call) — use the text we already have
-    //    If gemini-1.5-flash already gave us text, just return it directly.
+    //    If gemini-2.5-flash already gave us text, just return it directly.
     //    Only do a second streaming call with 2.5-flash for richer answers.
     const alreadyHasText = response.text && response.text.trim().length > 0;
     
@@ -183,7 +191,7 @@ ${context}`;
           } else {
             // Fallback: stream from 2.5-flash
             const streamResponse = await ai.models.generateContentStream({
-              model: "gemini-1.5-flash",
+              model: "gemini-2.5-flash",
               contents: query,
               config: {
                 systemInstruction,

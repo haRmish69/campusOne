@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
-import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus, Sun, Moon } from "lucide-react";
+import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus, Sun, Moon, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,112 @@ interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  videoPayload?: {
+    videoId: string;
+    timestamp: number;
+    url: string;
+  };
+  flashcardPayload?: {
+    topic: string;
+    cards: { front: string; back: string }[];
+  };
+}
+
+// ─── FlashcardDeck Sub-Component ─────────────────────────────────────────
+function FlashcardDeck({ payload }: { payload: { topic: string; cards: { front: string; back: string }[] } }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const total = payload.cards.length;
+  const card = payload.cards[currentIndex];
+
+  const goNext = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev + 1) % total);
+  };
+
+  const goPrev = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev - 1 + total) % total);
+  };
+
+  return (
+    <div className="mt-4 w-full max-w-[480px]">
+      {/* Topic Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">🧠</span>
+        <h4 className="text-sm font-semibold text-slate-700">{payload.topic}</h4>
+        <span className="ml-auto text-xs font-medium text-slate-400">
+          {currentIndex + 1} of {total}
+        </span>
+      </div>
+
+      {/* 3D Flip Card */}
+      <div
+        className="cursor-pointer"
+        style={{ perspective: "1000px" }}
+        onClick={() => setIsFlipped(!isFlipped)}
+      >
+        <div
+          className="relative w-full transition-transform duration-500"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            minHeight: "200px",
+          }}
+        >
+          {/* Front Face */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-indigo-200 bg-white p-6 shadow-sm"
+            style={{ backfaceVisibility: "hidden" }}
+          >
+            <span className="mb-2 text-xs font-medium uppercase tracking-wider text-indigo-400">Question</span>
+            <p className="text-center text-base font-medium text-slate-800 leading-relaxed">{card.front}</p>
+            <span className="mt-4 text-[11px] text-slate-400">Tap to reveal answer</span>
+          </div>
+
+          {/* Back Face */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm"
+            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+          >
+            <span className="mb-2 text-xs font-medium uppercase tracking-wider text-emerald-500">Answer</span>
+            <p className="text-center text-sm text-slate-700 leading-relaxed">{card.back}</p>
+            <span className="mt-4 text-[11px] text-slate-400">Tap to see question</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Controls */}
+      <div className="mt-3 flex items-center justify-between">
+        <button
+          onClick={(e) => { e.stopPropagation(); goPrev(); }}
+          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Prev
+        </button>
+
+        {/* Progress Dots */}
+        <div className="flex gap-1">
+          {payload.cards.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentIndex ? "w-4 bg-indigo-500" : "w-1.5 bg-slate-200"
+              }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={(e) => { e.stopPropagation(); goNext(); }}
+          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:border-slate-300"
+        >
+          Next <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function ChatInterface() {
@@ -218,12 +324,11 @@ export function ChatInterface() {
     setMessages(prev => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
 
     try {
-      const res = await fetch("/api/query", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: textToSend,
-          history,
+          query: textToSend,
           sessionId
         })
       });
@@ -232,28 +337,18 @@ export function ChatInterface() {
         const errorData = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
         throw new Error(errorData.error || `Server error: ${res.status}`);
       }
-      if (!res.body) throw new Error("No body returned");
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullResponse = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        fullResponse += chunk;
-        
-        setMessages(prev => 
-          prev.map(m => 
-            m.id === assistantMessageId 
-              ? { ...m, content: fullResponse }
-              : m
-          )
-        );
-      }
+      const data = await res.json();
       
-      speak(fullResponse);
+      setMessages(prev => 
+        prev.map(m => 
+          m.id === assistantMessageId 
+            ? { ...m, content: data.text, videoPayload: data.videoPayload, flashcardPayload: data.flashcardPayload }
+            : m
+        )
+      );
+      
+      speak(data.text);
       
     } catch (error: any) {
       let errorMsg = error.message || "An unexpected error occurred.";
@@ -418,6 +513,29 @@ export function ChatInterface() {
                     >
                       {msg.content}
                     </ReactMarkdown>
+
+                    {msg.videoPayload && (
+                      <div className="bg-neutral-900 border border-purple-500/50 rounded-xl p-4 mt-3 shadow-lg shadow-purple-900/20 w-full min-w-[300px] sm:min-w-[400px]">
+                        <div className="flex items-center gap-2 mb-3 border-b border-purple-500/30 pb-2">
+                          <span className="text-xl">🎥</span>
+                          <h4 className="text-sm font-semibold text-purple-200">
+                            AI Timestamp Found: {Math.floor(msg.videoPayload.timestamp / 60)}:{(msg.videoPayload.timestamp % 60).toString().padStart(2, '0')}
+                          </h4>
+                        </div>
+                        <div className="relative w-full pt-[56.25%] rounded-lg overflow-hidden border border-neutral-800">
+                          <iframe
+                            className="absolute top-0 left-0 w-full h-full"
+                            src={msg.videoPayload.url}
+                            allow="autoplay; encrypted-media; fullscreen"
+                            title="YouTube Lecture"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {msg.flashcardPayload && (
+                      <FlashcardDeck payload={msg.flashcardPayload} />
+                    )}
                   </div>
                 )}
               </div>

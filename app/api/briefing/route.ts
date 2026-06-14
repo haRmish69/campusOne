@@ -163,29 +163,66 @@ ${wellnessText}
 
 INSTRUCTIONS:
 1. Greet the user warmly with a ${type === "morning" ? "good morning" : "good evening"} energy.
-2. Summarize today's data in a clear, structured, motivating way using markdown formatting (bullets, bold).
-3. Highlight anything URGENT (exams due in 1-2 days, important events today).
-4. If wellness history exists, REFERENCE it naturally. Examples:
-   - "I noticed you've been sleeping only 5h the past 2 nights — try to get more rest tonight."
-   - "Your stress has been climbing — remember to take breaks."
-   - "Great to see your mood improving over the last few days! Keep it up."
-   Do NOT just dump the raw numbers. Weave them into your advice naturally.
-5. For evening briefings, mention tomorrow's schedule so they can prepare.
-6. At the END, transition into a brief wellness check-in question (the UI will handle the actual MCQ, so just ask casually).
-7. Keep the TOTAL response under 300 words.`;
+2. Generate a 'briefingMarkdown' string summarizing today's data in a clear, structured, motivating way (bullets, bold). Highlight anything URGENT. If wellness history exists, REFERENCE it naturally in the advice. Keep the text under 300 words.
+3. Generate exactly 5 'questions' for a multiple-choice wellness check-in:
+   - Question 1 MUST have id="sleep", asking about sleep hours (values must be numbers).
+   - Question 2 MUST have id="mood", asking about mood (values must be 1-10).
+   - Question 3 MUST have id="stress", asking about stress (values must be 1-10).
+   - Questions 4 & 5 MUST be custom, personalized questions based on the user's schedule, deadlines, expenses, or recent wellness.
+   - Each question must have 3-5 'options' with a 'label' (string) and 'value' (number or string).`;
 
     // ─── 8. Generate briefing via Gemini ────────────────────────────────
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: `Generate my ${type} briefing.`,
       config: {
         systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object" as any,
+          properties: {
+            briefingMarkdown: { type: "string" as any },
+            questions: {
+              type: "array" as any,
+              items: {
+                type: "object" as any,
+                properties: {
+                  id: { type: "string" as any },
+                  question: { type: "string" as any },
+                  options: {
+                    type: "array" as any,
+                    items: {
+                      type: "object" as any,
+                      properties: {
+                        label: { type: "string" as any },
+                        value: { type: "string" as any } // Use string to support both numbers and text generically in the parsed JSON, we'll cast on frontend if needed or let wellness-sync handle it
+                      },
+                      required: ["label", "value"]
+                    }
+                  }
+                },
+                required: ["id", "question", "options"]
+              }
+            }
+          },
+          required: ["briefingMarkdown", "questions"]
+        }
       },
     });
 
-    const briefingText = response.text || "I couldn't generate your briefing right now. Please try again.";
+    const rawJson = response.text || "{}";
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch {
+      parsed = { briefingMarkdown: "I couldn't generate your briefing right now.", questions: [] };
+    }
 
-    return NextResponse.json({ briefing: briefingText, type });
+    return NextResponse.json({ 
+      briefing: parsed.briefingMarkdown, 
+      questions: parsed.questions,
+      type 
+    });
 
   } catch (error: any) {
     console.error("Briefing API Error:", error);

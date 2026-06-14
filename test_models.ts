@@ -6,8 +6,8 @@ async function main() {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const response = await ai.models.list();
   for await (const model of response) {
-    if (model.name.includes("embedding")) {
-      console.log(model.name);
+    if (model.name!.includes("embedding")) {
+      console.log(model.name!);
     }
   }
 }

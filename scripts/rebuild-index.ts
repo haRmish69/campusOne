@@ -16,7 +16,7 @@ const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 async function main() {
   let dimension = 0; // auto-detect from first embedding
-  let index: InstanceType<typeof IndexFlatL2> | null = null;
+  let index: any = null;
   const faissMap: Record<number, string> = {};
   let currentIndex = 0;
 
