@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     // ─── 2. Fetch today's classes ────────────────────────────────────────
     const classes = await prisma.classSchedule.findMany({
-      where: { day: todayDay },
+      where: { day: todayDay, userId },
       orderBy: { startTime: "asc" },
       select: { subject: true, startTime: true, endTime: true, room: true, faculty: true },
     });
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     const deadlines = await prisma.deadline.findMany({
       where: {
+        userId,
         dueDate: { gte: now, lte: sevenDaysLater },
         isComplete: false,
       },
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
     // ─── 4. Fetch upcoming notices with events ──────────────────────────
     const notices = await prisma.notice.findMany({
       where: {
+        userId,
         eventDate: { gte: now, lte: sevenDaysLater },
       },
       orderBy: { eventDate: "asc" },
@@ -58,7 +60,10 @@ export async function POST(req: NextRequest) {
     // ─── 5. Fetch expense total for this month ──────────────────────────
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const expenses = await prisma.expense.aggregate({
-      where: { date: { gte: monthStart } },
+      where: {
+        userId,
+        date: { gte: monthStart, lte: now },
+      },
       _sum: { amount: true },
       _count: true,
     });
