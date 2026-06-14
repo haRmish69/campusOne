@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       prisma.messMenu.findMany({ where: { id: { in: matchedIds }, userId } }),
       prisma.deadline.findMany({ where: { id: { in: matchedIds }, userId } }),
       prisma.classSchedule.findMany({ where: { id: { in: matchedIds }, userId } }),
-      prisma.note.findMany({ where: { id: { in: matchedIds }, userId } }),
+      Promise.resolve([] as any[]),
     ]);
 
     // 5. Build RAG Context
@@ -104,7 +104,7 @@ ${context}`;
       contents: query,
       config: {
         systemInstruction,
-        tools: [{ functionDeclarations: toolDeclarations }],
+        tools: [{ functionDeclarations: toolDeclarations as any }],
       },
     });
     console.log("✅ Tool-detection call complete");

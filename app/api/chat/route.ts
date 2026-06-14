@@ -289,7 +289,7 @@ ${formattedTranscript}`,
             // ─── Campus Modification Tools ───────────────────────────
             try {
               console.log(`🔧 Campus Tool Call: ${call.name}`);
-              const toolResult = await executeTool(call.name, call.args, userId!);
+              const toolResult = await executeTool(call.name!, call.args, userId!);
               responseTexts.push(`I have executed your request: ${toolResult}`);
             } catch (err: any) {
               console.error(`Error executing tool ${call.name}:`, err);

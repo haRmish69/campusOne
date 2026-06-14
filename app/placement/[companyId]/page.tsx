@@ -4,8 +4,8 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, TrendingUp, Users, Star, ChevronDown, ChevronUp,
-  ThumbsUp, Shield, AlertTriangle, CheckCircle2, XCircle, Clock,
-  Plus, Send, Trash2
+  ThumbsUp, AlertTriangle, CheckCircle2, XCircle, Clock,
+  Plus, Trash2, ExternalLink, Tag, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ type Company = {
   roundDescriptions: string[] | null; topSkillsRequired: string[];
   campusVisitCount: number; lastVisitedYear: number | null;
   description: string | null; websiteUrl: string | null;
+  addedBy: string | null;
   recentExperiences: any[]; topQuestions: any[];
   stats: { totalExperiences: number; selectionRate: number; avgPackage: number | null };
 };
@@ -65,7 +66,10 @@ export default function CompanyDetailPage({
   const [newExp, setNewExp] = useState({ batch: "", branch: "", outcome: "selected", overallTips: "", packageOffered: "", isAnonymous: false });
   
   const [showAddQues, setShowAddQues] = useState(false);
-  const [newQues, setNewQues] = useState({ round: "technical", question: "", answer: "", difficulty: "medium" });
+  const [newQues, setNewQues] = useState({ round: "technical", question: "", answer: "", difficulty: "medium", tags: "", link: "" });
+
+  // Tag filter state
+  const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCompany();
@@ -107,11 +111,13 @@ export default function CompanyDetailPage({
       if (!res.ok) throw new Error((await res.json()).error);
       toast.success("Experience shared!");
       setShowAddExp(false);
+      setNewExp({ batch: "", branch: "", outcome: "selected", overallTips: "", packageOffered: "", isAnonymous: false });
       fetchCompany();
     } catch (err: any) { toast.error(err.message); }
   };
 
   const handleDeleteExp = async (experienceId: string) => {
+    if (!confirm("Delete this experience?")) return;
     try {
       const res = await fetch(`/api/companies/${companyId}/experience?experienceId=${experienceId}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -122,20 +128,33 @@ export default function CompanyDetailPage({
 
   const handleAddQues = async () => {
     try {
+      const tagsArray = newQues.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t);
+
       const res = await fetch(`/api/companies/${companyId}/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newQues),
+        body: JSON.stringify({
+          round: newQues.round,
+          question: newQues.question,
+          answer: newQues.answer || null,
+          difficulty: newQues.difficulty,
+          tags: tagsArray,
+          link: newQues.link || null,
+        }),
       });
       if (!res.ok) throw new Error((await res.json()).error);
       toast.success("Question contributed!");
       setShowAddQues(false);
-      setNewQues({ round: "technical", question: "", answer: "", difficulty: "medium" });
+      setNewQues({ round: "technical", question: "", answer: "", difficulty: "medium", tags: "", link: "" });
       fetchCompany();
     } catch (err: any) { toast.error(err.message); }
   };
 
   const handleDeleteQues = async (questionId: string) => {
+    if (!confirm("Delete this question?")) return;
     try {
       const res = await fetch(`/api/companies/${companyId}/questions?questionId=${questionId}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -155,6 +174,27 @@ export default function CompanyDetailPage({
       toast.error("Failed to upvote");
     }
   };
+
+  // Parse tags from a question object
+  const parseTags = (tags: any): string[] => {
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === "string") {
+      try { return JSON.parse(tags); } catch { return []; }
+    }
+    return [];
+  };
+
+  // Collect all unique tags across questions
+  const allTags = company
+    ? [...new Set(company.topQuestions.flatMap((q) => parseTags(q.tags)))]
+    : [];
+
+  // Filter questions by active tag
+  const filteredQuestions = company
+    ? activeTagFilter
+      ? company.topQuestions.filter((q) => parseTags(q.tags).includes(activeTagFilter))
+      : company.topQuestions
+    : [];
 
   if (isLoading) {
     return (
@@ -202,7 +242,7 @@ export default function CompanyDetailPage({
               {company.packageMin || company.packageMax ? (
                 <span className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  ₹{company.packageMin || "?"}-{company.packageMax || "?"} LPA
+                  ₹{company.packageMin || "?"}–{company.packageMax || "?"} LPA
                 </span>
               ) : null}
             </div>
@@ -515,6 +555,31 @@ export default function CompanyDetailPage({
               </div>
               <textarea placeholder="Write the interview question here..." value={newQues.question} onChange={e => setNewQues({...newQues, question: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm h-16 resize-none" />
               <textarea placeholder="Write the expected answer or approach (optional)..." value={newQues.answer} onChange={e => setNewQues({...newQues, answer: e.target.value})} className="w-full px-3 py-2 rounded-lg border text-sm h-16 resize-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[var(--color-slate-blue)] flex items-center gap-1">
+                    <Tag className="w-3 h-3" /> Tags <span className="text-muted-foreground">(comma separated)</span>
+                  </label>
+                  <input
+                    placeholder="e.g. arrays, dp, graphs, sql"
+                    value={newQues.tags}
+                    onChange={e => setNewQues({...newQues, tags: e.target.value})}
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-[var(--color-slate-blue)] flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" /> Link <span className="text-muted-foreground">(optional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://leetcode.com/..."
+                    value={newQues.link}
+                    onChange={e => setNewQues({...newQues, link: e.target.value})}
+                    className="w-full px-3 py-2 rounded-lg border text-sm"
+                  />
+                </div>
+              </div>
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={() => setShowAddQues(false)} className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-black/5 rounded-lg">Cancel</button>
                 <button onClick={handleAddQues} className="px-4 py-2 bg-[var(--color-midnight-navy)] text-white text-sm font-medium rounded-lg">Submit</button>
@@ -522,28 +587,66 @@ export default function CompanyDetailPage({
             </div>
           )}
 
-          {company.topQuestions.length === 0 ? (
+          {/* Tag filter pills */}
+          {allTags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-[var(--color-slate-blue)]">Filter by tag:</span>
+              {activeTagFilter && (
+                <button
+                  onClick={() => setActiveTagFilter(null)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium bg-[var(--color-midnight-navy)] text-white"
+                >
+                  {activeTagFilter} <X className="w-3 h-3" />
+                </button>
+              )}
+              {allTags.filter(t => t !== activeTagFilter).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTagFilter(tag)}
+                  className="px-2 py-1 rounded-md text-[10px] font-medium bg-[var(--color-fog)] text-[var(--color-slate-blue)] hover:bg-[var(--color-cloud)] transition-colors"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {filteredQuestions.length === 0 ? (
             <div className="text-center py-12">
               <Star className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">
-                No questions added yet. Contribute the first one!
+                {activeTagFilter
+                  ? `No questions with tag "${activeTagFilter}"`
+                  : "No questions added yet. Contribute the first one!"}
               </p>
             </div>
           ) : (
-            company.topQuestions.map((q) => (
-              <div
-                key={q.id}
-                className="rounded-2xl border border-border/60 bg-card p-4 group"
-              >
+            filteredQuestions.map((q) => {
+              const qTags = parseTags(q.tags);
+              return (
+                <div
+                  key={q.id}
+                  className="rounded-2xl border border-border/60 bg-card p-4 group"
+                >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-[var(--color-fog)] text-[var(--color-slate-blue)]">
                         {ROUND_LABELS[q.round] || q.round}
                       </span>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${DIFFICULTY_COLORS[q.difficulty] || DIFFICULTY_COLORS.medium}`}>
                         {q.difficulty}
                       </span>
+                      {/* Tags */}
+                      {qTags.map((tag: string) => (
+                        <button
+                          key={tag}
+                          onClick={() => setActiveTagFilter(tag)}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                        >
+                          #{tag}
+                        </button>
+                      ))}
                     </div>
                     <p className="text-sm text-[var(--color-midnight-navy)] leading-relaxed">
                       {q.question}
@@ -552,6 +655,18 @@ export default function CompanyDetailPage({
                       <p className="mt-2 text-xs text-muted-foreground bg-[var(--color-fog)] rounded-lg p-2">
                         💡 {q.answer}
                       </p>
+                    )}
+                    {q.link && (
+                      <a
+                        href={q.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--color-electric-indigo)] hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Reference Link
+                      </a>
                     )}
                   </div>
                   <div className="flex flex-col items-center gap-2">
@@ -576,7 +691,8 @@ export default function CompanyDetailPage({
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </TabsContent>
       </Tabs>

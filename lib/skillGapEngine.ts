@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { getExpertiseProfile } from "./expertiseEngine";
-import { findCandidatesForRequest } from "./peerMatcher";
+
 
 type GapEntry = {
   skill: string;
@@ -54,34 +54,8 @@ export async function analyzeSkillGap(
   gaps.sort((a, b) => a.priority - b.priority);
 
   // Find peer matches for gaps (missing or weak)
+  // Peer matching for gaps is handled dynamically later when the user creates a real request.
   const peerMatchIds: string[] = [];
-  for (const g of gaps.filter((g) => g.status !== "strong")) {
-    try {
-      const candidates = await findCandidatesForRequest(
-        {
-          id: "",
-          requesterId: userId,
-          topic: g.skill,
-          description: `Help with ${g.skill} for ${company.name} prep`,
-          isAnonymous: false,
-          status: "open",
-          embedding: "[]",
-          createdAt: new Date(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
-        userId,
-        2
-      );
-      for (const c of candidates) {
-        if (!peerMatchIds.includes(c.profileId)) {
-          peerMatchIds.push(c.profileId);
-        }
-      }
-    } catch {
-      // peer matching is best-effort
-    }
-  }
-
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const result = await prisma.skillGapAnalysis.upsert({

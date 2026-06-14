@@ -20,7 +20,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { round, question, answer, difficulty } = body;
+    const { round, question, answer, difficulty, tags, link } = body;
 
     if (!round || !question) {
       return NextResponse.json(
@@ -37,7 +37,12 @@ export async function POST(
       );
     }
 
-    const embeddingText = `${company.name} ${round} ${question}`;
+    // Normalize tags: lowercase, trimmed, deduplicated
+    const normalizedTags = Array.isArray(tags)
+      ? [...new Set(tags.map((t: string) => t.trim().toLowerCase()).filter((t: string) => t))]
+      : [];
+
+    const embeddingText = `${company.name} ${round} ${question} ${normalizedTags.join(" ")}`;
     const embedding = await embedText(embeddingText);
 
     const prepQuestion = await prisma.prepQuestion.create({
@@ -48,6 +53,8 @@ export async function POST(
         question,
         answer: answer || null,
         difficulty: difficulty || "medium",
+        tags: JSON.stringify(normalizedTags),
+        link: link || null,
         submittedBy: userId,
         embedding: JSON.stringify(embedding),
       },
@@ -60,7 +67,7 @@ export async function POST(
   }
 }
 
-// GET /api/companies/[id]/questions — list questions for a company
+// GET /api/companies/[id]/questions — list questions (supports round and tag filters)
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,14 +77,24 @@ export async function GET(
 
     const { searchParams } = new URL(req.url);
     const round = searchParams.get("round");
+    const tag = searchParams.get("tag");
 
     const where: any = { companyId };
     if (round) where.round = round;
 
-    const questions = await prisma.prepQuestion.findMany({
+    let questions = await prisma.prepQuestion.findMany({
       where,
       orderBy: { upvotes: "desc" },
     });
+
+    // Filter by tag (JSON array stored as string)
+    if (tag) {
+      const tagLower = tag.toLowerCase();
+      questions = questions.filter((q) => {
+        const qTags = typeof q.tags === "string" ? JSON.parse(q.tags) : q.tags;
+        return Array.isArray(qTags) && qTags.some((t: string) => t.toLowerCase() === tagLower);
+      });
+    }
 
     return NextResponse.json(questions);
   } catch (error) {

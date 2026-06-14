@@ -36,10 +36,7 @@ export function Sidebar() {
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
     { href: "/notes", label: "My Notes", icon: FolderOpen },
-    { href: "/placement", label: "Placement", icon: Briefcase },
-    { href: "/transport", label: "Travel Pool", icon: Car },
-
-    { href: "/peer-learning", label: "Study Peers", icon: Users },
+    { href: "/campus-ecosystem", label: "Campus Ecosystem", icon: Compass },
   ];
 
   const pocketBuddyLinks = [
@@ -65,7 +62,9 @@ export function Sidebar() {
       <nav className="flex-1 p-2 md:p-4 flex flex-row md:flex-col gap-1 md:gap-2 justify-around md:justify-start overflow-x-auto md:overflow-y-auto w-full items-center md:items-stretch">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href;
+          const isActive = link.href === "/campus-ecosystem"
+            ? pathname === "/campus-ecosystem" || pathname.startsWith("/placement") || pathname.startsWith("/transport") || pathname.startsWith("/peer-learning")
+            : pathname === link.href;
           
           return (
             <Link 

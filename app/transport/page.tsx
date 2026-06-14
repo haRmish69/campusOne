@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Car, Clock, Plus, Users, Trash2, ArrowRight, User as UserIcon } from "lucide-react";
+import { Car, Clock, Plus, Users, Trash2, ArrowRight, ArrowLeft, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function TransportPage() {
   const { user } = useUser();
@@ -92,6 +93,11 @@ export default function TransportPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+      {/* Back Button */}
+      <Link href="/campus-ecosystem" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Campus Ecosystem
+      </Link>
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-[var(--color-midnight-navy)] flex items-center gap-3">
           <Car className="w-8 h-8 text-[var(--color-signal-blue)]" />

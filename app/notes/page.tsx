@@ -640,6 +640,7 @@ export default function NotesPage() {
                     onClick={() => {
                       try {
                         const dataUrl = selectedNote.fileUrl;
+                        if (!dataUrl) return;
                         const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
                         if (!match) return;
                         const mime = match[1];

@@ -47,10 +47,9 @@ export async function computeBurnoutSignals(userId: string): Promise<BurnoutSign
     : 5;
 
   // 5. Peer isolation
-  const lastPeerActivity = await prisma.learningMatch.findFirst({
+  const lastPeerActivity = await prisma.studySession.findFirst({
     where: {
       OR: [{ requesterId: userId }, { helperId: userId }],
-      status: { in: ["accepted", "pending"] },
     },
     orderBy: { createdAt: "desc" },
   });

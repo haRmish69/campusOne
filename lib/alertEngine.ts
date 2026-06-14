@@ -88,7 +88,7 @@ export async function computeAlerts(userId: string): Promise<Alert[]> {
   // 3. peer_isolation — no peer activity for 14 days
   try {
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const recentPeerActivity = await prisma.learningMatch.findFirst({
+    const recentPeerActivity = await prisma.studySession.findFirst({
       where: {
         OR: [{ requesterId: userId }, { helperId: userId }],
         createdAt: { gte: fourteenDaysAgo },

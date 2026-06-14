@@ -1,77 +1,71 @@
 "use client";
 
 import { useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, Building2, AlertCircle } from "lucide-react";
 
-const DOMAINS = [
-  { value: "tech", label: "Technology" },
-  { value: "finance", label: "Finance" },
-  { value: "consulting", label: "Consulting" },
-  { value: "core", label: "Core Engineering" },
-  { value: "product", label: "Product" },
-  { value: "other", label: "Other" },
-];
+type Props = {
+  onClose: () => void;
+  onSuccess: () => void;
+};
 
-export default function AddCompanyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState({
+export default function AddCompanyModal({ onClose, onSuccess }: Props) {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
     name: "",
     domain: "tech",
     packageMin: "",
     packageMax: "",
     interviewRounds: "",
-    description: "",
-    websiteUrl: "",
+    topSkillsRequired: "",
     lastVisitedYear: new Date().getFullYear().toString(),
+    description: "",
   });
-  const [skills, setSkills] = useState<string[]>([]);
-  const [skillInput, setSkillInput] = useState("");
-
-  const addSkill = () => {
-    const trimmed = skillInput.trim();
-    if (trimmed && !skills.includes(trimmed)) {
-      setSkills([...skills, trimmed]);
-      setSkillInput("");
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setSkills(skills.filter(s => s !== skill));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addSkill();
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [duplicate, setDuplicate] = useState<{ companyId: string; companyName: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setDuplicate(null);
 
-    if (!form.name.trim()) return;
-    if (skills.length === 0) {
-      alert("Please add at least one skill requirement.");
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
+      const skillsArray = formData.topSkillsRequired
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s);
+
+      if (skillsArray.length === 0) {
+        setError("Please add at least one skill");
+        setIsLoading(false);
+        return;
+      }
+
+      const payload = {
+        name: formData.name.trim(),
+        domain: formData.domain,
+        packageMin: formData.packageMin ? parseFloat(formData.packageMin) : null,
+        packageMax: formData.packageMax ? parseFloat(formData.packageMax) : null,
+        interviewRounds: formData.interviewRounds ? parseInt(formData.interviewRounds) : null,
+        lastVisitedYear: formData.lastVisitedYear ? parseInt(formData.lastVisitedYear) : null,
+        topSkillsRequired: skillsArray,
+        description: formData.description || null,
+      };
+
       const res = await fetch("/api/companies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          domain: form.domain,
-          packageMin: form.packageMin ? parseFloat(form.packageMin) : null,
-          packageMax: form.packageMax ? parseFloat(form.packageMax) : null,
-          interviewRounds: form.interviewRounds ? parseInt(form.interviewRounds) : null,
-          topSkillsRequired: skills,
-          description: form.description.trim() || null,
-          websiteUrl: form.websiteUrl.trim() || null,
-          lastVisitedYear: form.lastVisitedYear ? parseInt(form.lastVisitedYear) : null,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      if (res.status === 409) {
+        // Duplicate found
+        const data = await res.json();
+        setDuplicate({ companyId: data.companyId, companyName: data.companyName });
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -80,182 +74,215 @@ export default function AddCompanyModal({ onClose, onSuccess }: { onClose: () =>
 
       onSuccess();
     } catch (err: any) {
-      alert(err.message || "Failed to add company");
+      setError(err.message);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
+    }
+  };
+
+  const goToExistingCompany = () => {
+    if (duplicate) {
+      onClose();
+      router.push(`/placement/${duplicate.companyId}`);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white rounded-t-2xl border-b border-border/40 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-xl font-bold text-slate-800">Add New Company</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="p-5 border-b border-border/60 flex items-center justify-between sticky top-0 bg-card z-10">
+          <h2 className="text-xl font-semibold text-[var(--color-midnight-navy)] flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-[var(--color-electric-indigo)]" />
+            Add Company
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-muted-foreground hover:bg-[var(--color-fog)] rounded-lg transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Company Name */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Company Name <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Google, TCS, Infosys"
-              className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              required
-            />
-          </div>
-
-          {/* Domain */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Domain <span className="text-red-500">*</span></label>
-            <select
-              value={form.domain}
-              onChange={e => setForm({ ...form, domain: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all bg-white"
-            >
-              {DOMAINS.map(d => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Package Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Min Package (LPA)</label>
-              <input
-                type="number"
-                value={form.packageMin}
-                onChange={e => setForm({ ...form, packageMin: e.target.value })}
-                placeholder="e.g. 8"
-                step="0.1"
-                min="0"
-                className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              />
+        {/* Duplicate detected */}
+        {duplicate && (
+          <div className="p-5 space-y-4">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800">
+                  &quot;{duplicate.companyName}&quot; already exists for your college!
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  Would you like to share your experience or add questions instead?
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Max Package (LPA)</label>
-              <input
-                type="number"
-                value={form.packageMax}
-                onChange={e => setForm({ ...form, packageMax: e.target.value })}
-                placeholder="e.g. 15"
-                step="0.1"
-                min="0"
-                className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Interview Rounds & Last Visited Year */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Interview Rounds</label>
-              <input
-                type="number"
-                value={form.interviewRounds}
-                onChange={e => setForm({ ...form, interviewRounds: e.target.value })}
-                placeholder="e.g. 3"
-                min="1"
-                max="10"
-                className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Last Visited Year</label>
-              <input
-                type="number"
-                value={form.lastVisitedYear}
-                onChange={e => setForm({ ...form, lastVisitedYear: e.target.value })}
-                placeholder="e.g. 2026"
-                min="2020"
-                max="2030"
-                className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Skills */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Required Skills <span className="text-red-500">*</span></label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type a skill and press Enter"
-                className="flex-1 px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-              />
+            <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={addSkill}
-                className="px-3 py-2 rounded-lg bg-[var(--color-fog)] text-[var(--color-midnight-navy)] text-sm font-medium hover:bg-[var(--color-cloud)] transition-colors"
+                onClick={() => setDuplicate(null)}
+                className="px-4 py-2 text-sm font-medium text-[var(--color-slate-blue)] hover:text-[var(--color-midnight-navy)] transition-colors"
               >
-                <Plus className="w-4 h-4" />
+                It&apos;s a different company
+              </button>
+              <button
+                type="button"
+                onClick={goToExistingCompany}
+                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-xl shadow-sm transition-colors"
+              >
+                Go to Company Page →
               </button>
             </div>
-            {skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {skills.map(skill => (
-                  <span key={skill} className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium">
-                    {skill}
-                    <button type="button" onClick={() => removeSkill(skill)} className="hover:text-red-500 transition-colors">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
+          </div>
+        )}
+
+        {/* Form */}
+        {!duplicate && (
+          <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-xl border border-red-100">
+                {error}
               </div>
             )}
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Brief description about the company and roles offered..."
-              rows={3}
-              className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all resize-none"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                Company Name *
+              </label>
+              <input
+                required
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Google"
+                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+              />
+            </div>
 
-          {/* Website */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Website URL</label>
-            <input
-              type="url"
-              value={form.websiteUrl}
-              onChange={e => setForm({ ...form, websiteUrl: e.target.value })}
-              placeholder="https://example.com"
-              className="w-full px-3 py-2 rounded-lg border border-border/60 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 transition-all"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                Domain *
+              </label>
+              <select
+                required
+                value={formData.domain}
+                onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+              >
+                <option value="tech">Tech</option>
+                <option value="finance">Finance</option>
+                <option value="consulting">Consulting</option>
+                <option value="core">Core</option>
+                <option value="product">Product</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 text-sm font-medium text-white bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Submitting..." : "Add Company"}
-            </button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                  Min Package (LPA)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.packageMin}
+                  onChange={(e) => setFormData({ ...formData, packageMin: e.target.value })}
+                  placeholder="e.g. 10"
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                  Max Package (LPA)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.packageMax}
+                  onChange={(e) => setFormData({ ...formData, packageMax: e.target.value })}
+                  placeholder="e.g. 20"
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                  Interview Rounds
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.interviewRounds}
+                  onChange={(e) => setFormData({ ...formData, interviewRounds: e.target.value })}
+                  placeholder="e.g. 4"
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                  Last Visited Year
+                </label>
+                <input
+                  type="number"
+                  min="2000"
+                  max={new Date().getFullYear()}
+                  value={formData.lastVisitedYear}
+                  onChange={(e) => setFormData({ ...formData, lastVisitedYear: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                Top Skills Required * <span className="text-xs text-muted-foreground">(comma separated)</span>
+              </label>
+              <input
+                required
+                type="text"
+                value={formData.topSkillsRequired}
+                onChange={(e) => setFormData({ ...formData, topSkillsRequired: e.target.value })}
+                placeholder="e.g. React, Node.js, System Design"
+                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-[var(--color-slate-blue)]">
+                Description <span className="text-xs text-muted-foreground">(optional)</span>
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief info about the company, role offered, etc."
+                className="w-full px-3 py-2 rounded-xl border border-border/60 bg-card text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-indigo)]/30 h-20 resize-none"
+              />
+            </div>
+
+            <div className="pt-4 flex justify-end gap-3 border-t border-border/60">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-[var(--color-slate-blue)] hover:text-[var(--color-midnight-navy)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 bg-[var(--color-midnight-navy)] hover:bg-[var(--color-midnight-navy)]/90 text-white text-sm font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              >
+                {isLoading ? "Adding..." : "Add Company"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

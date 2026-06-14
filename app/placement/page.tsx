@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Briefcase, Search, TrendingUp, ChevronRight, Building2, Plus, CheckCircle2, Flag } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import { Briefcase, Search, TrendingUp, ChevronRight, Building2, Plus, Flag, Trash2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import AddCompanyModal from "./components/AddCompanyModal";
 
@@ -17,7 +18,7 @@ type Company = {
   campusVisitCount: number;
   lastVisitedYear: number | null;
   description: string | null;
-  isUserSubmitted?: boolean;
+  addedBy: string | null;
 };
 
 const DOMAIN_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 };
 
 export default function PlacementPage() {
+  const { user } = useUser();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +58,40 @@ export default function PlacementPage() {
     }
   };
 
+  const handleReport = async (companyId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to report this company as having incorrect/fake information?")) return;
+    try {
+      const res = await fetch(`/api/companies/${companyId}/report`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to report");
+      if (data.removed) {
+        toast.success("Company removed due to multiple reports");
+        fetchCompanies();
+      } else {
+        toast.success("Report submitted. Thank you!");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDelete = async (companyId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Delete this company and all its experiences/questions? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/companies/${companyId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete");
+      toast.success("Company deleted");
+      fetchCompanies();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   const filteredCompanies = searchQuery
     ? companies.filter((c) =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -78,6 +114,11 @@ export default function PlacementPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
+      {/* Back Button */}
+      <Link href="/campus-ecosystem" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-[#0b3558] transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Campus Ecosystem
+      </Link>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -163,6 +204,7 @@ export default function PlacementPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCompanies.map((company) => {
             const skills = parseSkills(company.topSkillsRequired);
+            const isOwner = user?.id === company.addedBy;
             return (
               <Link
                 key={company.id}
@@ -171,28 +213,25 @@ export default function PlacementPage() {
               >
                 <div className="rounded-2xl border border-border/60 bg-card p-5 hover:shadow-lg hover:border-[var(--color-electric-indigo)]/30 transition-all duration-300 h-full flex flex-col relative overflow-hidden">
                   
-                  {/* Badge for user submitted */}
-                  {company.isUserSubmitted && (
+                  {/* Action buttons */}
+                  <div className="absolute bottom-3 right-3 flex gap-1 z-10">
+                    {isOwner && (
+                      <button
+                        title="Delete your company"
+                        onClick={(e) => handleDelete(company.id, e)}
+                        className="p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       title="Report incorrect or fake information"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!confirm("Are you sure you want to report this submission?")) return;
-                        try {
-                          const res = await fetch(`/api/companies/submissions/${company.id}/report`, { method: "POST" });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data.error || "Failed to report");
-                          toast.success("Company reported successfully");
-                        } catch (err: any) {
-                          toast.error(err.message);
-                        }
-                      }}
-                      className="absolute bottom-3 right-3 p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition-colors z-10"
+                      onClick={(e) => handleReport(company.id, e)}
+                      className="p-2 bg-orange-50 text-orange-500 rounded-full hover:bg-orange-100 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <Flag className="w-4 h-4" />
                     </button>
-                  )}
+                  </div>
 
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3 mt-1">
@@ -261,7 +300,7 @@ export default function PlacementPage() {
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
             setIsModalOpen(false);
-            toast.success("Company submitted successfully!");
+            toast.success("Company added successfully!");
             fetchCompanies();
           }}
         />

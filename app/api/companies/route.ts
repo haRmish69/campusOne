@@ -27,39 +27,6 @@ export async function GET(req: NextRequest) {
       ],
     });
 
-    const submissionWhere: any = { instituteName, status: "approved" };
-    if (domain) submissionWhere.category = domain;
-
-    // Also fetch approved user submissions
-    const submissions = await prisma.companySubmission.findMany({
-      where: submissionWhere,
-      orderBy: { createdAt: "desc" },
-    });
-
-    // Map submissions into the Company shape so the frontend can render them uniformly
-    const mappedSubmissions = submissions.map(sub => ({
-      id: sub.id,
-      instituteName: sub.instituteName,
-      name: sub.companyName,
-      domain: sub.category,
-      packageMin: sub.ctcMin,
-      packageMax: sub.ctcMax,
-      interviewRounds: sub.rounds,
-      roundDescriptions: null,
-      topSkillsRequired: JSON.stringify(sub.skills),
-      campusVisitCount: 1,
-      lastVisitedYear: sub.year || new Date().getFullYear(),
-      description: null,
-      websiteUrl: null,
-      embedding: "{}", // Not used on frontend
-      createdAt: sub.createdAt,
-      updatedAt: sub.updatedAt,
-      isUserSubmitted: true, // Flag for frontend badge
-    }));
-
-    // @ts-ignore
-    companies = [...companies, ...mappedSubmissions];
-
     // Fuzzy search by name if search param provided
     if (search) {
       const q = search.toLowerCase();
@@ -98,6 +65,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for duplicate (case-insensitive within same college, MySQL collation handles this)
+    const existing = await prisma.company.findFirst({
+      where: {
+        instituteName,
+        name: name,
+      },
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { exists: true, companyId: existing.id, companyName: existing.name },
+        { status: 409 }
+      );
+    }
+
     const skills = Array.isArray(topSkillsRequired) ? topSkillsRequired : [];
     const embeddingText = `${name} ${domain} ${skills.join(" ")}`;
     const embedding = await embedText(embeddingText);
@@ -115,6 +97,7 @@ export async function POST(req: NextRequest) {
         description: description || null,
         websiteUrl: websiteUrl || null,
         lastVisitedYear: lastVisitedYear || null,
+        addedBy: userId,
         embedding: JSON.stringify(embedding),
       },
     });

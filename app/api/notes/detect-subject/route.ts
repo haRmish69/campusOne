@@ -17,13 +17,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing type or data" }, { status: 400 });
     }
 
-    // Fetch user's existing folder names to let Gemini align with them
-    const existingNotes = await prisma.note.findMany({
-      where: { userId },
-      select: { subject: true },
-      distinct: ["subject"],
-    });
-    const currentSubjects = existingNotes.map((n) => n.subject);
+    // Note model has been removed/migrated
+    const currentSubjects: string[] = [];
     const subjectsListText = currentSubjects.length > 0 
       ? `Existing folders in user's library: [${currentSubjects.join(", ")}]. Try to classify this document into one of these folders if it matches, otherwise suggest a new appropriate academic subject folder (e.g., 'Operating Systems', 'Physics', 'Discrete Mathematics').`
       : "Suggest an appropriate academic subject folder name (e.g., 'Operating Systems', 'Physics', 'Discrete Mathematics').";

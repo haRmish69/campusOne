@@ -13,32 +13,9 @@ export async function GET(
 
     const { id } = await params;
 
-    let company: any = await prisma.company.findUnique({ where: { id } });
+    const company = await prisma.company.findUnique({ where: { id } });
     if (!company) {
-      const submission = await prisma.companySubmission.findUnique({ where: { id } });
-      if (!submission || submission.status !== "approved") {
-        return NextResponse.json({ error: "Company not found" }, { status: 404 });
-      }
-
-      company = {
-        id: submission.id,
-        instituteName: submission.instituteName,
-        name: submission.companyName,
-        domain: submission.category,
-        packageMin: submission.ctcMin,
-        packageMax: submission.ctcMax,
-        interviewRounds: submission.rounds,
-        roundDescriptions: null,
-        topSkillsRequired: submission.skills,
-        campusVisitCount: 1,
-        lastVisitedYear: submission.year || new Date().getFullYear(),
-        description: null,
-        websiteUrl: null,
-        embedding: "{}",
-        createdAt: submission.createdAt,
-        updatedAt: submission.updatedAt,
-        isUserSubmitted: true,
-      };
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
     const [experiences, questions, allExperiences] = await Promise.all([
@@ -94,5 +71,40 @@ export async function GET(
   } catch (error) {
     console.error("GET /api/companies/[id] error:", error);
     return NextResponse.json({ error: "Failed to fetch company" }, { status: 500 });
+  }
+}
+
+// DELETE /api/companies/[id] — Delete a company (only if user is the creator)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+
+    const company = await prisma.company.findUnique({ where: { id } });
+    if (!company) {
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
+    }
+
+    if (company.addedBy !== userId) {
+      return NextResponse.json({ error: "Only the creator can delete this company" }, { status: 403 });
+    }
+
+    // Delete company and all associated records
+    await prisma.$transaction([
+      prisma.companyReport.deleteMany({ where: { companyId: id } }),
+      prisma.interviewExperience.deleteMany({ where: { companyId: id } }),
+      prisma.prepQuestion.deleteMany({ where: { companyId: id } }),
+      prisma.company.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/companies/[id] error:", error);
+    return NextResponse.json({ error: "Failed to delete company" }, { status: 500 });
   }
 }

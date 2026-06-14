@@ -142,6 +142,13 @@ model UserProfile {
   // Phase 15 fields
   lastEmailSync     DateTime?
   emailSyncEnabled  Boolean   @default(false)
+
+  // Reputation fields — computed, never manually set
+  totalHelped       Int      @default(0)
+  totalRequested    Int      @default(0)
+  reputationScore   Float    @default(0)
+  responseRate      Float    @default(1.0)
+  avgRating         Float?
 }
 
 model WellnessInsight {
@@ -165,40 +172,78 @@ model ExpertiseSeed {
   @@unique([profileId, topic, source])
 }
 
-model LearningRequest {
-  id          String   @id @default(cuid())
-  requesterId String
-  topic       String
-  description String?  @db.Text
-  isAnonymous Boolean  @default(true)
-  status      String   @default("open")
-  embedding   Json
-  createdAt   DateTime @default(now())
-  expiresAt   DateTime
+model HelpRequest {
+  id            String   @id @default(cuid())
+  requesterId   String   // UserProfile.id
+  topic         String
+  description   String?  @db.Text
+  urgency       String   @default("normal")
+  // "low" | "normal" | "high"
+  isAnonymous   Boolean  @default(false)
+  status        String   @default("open")
+  // "open" | "selecting" | "matched" | "scheduled" | "completed" | "cancelled" | "expired"
+  embedding     Json
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  volunteers    HelpVolunteer[]
+  studySession  StudySession?
 }
 
-model LearningMatch {
-  id                String    @id @default(cuid())
-  requestId         String
-  requesterId       String
-  helperId          String
-  status            String    @default("pending")
-  requesterAccepted Boolean   @default(true)
-  helperAccepted    Boolean   @default(false)
-  requesterSeen     Boolean   @default(false)
-  helperSeen        Boolean   @default(false)
-  createdAt         DateTime  @default(now())
-  respondedAt       DateTime?
+model HelpVolunteer {
+  id              String    @id @default(cuid())
+  requestId       String    // HelpRequest.id
+  request         HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  helperId        String    // UserProfile.id
+  status          String    @default("volunteered")
+  // "volunteered" | "selected" | "not_selected" | "withdrawn"
+  message         String?
+  notifiedAt      DateTime  @default(now())
+  respondedAt     DateTime?
+  createdAt       DateTime  @default(now())
 
   @@unique([requestId, helperId])
 }
 
+model StudySession {
+  id              String    @id @default(cuid())
+  requestId       String    @unique
+  request         HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requesterId     String    // UserProfile.id
+  helperId        String    // UserProfile.id
+  topic           String
+  status          String    @default("pending_schedule")
+  // "pending_schedule" | "confirmed" | "completed" | "cancelled" | "no_show"
+
+  proposedSlots        Json
+  requesterSlotChoice  Int?
+  helperSlotChoice     Int?
+  agreedSlot           Json?
+  confirmedAt          DateTime?
+  scheduledFor         DateTime?
+  contactShared        Boolean   @default(false)
+
+  completedAt          DateTime?
+  requesterRating      Int?
+  requesterReview      String?
+  helperRating         Int?
+  helperReview         String?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
 model PeerNotification {
   id          String   @id @default(cuid())
-  profileId   String
+  profileId   String   // UserProfile.id
   type        String
+  // "help_needed" | "volunteer_list_ready" | "you_were_selected"
+  // "slots_proposed" | "session_confirmed" | "contact_revealed"
+  // "session_reminder" | "rate_your_session" | "request_cancelled" | "request_expired"
   referenceId String
   message     String
+  actionUrl   String?
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
@@ -262,6 +307,8 @@ model Company {
   lastVisitedYear   Int?
   description       String?  @db.Text
   websiteUrl        String?
+  addedBy           String?  // userId of who added this company
+  reportCount       Int      @default(0)
   embedding         Json
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -304,12 +351,25 @@ model PrepQuestion {
   // community-contributed answer, optional
   difficulty  String   @default("medium")
   // "easy" | "medium" | "hard"
+  tags        Json     @default("[]")
+  // ["arrays", "dp", "graphs"] — custom user tags
+  link        String?  // optional URL reference
   upvotes     Int      @default(0)
   submittedBy String?
   // userId of contributor
   isVerified  Boolean  @default(false)
   embedding   Json
   createdAt   DateTime @default(now())
+}
+
+model CompanyReport {
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, userId])
 }
 
 model SkillGapAnalysis {
