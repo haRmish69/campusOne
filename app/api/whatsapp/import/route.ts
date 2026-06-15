@@ -158,7 +158,7 @@ Messages to analyze:
                   }
                 });
 
-                await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", userId || null, "global");
+                await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", userId || null, userId ? "private" : "global");
                 deadlinesImported++;
               }
             } else {
@@ -190,7 +190,7 @@ Messages to analyze:
                   }
                 });
 
-                await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId || null, "global");
+                await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId || null, userId ? "private" : "global");
                 noticesImported++;
               }
             }

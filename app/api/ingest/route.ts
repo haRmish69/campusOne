@@ -3,6 +3,7 @@ import { parseImageToJSON, parseTextToJSON } from "@/lib/gemini";
 import { embedText } from "@/lib/embeddings";
 import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 
 // ─── Smart Ingestion Prompt ──────────────────────────────────────────────
 // Instead of blindly creating a Notice, the AI first classifies the entity.
@@ -36,6 +37,7 @@ Return ONLY a JSON object. No markdown, no preamble. Just raw JSON.`;
 
 export async function POST(req: NextRequest) {
   try {
+    const { userId } = await auth();
     const body = await req.json();
     const { type, data, source } = body;
 
@@ -90,11 +92,12 @@ export async function POST(req: NextRequest) {
           type: deadlineType,
           notes,
           embedding,
+          userId: userId || null,
         }
       });
 
-      // Add to FAISS global index
-      await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", null, "global");
+      // Add to FAISS index
+      await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate.toISOString()}. ${notes || ""}`, "Deadline", userId || null, userId ? "private" : "global");
 
       return NextResponse.json({ success: true, entityType: "deadline", deadline }, { status: 201 });
     }
@@ -130,11 +133,12 @@ export async function POST(req: NextRequest) {
         actionRequired,
         source: source || null,
         embedding: embedding,
+        userId: userId || null,
       }
     });
 
     // Add to FAISS for semantic search
-    await addToIndex(notice.id, `[NOTICE] ${title}: ${bodyText}`, "Notice", null, "global");
+    await addToIndex(notice.id, `[NOTICE] ${title}: ${bodyText}`, "Notice", userId || null, userId ? "private" : "global");
 
     return NextResponse.json({ success: true, entityType: "notice", notice }, { status: 201 });
 

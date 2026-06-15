@@ -231,7 +231,7 @@ async function updateMessMenu(args: { day: string; meal: string; newItems: strin
 
   // Update vector index
   await removeFromIndex(existing.id, userId);
-  await addToIndex(updated.id, `[MESS] ${updated.day} ${updated.meal}: ${updated.items}`, "MessMenu", userId, "global");
+  await addToIndex(updated.id, `[MESS] ${updated.day} ${updated.meal}: ${updated.items}`, "MessMenu", userId, userId ? "private" : "global");
 
   return `Successfully updated ${day} ${meal} menu. New items: ${newItems}`;
 }
@@ -258,7 +258,7 @@ async function updateNotice(args: { title: string; newTitle?: string; newBody?: 
 
   // Update vector index
   await removeFromIndex(existing.id, userId);
-  await addToIndex(updated.id, `[NOTICE] ${updated.title}: ${updated.body}`, "Notice", userId, "global");
+  await addToIndex(updated.id, `[NOTICE] ${updated.title}: ${updated.body}`, "Notice", userId, userId ? "private" : "global");
 
   return `Successfully updated notice "${updated.title}".`;
 }
@@ -285,7 +285,7 @@ async function updateDeadline(args: { title: string; newTitle?: string; newDueDa
   });
 
   await removeFromIndex(existing.id, userId);
-  await addToIndex(updated.id, `[DEADLINE] ${updated.title} (${updated.subject}) due ${updated.dueDate}. ${updated.notes || ""}`, "Deadline", userId, "global");
+  await addToIndex(updated.id, `[DEADLINE] ${updated.title} (${updated.subject}) due ${updated.dueDate}. ${updated.notes || ""}`, "Deadline", userId, userId ? "private" : "global");
 
 
   return `Successfully updated deadline "${updated.title}". New due date: ${updated.dueDate}.`;
@@ -315,7 +315,7 @@ async function updateSchedule(args: { subject: string; day?: string; newDay?: st
   });
 
   await removeFromIndex(existing.id, userId);
-  await addToIndex(updated.id, `[CLASS] ${updated.subject} taught by ${updated.faculty || "Unknown"} on ${updated.day} from ${updated.startTime} to ${updated.endTime} at ${updated.room || "Unknown"}`, "ClassSchedule", userId, "global");
+  await addToIndex(updated.id, `[CLASS] ${updated.subject} taught by ${updated.faculty || "Unknown"} on ${updated.day} from ${updated.startTime} to ${updated.endTime} at ${updated.room || "Unknown"}`, "ClassSchedule", userId, userId ? "private" : "global");
 
 
   return `Successfully updated class "${updated.subject}" on ${updated.day}. Time: ${updated.startTime}-${updated.endTime}, Room: ${updated.room}.`;
@@ -338,7 +338,7 @@ async function addNotice(args: { title: string; body: string; category?: string 
     },
   });
 
-  await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId, "global");
+  await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId, userId ? "private" : "global");
 
   return `Successfully created new notice: "${title}" in category "${safeCategory}".`;
 }
@@ -365,7 +365,7 @@ async function addDeadline(args: { title: string; subject: string; dueDate: stri
     },
   });
 
-  await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate}. ${notes || ""}`, "Deadline", userId, "global");
+  await addToIndex(deadline.id, `[DEADLINE] ${title} (${subject}) due ${dueDate}. ${notes || ""}`, "Deadline", userId, userId ? "private" : "global");
 
   return `Successfully created new deadline: "${title}" for ${subject}, due ${parsedDate.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}.`;
 }
@@ -388,7 +388,7 @@ async function addSchedule(args: { subject: string; day: string; startTime: stri
     },
   });
 
-  await addToIndex(schedule.id, `[CLASS] ${subject} taught by ${faculty || "Unknown"} on ${day} from ${startTime} to ${endTime} at ${room || "Unknown"}`, "ClassSchedule", userId, "global");
+  await addToIndex(schedule.id, `[CLASS] ${subject} taught by ${faculty || "Unknown"} on ${day} from ${startTime} to ${endTime} at ${room || "Unknown"}`, "ClassSchedule", userId, userId ? "private" : "global");
 
   return `Successfully added class "${subject}" on ${day} from ${startTime} to ${endTime}.`;
 }

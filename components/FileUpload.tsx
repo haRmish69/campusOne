@@ -210,6 +210,7 @@ export function FileUpload({ apiEndpoint = "/api/ingest", onSuccess }: { apiEndp
           style={isDragging ? { borderColor: "var(--acc)", background: "var(--acc-soft)" } : {}}
         >
           <input 
+            id="file-upload-input"
             type="file" 
             ref={fileInputRef} 
             className="hidden" 
