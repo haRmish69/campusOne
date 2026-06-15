@@ -37,21 +37,22 @@ export default async function WellnessPage() {
   });
 
   return (
-    <div className="container mx-auto pt-[28px] pb-10 px-4 max-w-[960px] font-[family-name:var(--font-plus-jakarta-sans)]">
-      <div className="bg-[#f5f5f5] border border-[#ebebeb] rounded-[20px] p-[28px]">
-        
-        <div className="mb-[24px]">
-          <h1 className="text-[20px] font-bold text-[#1f1f1f] flex items-center gap-3 leading-tight">
-            <div className="w-[12px] h-[12px] rounded-[6px] bg-[#ff5a2f]" />
-            Wellness & Burnout
+    <div className="min-h-[calc(100vh-80px)] relative overflow-hidden bg-[#faf9f8]">
+      {/* Decorative rich background blobs for depth */}
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-gradient-to-br from-[#ff5a2f]/10 via-[#ff9a85]/5 to-transparent rounded-full blur-[100px] pointer-events-none -z-10" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-gradient-to-tl from-blue-400/10 via-indigo-400/5 to-transparent rounded-full blur-[100px] pointer-events-none -z-10" />
+
+      <div className="container mx-auto pt-[32px] pb-12 px-4 max-w-[1000px] font-[family-name:var(--font-plus-jakarta-sans)] relative z-10">
+        <div className="mb-[40px]">
+          <h1 className="text-[32px] font-bold text-[#1e293b] tracking-tight leading-tight">
+            Wellness Tracker
           </h1>
-          <p className="text-[12px] text-[#a5a5a5] mt-1">
-            Log your daily feelings and let AI help you balance your academic life.
+          <p className="text-[15px] text-[#64748b] mt-2 max-w-lg leading-relaxed font-medium">
+            Log your daily mood and stress levels. Our AI analyzes your trends to help balance your academic life.
           </p>
         </div>
 
         <WellnessDashboard trendData={trendData} />
-        
       </div>
     </div>
   );

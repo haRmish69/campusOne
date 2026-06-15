@@ -174,8 +174,8 @@ function useReveal() {
   return { ref, className: `lp-reveal ${visible ? "visible" : ""}` };
 }
 function Reveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const r = useReveal();
-  return <div ref={r.ref} className={`${r.className} ${className}`}>{children}</div>;
+  const { ref, className: revealClass } = useReveal();
+  return <div ref={ref} className={`${revealClass} ${className}`}>{children}</div>;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

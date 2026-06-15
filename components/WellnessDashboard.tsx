@@ -39,27 +39,30 @@ export function WellnessDashboard({ trendData }: WellnessDashboardProps) {
   const isHighRisk = insight ? insight.score > 70 : false;
 
   return (
-    <div className="flex flex-col md:flex-row gap-[32px] md:gap-[40px]">
+    <div className="flex flex-col lg:flex-row gap-[32px] lg:gap-[48px]">
       {/* Left Column */}
-      <div className="w-full md:w-[55%] flex flex-col gap-[32px]">
+      <div className="w-full lg:w-[50%] flex flex-col gap-[32px]">
         {/* AI Insight Card */}
-        <div className="bg-[#ffffff]/80 backdrop-blur-md border border-[#f0f0f0] rounded-[16px] p-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] min-h-[100px] flex items-center">
+        <div className="relative bg-gradient-to-br from-[#fff6f4] to-[#ffffff] border border-[#ffe4dd] rounded-[24px] p-[24px] shadow-[0_4px_20px_rgba(255,90,47,0.04)] overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(255,90,47,0.08)]">
           {isLoading ? (
-            <div className="flex items-center gap-3 w-full">
-              <Loader2 className="w-4 h-4 animate-spin text-[#a5a5a5]" />
-              <p className="text-[12px] text-[#707070] font-medium">Analyzing recent wellness and schedule data...</p>
+            <div className="flex items-center gap-4 w-full py-2">
+              <Loader2 className="w-5 h-5 animate-spin text-[#6b7280]" />
+              <p className="text-[14px] text-[#6b7280] font-medium animate-pulse">Analyzing your latest wellness patterns...</p>
             </div>
           ) : insight ? (
-            <div className="flex items-start gap-3">
-              <div className={`mt-[2px] shrink-0 p-1.5 rounded-full ${isHighRisk ? 'bg-red-50' : 'bg-gray-50'}`}>
-                {isHighRisk ? <AlertOctagon className="w-4 h-4 text-[#ff5a2f]" /> : <ShieldCheck className="w-4 h-4 text-[#a5a5a5]" />}
+            <div className="flex items-start gap-4">
+              <div className={`mt-1 shrink-0 p-2.5 rounded-2xl ${isHighRisk ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'} shadow-sm`}>
+                {isHighRisk ? <AlertOctagon className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
               </div>
-              <p className="text-[13px] text-[#707070] leading-relaxed">
-                {insight.message}
-              </p>
+              <div>
+                <h4 className="text-[11px] uppercase font-bold text-[#6b7280] tracking-wider mb-2">AI Insight</h4>
+                <p className="text-[14px] text-[#374151] leading-relaxed font-medium">
+                  {insight.message}
+                </p>
+              </div>
             </div>
           ) : (
-            <p className="text-[13px] text-[#a5a5a5]">No insights available right now.</p>
+            <p className="text-[14px] text-[#6b7280]">No insights available right now.</p>
           )}
         </div>
 
@@ -68,32 +71,43 @@ export function WellnessDashboard({ trendData }: WellnessDashboardProps) {
       </div>
 
       {/* Right Column */}
-      <div className="w-full md:w-[45%] flex flex-col gap-[24px]">
+      <div className="w-full lg:w-[50%] flex flex-col gap-[32px]">
         
         {/* Burnout Risk Score */}
-        <div className="bg-[#ffffff] border border-[#efefef] rounded-[16px] p-[20px] md:p-[24px]">
-          <h3 className="text-[10px] uppercase font-[700] text-[#a5a5a5] tracking-[0.1em] mb-[12px]">Burnout Risk</h3>
-          <div className="flex items-end gap-3">
+        <div className="bg-white border border-[#e5e7eb] rounded-[24px] p-[28px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden group transition-colors">
+          <div className="absolute -right-6 -top-6 w-32 h-32 bg-gradient-to-bl from-[#ff5a2f]/[0.05] to-transparent rounded-full blur-2xl group-hover:from-[#ff5a2f]/[0.08] transition-all duration-500" />
+          <h3 className="text-[11px] uppercase font-bold text-[#6b7280] tracking-widest mb-[16px]">Burnout Risk</h3>
+          <div className="flex items-baseline gap-2">
             {isLoading ? (
-              <div className="h-[48px] flex items-center text-[#a5a5a5]">
+              <div className="h-[56px] flex items-center text-[#6b7280]">
                 <Loader2 className="w-6 h-6 animate-spin" />
               </div>
             ) : insight ? (
               <>
-                <div className={`text-[48px] font-[300] leading-none ${isHighRisk ? 'text-[#ff5a2f]' : 'text-[#1f1f1f]'}`}>
+                <div className={`text-[48px] font-semibold tracking-tight leading-none ${isHighRisk ? 'text-[#ef4444]' : 'text-[#1f2937]'}`}>
                   {insight.score}
                 </div>
-                <div className="text-[14px] text-[#a5a5a5] mb-[6px]">/ 100</div>
+                <div className="text-[14px] font-medium text-[#6b7280] mb-[8px]">/ 100</div>
               </>
             ) : (
-              <div className="text-[48px] font-[300] leading-none text-[#d1d1d1]">--</div>
+              <div className="text-[48px] font-semibold tracking-tight leading-none text-[#d1d5db]">--</div>
             )}
           </div>
+          {insight && !isLoading && (
+            <div className="mt-5 flex items-center gap-2">
+              <div className="h-[5px] w-full bg-[#f3f4f6] rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${isHighRisk ? 'bg-[#ef4444]' : 'bg-[#6b7280]'}`} 
+                  style={{ width: `${insight.score}%` }} 
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 14 Day Trend Chart */}
-        <div className="bg-[#ffffff] border border-[#efefef] rounded-[16px] p-[20px] md:p-[24px] flex-grow flex flex-col">
-          <h3 className="text-[10px] uppercase font-[700] text-[#a5a5a5] tracking-[0.1em] mb-[20px]">14-Day Trend</h3>
+        <div className="bg-white border border-[#e5e7eb] rounded-[24px] p-[28px] shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex-grow flex flex-col transition-colors">
+          <h3 className="text-[11px] uppercase font-bold text-[#6b7280] tracking-widest mb-[24px]">14-Day Trend</h3>
           <div className="flex-grow min-h-[250px] relative">
             <WellnessTrendChart data={trendData} />
           </div>

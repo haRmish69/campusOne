@@ -165,7 +165,7 @@ export default async function DashboardPage() {
           {deadlines.length > 0 && (
             <div>
               {deadlines.map((d: any) => {
-                const hours = (new Date(d.dueDate).getTime() - Date.now()) / 3600000;
+                const hours = (new Date(d.dueDate).getTime() - now.getTime()) / 3600000;
                 const isUrgent = hours < 48; // 2 days
                 return (
                   <div key={d.id} className="insight-row">
@@ -269,7 +269,7 @@ export default async function DashboardPage() {
           ) : (
             <div>
               {notices.map((notice: any) => {
-                const days = (new Date(notice.eventDate).getTime() - Date.now()) / 86400000;
+                const days = (new Date(notice.eventDate).getTime() - now.getTime()) / 86400000;
                 let deadlineClass = 'normal';
                 let deadlineText = 'in ' + Math.ceil(days) + ' days';
                 if (days <= 2) deadlineClass = 'urgent';

@@ -146,7 +146,6 @@ export function Sidebar() {
               <Button variant="outline" size="sm">Sign In</Button>
             </SignInButton>
           )}
-          <span className="hidden lg:inline ml-2">Powered by Gemini</span>
         </div>
       </div>
     </aside>
