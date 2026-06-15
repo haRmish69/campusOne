@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         }
       });
       // Add to FAISS for semantic search
-      await addToIndex(menu.id, `[MESS] ${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`, "MessMenu", userId, "global");
+      await addToIndex(menu.id, `[MESS] ${day || "Unknown"} ${meal || "Unknown"}: ${items || ""}`, "MessMenu", userId, userId ? "private" : "global");
       createdMenus.push({ ...menu, embedding: undefined });
     }
 

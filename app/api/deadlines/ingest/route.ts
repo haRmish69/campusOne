@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Add to FAISS for semantic search
-    await addToIndex(deadline.id, `[DEADLINE] ${safeTitle} (${safeSubject}) due ${parsedDate.toISOString()}. ${safeNotes || ""}`, "Deadline", userId, "global");
+    await addToIndex(deadline.id, `[DEADLINE] ${safeTitle} (${safeSubject}) due ${parsedDate.toISOString()}. ${safeNotes || ""}`, "Deadline", userId, userId ? "private" : "global");
 
     return NextResponse.json({ success: true, deadline: { ...deadline, embedding: undefined } });
   } catch (error: any) {

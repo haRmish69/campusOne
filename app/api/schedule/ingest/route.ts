@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         }
       });
       // Add to FAISS for semantic search
-      await addToIndex(schedule.id, `[CLASS] ${subject || "Class"} taught by ${faculty || "Unknown"} on ${day || "Unknown"} from ${startTime || "00:00"} to ${endTime || "00:00"} at ${room || "Unknown"}`, "ClassSchedule", userId, "global");
+      await addToIndex(schedule.id, `[CLASS] ${subject || "Class"} taught by ${faculty || "Unknown"} on ${day || "Unknown"} from ${startTime || "00:00"} to ${endTime || "00:00"} at ${room || "Unknown"}`, "ClassSchedule", userId, userId ? "private" : "global");
       createdSchedules.push({ ...schedule, embedding: undefined });
     }
 
