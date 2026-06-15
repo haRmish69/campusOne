@@ -290,7 +290,7 @@ function HelpCampusTab({ profileId }: { profileId: string | null }) {
 
   useEffect(() => {
     if (!profileId) return;
-    fetch(`/api/peer/notifications/${profileId}`)
+    fetch(`/api/peer/campus-requests`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((data) => {
         const items = data.notifications || data || [];

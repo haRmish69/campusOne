@@ -42,7 +42,7 @@ export default function RootLayout({
         className={`${plusJakarta.variable} ${sora.variable} ${ibmPlexMono.variable} h-full antialiased`}
         suppressHydrationWarning
       >
-        <body className="h-full flex flex-col md:flex-row bg-background">
+        <body className="h-full flex flex-col md:flex-row bg-[var(--color-canvas-white)]">
             <Sidebar />
             <main className="flex-1 overflow-y-auto relative pb-20 md:pb-0">
               {children}

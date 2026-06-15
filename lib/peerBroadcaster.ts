@@ -76,6 +76,34 @@ export async function broadcastHelpRequest(
     // Create notifications
     const message = buildNotificationMessage(request, requesterProfile);
 
+    // --- NEW: FALLBACK BROADCAST ---
+    // If the AI found no exact expertise matches (e.g. new users with no notes), 
+    // fallback to broadcasting to up to 15 peers in the same campus.
+    if (sorted.length === 0) {
+      const campusPeers = await prisma.userProfile.findMany({
+        where: {
+          instituteName: requesterProfile.instituteName,
+          id: { not: requesterProfileId }
+        },
+        take: 15,
+        orderBy: { reputationScore: 'desc' }
+      });
+      
+      for (const peer of campusPeers) {
+        await prisma.peerNotification.create({
+          data: {
+            profileId: peer.id,
+            type: "help_needed",
+            referenceId: request.id,
+            message,
+            actionUrl: `/peer-learning?tab=help&requestId=${request.id}`,
+          },
+        });
+      }
+      return { notified: campusPeers.length };
+    }
+    // -------------------------------
+
     for (const [candidateProfileId] of sorted) {
       await prisma.peerNotification.create({
         data: {
