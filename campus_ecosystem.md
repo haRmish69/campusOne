@@ -41,7 +41,7 @@ Ring 4 — Intelligence Layer
       proactive alerts, and burnout recommendations
 
 
-CampusFlow — Master Build Plan: Ring 3 + Ring 4
+CampusOne — Master Build Plan: Ring 3 + Ring 4
 How to use this document: Feed Antigravity one phase at a time in order. Every phase builds on the previous. Ring 4 is last because it needs all Ring 3 data to be meaningful. Read PROJECT_CONTEXT.md before every phase.
 
 > [!TIP]
@@ -1529,7 +1529,7 @@ if (messMood?.lunch?.avgRating < 2.5) {
 }
 
 Enhanced Gemini prompt (USE VERBATIM):
-"You are CampusFlow, an AI assistant that deeply understands a
+"You are CampusOne, an AI assistant that deeply understands a
 student's entire campus life. This is their morning briefing.
 
 Your job: synthesize the data below into 2-3 sentences that feel

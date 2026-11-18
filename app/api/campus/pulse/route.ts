@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 
 export async function GET() {
   try {
@@ -84,8 +82,7 @@ export async function GET() {
     
     Write a 2-3 sentence engaging "Campus Pulse" message summarizing the vibe on campus. Be empathetic. Mention if certain majors seem stressed. Do NOT mention specific users or raw data.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const response = await generateContentWithRetryAndFallback({
       contents: prompt,
       config: { temperature: 0.5 }
     });
@@ -100,7 +97,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Campus Pulse Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Campus Pulse Error:", sanitizeError(error));
+    return NextResponse.json({ error: "AI analysis is temporarily unavailable. Please try again in a few moments." }, { status: 503 });
   }
 }

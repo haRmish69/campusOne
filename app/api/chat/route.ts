@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { GoogleGenAI, Type } from "@google/genai";
+import { 
+  sendChatMessageWithRetryAndFallback, 
+  generateContentWithRetryAndFallback, 
+  isRetryableGeminiError, 
+  sanitizeError 
+} from "@/lib/gemini";
 import youtubeSearch from "youtube-search-api";
 import { YoutubeTranscript } from "youtube-transcript";
 import { getRealEmbedding } from "@/lib/embeddings";
@@ -69,6 +75,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const query = body.query || body.question;
     const sessionId = body.sessionId || "default_session";
+    const document = body.document as { name?: string; type?: string; base64?: string; text?: string } | undefined;
     const { userId } = await auth();
 
     if (!query) {
@@ -173,6 +180,60 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 4e. AI Campus Brain — Student Uploaded College Documents & Notes
+    const userNotes = await prisma.note.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+    for (const n of userNotes) {
+      contextParts.unshift(
+        `[COLLEGE_DOCUMENT / NOTE] "${n.title}" (${n.subject}): ${n.content.substring(0, 900)}${n.fileName ? ` [File: ${n.fileName}]` : ""}`
+      );
+    }
+
+    // 4f. AI Campus Brain — Student Weekly Timetable & Class Schedule
+    const weeklySchedule = await prisma.classSchedule.findMany({
+      where: { userId },
+      orderBy: [{ day: "asc" }, { startTime: "asc" }],
+    });
+    if (weeklySchedule.length > 0) {
+      const scheduleLines = weeklySchedule.map(s => `• ${s.day}: ${s.subject} (${s.startTime}–${s.endTime}${s.room ? `, Room: ${s.room}` : ""}${s.faculty ? `, Prof: ${s.faculty}` : ""})`).join("\n");
+      contextParts.unshift(`[MY_TIMETABLE]\n${scheduleLines}`);
+    }
+
+    // 4g. AI Campus Brain — Upcoming Deadlines & Submissions
+    const pendingDeadlines = await prisma.deadline.findMany({
+      where: { userId, isComplete: false },
+      orderBy: { dueDate: "asc" },
+      take: 8,
+    });
+    if (pendingDeadlines.length > 0) {
+      const deadlineLines = pendingDeadlines.map(d => `• ${d.title} (${d.subject}) — Due: ${d.dueDate.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" })} [${d.type.toUpperCase()}]`).join("\n");
+      contextParts.unshift(`[UPCOMING_DEADLINES]\n${deadlineLines}`);
+    }
+
+    // 4h. AI Campus Brain — Academic Calendar Rules & Milestones
+    const academicCalendarRef = `[ACADEMIC_CALENDAR] University Academic Calendar (2026-2027):
+• Semester Duration: August 1 to December 18
+• Mid-Semester Exams: October 12 – October 21
+• Diwali / Autumn Break: November 1 – November 7
+• End-Semester Practical & Lab Exams: November 24 – November 30
+• End-Semester Theory Exams: December 3 – December 18
+• Winter Vacation: December 20 – January 10
+• Spring Semester Begins: January 11
+• Spring Mid-Sem Exams: March 15 – March 24
+• Spring End-Sem Exams: May 10 – May 25
+• Mandatory Attendance Rule: Minimum 75% attendance required in each course to be eligible for end-semester exams.`;
+    contextParts.unshift(academicCalendarRef);
+
+    // 4i. Attached Document (if student uploaded in chat)
+    if (document?.text) {
+      contextParts.unshift(
+        `[ATTACHED_COLLEGE_DOCUMENT: ${document.name || "Document"}]\n${document.text.substring(0, 15000)}`
+      );
+    }
+
     // 5. Token Budget Trimming
     let context = contextParts.join("\n\n");
     if (context.length > MAX_CONTEXT_CHARS) {
@@ -182,17 +243,26 @@ export async function POST(req: NextRequest) {
     // 6. System Prompt with guardrails
     const istDateTime = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
-    const systemInstruction = `You are CampusFlow, an elite AI assistant for students.
+    const systemInstruction = `You are CampusOne AI Campus Brain — an advanced AI assistant and intelligent academic companion for college students.
 Current Date & Time (IST): ${istDateTime}
 
-You have THREE capabilities:
-1. ANSWER questions using the context below (retrieved from FAISS + direct data feeds).
-2. MODIFY campus data using your tools. The tools search the MySQL database directly — they do NOT depend on the context below. The data EXISTS in the database even if you don't see it in the context.
-3. GENERATE flashcards or find video lectures using the provided tools.
+Your core superpowers include:
+1. COLLEGE DOCUMENT UNDERSTANDING: Deeply analyze student-uploaded syllabi, circulars, lecture notes, textbook chapters, and assignment prompts. Extract actionable insights and answer conceptual questions.
+2. SMART NOTICE EXTRACTION: When the user shares, pastes, or uploads a notice, circular, or announcement, automatically extract the key information and call 'extract_smart_notice' (or 'add_notice') with title, clean body, category, eventDate, venue, and a crisp actionRequired sentence.
+3. ACADEMIC CALENDAR UNDERSTANDING: Answer questions about exam periods (mid-sems, end-sems), semester breaks, holidays, course registration windows, and attendance criteria (minimum 75% rule).
+4. TIMETABLE & SCHEDULE INTELLIGENCE: Query the student's weekly class timetable, identify free slots, check professor/room locations, and detect scheduling conflicts.
+5. DEADLINE IDENTIFICATION: Identify deadlines, project milestones, and exam dates from syllabi or text and call 'batch_extract_deadlines' (or 'add_deadline') to organize their submission schedule.
+6. CONTEXTUAL ANSWERS FROM STUDENT NOTES: Synthesize answers using the student's personal notes and uploaded documents in [COLLEGE_DOCUMENT / NOTE].
+7. DATA MODIFICATION TOOLS: Use your specialized tools whenever the user wants to add, update, or modify campus data (deadlines, schedules, mess items, wellness, expenses, documents).
 
 CRITICAL: WHEN THE USER WANTS TO UPDATE, CHANGE, REPLACE, ADD, OR MODIFY ANY DATA — YOU MUST ALWAYS CALL THE APPROPRIATE TOOL. DO NOT say "I don't have that data". The tool will find it in the database.
 
 Context Tag Reference:
+[ACADEMIC_CALENDAR] Official university calendar milestones and semester dates
+[ATTACHED_COLLEGE_DOCUMENT] Fresh document currently uploaded by the student in this turn
+[COLLEGE_DOCUMENT / NOTE] Student's personal study notes and uploaded course documents
+[MY_TIMETABLE] Student's full weekly class schedule
+[UPCOMING_DEADLINES] Student's pending assignments, exams, and projects
 [NOTICE] Campus notices and announcements
 [MESS_TODAY] Today's mess menu (always current)
 [MESS] Mess menu for other days (from search)
@@ -221,7 +291,7 @@ Behavioral Guardrails:
 - [CAB_POOL] / [HELP_REQUEST] (others'): NEVER invent or expose contact details. Direct the user to the in-app action.
 - [INTERVIEW] / [COMPANY] / [PREP_QUESTION] / [TRANSPORT_ROUTE] / [SERVICE] / [GUIDE] / [PLACE] / [TRIP] / [TIP]: Freely shareable campus knowledge — no special handling needed.
 
-For QUESTIONS only: Answer from the context below. If the context is completely missing the information, say: 'I don't have that information in my campus data.'
+For QUESTIONS only: Answer from the context below and attached documents. If the context is completely missing the information, say: 'I don't have that information in my campus data.'
 
 User Profile: Name: ${profile?.name || "Student"}, Major: ${profile?.major || "Unknown"}, Year: ${profile?.gradYear || "Unknown"}, College: ${profile?.instituteName || "Unknown"}.
 
@@ -295,9 +365,26 @@ ${context}`;
       parts: [{ text: m.content || " " }]
     }));
 
-    const chat = ai.chats.create({
-      model: "gemini-2.5-flash",
+    let messagePayload: any = query;
+    if (document?.base64 && (document.type?.startsWith("image/") || document.type === "application/pdf")) {
+      messagePayload = [
+        {
+          inlineData: {
+            mimeType: document.type,
+            data: document.base64.replace(/^data:[^;]+;base64,/, ""),
+          },
+        },
+        {
+          text: query
+            ? `${query}\n\n[Attached college document: "${document.name || "Document"}"]`
+            : `Analyze this attached college document ("${document.name || "Document"}") and provide key highlights, important dates, and deadlines.`,
+        },
+      ];
+    }
+
+    const response = await sendChatMessageWithRetryAndFallback({
       history,
+      message: messagePayload,
       config: {
         systemInstruction,
         tools: [
@@ -312,8 +399,6 @@ ${context}`;
       },
     });
 
-    const response = await chat.sendMessage({ message: query });
-
     let videoPayload = undefined;
     let flashcardPayload = undefined;
     let finalResponseText = response.text || "";
@@ -323,7 +408,7 @@ ${context}`;
       const responseTexts: string[] = [];
 
       await Promise.all(
-        response.functionCalls.map(async (call) => {
+        response.functionCalls.map(async (call: any) => {
           if (call.name === "generate_flashcards") {
             // ─── Flashcard Tool ──────────────────────────────────────────
             const { topic, cards } = call.args as {
@@ -352,8 +437,7 @@ ${context}`;
                 const formattedTranscript = slicedTranscript.map((t) => `[${Math.round(t.offset)}]: ${t.text}`).join("\n");
 
                 // Second AI call to find the exact timestamp
-                const extractionResponse = await ai.models.generateContent({
-                  model: "gemini-2.5-flash",
+                const extractionResponse = await generateContentWithRetryAndFallback({
                   contents: `Given the following transcript from a video, find the exact integer second where the concept "${specificConcept}" is first explained. If it is not found, return 0. Return ONLY the integer value. Do not return any other text.
                   
 Transcript:
@@ -431,8 +515,24 @@ ${formattedTranscript}`,
     });
 
   } catch (error: any) {
-    console.error("Chat POST Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Chat POST Error]:", sanitizeError(error));
+    if (error.isHighDemand || isRetryableGeminiError(error)) {
+      return NextResponse.json(
+        { 
+          error: "AI analysis is temporarily unavailable. Please try again in a few moments.",
+          isHighDemand: true,
+          canRetry: true
+        },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json(
+      { 
+        error: "AI analysis is temporarily unavailable. Please try again in a few moments.",
+        canRetry: true
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -463,6 +563,11 @@ async function hydrateRecord(hit: SearchResult, currentUserId: string): Promise<
         const r = await prisma.classSchedule.findUnique({ where: { id: recordId } });
         if (!r || (r.userId && r.userId !== currentUserId)) return null;
         return `[CLASS] ${r.subject}: ${r.day} ${r.startTime}-${r.endTime} at ${r.room || "TBD"}`;
+      }
+      case "Note": {
+        const r = await prisma.note.findUnique({ where: { id: recordId } });
+        if (!r || (r.userId && r.userId !== currentUserId)) return null;
+        return `[COLLEGE_DOCUMENT / NOTE] ${r.title} (${r.subject}): ${r.content}`;
       }
       // ── PocketBuddy (PRIVATE — strict userId enforcement) ──
       case "Expense": {

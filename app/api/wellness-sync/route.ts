@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
   try {
     const body = await req.json();
@@ -24,8 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── 1. Extract structured wellness data using strict JSON mode ─────
-    const extractionResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const extractionResponse = await generateContentWithRetryAndFallback({
       contents: `Extract wellness data from this user message. The user was asked about their sleep, mood (1-10), and stress level (1-10). Parse their natural language response into structured data.
 
 If the user did not mention a specific value, use these defaults:
@@ -94,8 +92,7 @@ User message: "${text}"`,
     console.log(`✅ WellnessLog saved: id=${wellnessLog.id}, mood=${mood}, stress=${stressLevel}, sleep=${sleepHours}h`);
 
     // ─── 3. Generate empathetic confirmation ────────────────────────────
-    const confirmationResponse = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const confirmationResponse = await generateContentWithRetryAndFallback({
       contents: `The user just shared their wellness check-in. Here's what I extracted:
 - Mood: ${mood}/10
 - Sleep: ${sleepHours} hours
@@ -104,7 +101,7 @@ User message: "${text}"`,
 
 Generate a short, warm, empathetic response (2-3 sentences max) acknowledging their state. If they seem stressed, offer encouragement. If they slept poorly, suggest rest. If they're doing great, celebrate that. Be genuine, not robotic.`,
       config: {
-        systemInstruction: "You are CampusFlow, a caring AI campus mentor. Be warm, brief, and genuine. Use 1-2 relevant emojis.",
+        systemInstruction: "You are CampusOne, a caring AI campus mentor. Be warm, brief, and genuine. Use 1-2 relevant emojis.",
       },
     });
 
@@ -116,7 +113,7 @@ Generate a short, warm, empathetic response (2-3 sentences max) acknowledging th
     });
 
   } catch (error: any) {
-    console.error("Wellness Sync Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Wellness Sync Error:", sanitizeError(error));
+    return NextResponse.json({ error: "AI analysis is temporarily unavailable. Please try again in a few moments." }, { status: 503 });
   }
 }

@@ -295,6 +295,11 @@ model Company {
   name              String
   domain            String
   // "tech" | "finance" | "consulting" | "core" | "product" | "other"
+  jobRole           String?
+  minCgpa           Float?
+  eligibleBranches  Json?
+  requiredExperience String?
+  deadline          DateTime?
   packageMin        Float?   // in LPA
   packageMax        Float?   // in LPA
   interviewRounds   Int?
@@ -658,3 +663,90 @@ model Notification {
 
   @@unique([userId, referenceId, type])
 }
+
+// ────────────────────────────────────────
+// Phase 22 — AI Job Matcher & Application Tracking
+// ────────────────────────────────────────
+
+model JobListing {
+  id              String   @id @default(cuid())
+  externalId      String   @unique
+  title           String
+  companyName     String
+  companyLogo     String?
+  location        String?
+  workplaceType   String?  // "remote" | "hybrid" | "on-site"
+  jobType         String?  // "full_time" | "internship" | "part_time" | "contract"
+  experienceLevel String?  // "entry" | "junior" | "mid" | "senior" | "internship"
+  salary          String?
+  requiredSkills  Json
+  description     String   @db.Text
+  originalUrl     String   @db.Text
+  source          String   // "remotive" | "arbeitnow" | "adzuna" | "direct"
+  postedAt        DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  savedBy         SavedJob[]
+  applications    JobApplication[]
+  matchResults    JobMatchResult[]
+
+  @@index([title, companyName])
+}
+
+model SavedJob {
+  id          String   @id @default(cuid())
+  userId      String   // Clerk user ID
+  jobId       String
+  job         JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  notes       String?  @db.Text
+  savedAt     DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId])
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  userId      String   // Clerk user ID
+  jobId       String
+  job         JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status      String   @default("applied") // "saved" | "applied" | "interviewing" | "offered" | "rejected"
+  notes       String?  @db.Text
+  appliedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, jobId])
+  @@index([userId, status])
+}
+
+model JobMatchResult {
+  id                    String   @id @default(cuid())
+  userId                String   // Clerk user ID
+  jobId                 String
+  job                   JobListing @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  matchScore            Int      // 0 - 100
+  matchingSkills        Json     // string[]
+  missingSkills         Json     // string[]
+  relevantExperience    Json     // string[]
+  qualificationCompat   String   // "High" | "Moderate" | "Developing" | "Not Assessed"
+  whyItMatches          String   @db.Text
+  recommendation        String   @db.Text
+  calculatedAt          DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId, matchScore])
+}
+
+model StudentJobPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique // Clerk user ID
+  preferredRoles      Json     // ["Full Stack Developer", "Backend Engineer"]
+  preferredLocations  Json     // ["Remote", "Bangalore", "New York"]
+  workplaceType       String?  // "remote" | "hybrid" | "on-site" | "any"
+  minSalary           Float?
+  experienceLevel     String?  // "entry" | "junior" | "internship"
+  updatedAt           DateTime @updatedAt
+}
+

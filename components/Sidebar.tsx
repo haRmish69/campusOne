@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Car, Compass, FolderOpen } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Bell, Utensils, CalendarClock, CalendarDays, Wallet, PieChart, Heart, User, Briefcase, Car, Compass, FolderOpen, Brain, GraduationCap } from "lucide-react";
 import { UserButton, SignInButton, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/peer/NotificationBell";
@@ -29,13 +29,14 @@ export function Sidebar() {
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/chat", label: "AI Chat", icon: MessageSquare },
+    { href: "/chat", label: "AI Campus Brain", icon: Brain },
     { href: "/notices", label: "Notices", icon: Bell },
     { href: "/mess", label: "Mess Menu", icon: Utensils },
     { href: "/deadlines", label: "Deadlines", icon: CalendarClock },
     { href: "/schedule", label: "Schedule", icon: CalendarDays },
     { href: "/notes", label: "My Notes", icon: FolderOpen },
     { href: "/campus-ecosystem", label: "Campus Ecosystem", icon: Compass },
+    { href: "/placement-intelligence", label: "Placement Intelligence", icon: GraduationCap },
   ];
 
   const pocketBuddyLinks = [
@@ -51,7 +52,7 @@ export function Sidebar() {
       <div className="p-6 border-b border-border/40 hidden md:flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tighter text-midnight-navy">
-            CampusFlow
+            CampusOne
           </h1>
           <p className="text-xs text-muted-foreground mt-1">AI Student Assistant</p>
         </div>
@@ -62,7 +63,7 @@ export function Sidebar() {
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = link.href === "/campus-ecosystem"
-            ? pathname === "/campus-ecosystem" || pathname.startsWith("/placement") || pathname.startsWith("/transport") || pathname.startsWith("/peer-learning")
+            ? (pathname === "/campus-ecosystem" || (pathname.startsWith("/placement") && !pathname.startsWith("/placement-intelligence")) || pathname.startsWith("/transport") || pathname.startsWith("/peer-learning"))
             : pathname === link.href;
           
           return (

@@ -3,41 +3,8 @@ import { parseWhatsAppExport } from "@/lib/whatsappParser";
 import { embedText } from "@/lib/embeddings";
 import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
-
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 import { auth } from "@clerk/nextjs/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash"; // same experimental model we switched to
-
-// Helper for batched API calls with retries
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-  let attempt = 0;
-  while (attempt < maxRetries) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      if (
-        error.status === 429 || 
-        error.status === 503 ||
-        error.status === 500 ||
-        error.message?.includes("429") ||
-        error.message?.includes("503") ||
-        error.message?.includes("high demand")
-      ) {
-        if (attempt === maxRetries) throw error;
-        const baseDelay = error.status === 503 ? 3000 : 2000;
-        const delay = baseDelay * Math.pow(2, attempt);
-        console.warn(`API overloaded/rate limited. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        attempt++;
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error("Max retries exceeded");
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -114,13 +81,12 @@ Messages to analyze:
       try {
         const batchText = batch.map(m => `[${m.timestamp?.toISOString()}] ${m.sender}: ${m.message}`).join("\n\n");
         
-        const response = await withRetry(() => ai.models.generateContent({
-          model: MODEL,
+        const response = await generateContentWithRetryAndFallback({
           contents: PROMPT + batchText,
           config: {
             temperature: 0.2,
           }
-        }));
+        });
 
         let text = response.text || "[]";
         text = text.replace(/```json/g, "").replace(/```/g, "").trim();

@@ -16,7 +16,7 @@ export function VoiceFAB() {
       onClick={() => router.push("/chat")}
       size="icon"
       className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-300 z-50 group"
-      title="Ask CampusFlow"
+      title="Ask CampusOne"
     >
       <Mic className="w-6 h-6 text-primary-foreground group-hover:animate-pulse" />
       

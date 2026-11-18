@@ -484,7 +484,7 @@ export default function LandingPage() {
           <div className="lp-container">
             <Link href="/" className="lp-brand">
               <span className="lp-mark"><SparkleIcon size={16} /></span>
-              CampusFlow
+              CampusOne
             </Link>
             <div className="lp-nav-links">
               <a href="#product">Product</a>
@@ -512,7 +512,7 @@ export default function LandingPage() {
             <div className="lp-preview-card">
               <div className="lp-preview-bar">
                 <div className="lp-preview-dots"><span /><span /><span /></div>
-                <div className="lp-preview-url">campusflow.app/dashboard</div>
+                <div className="lp-preview-url">campusone.app/dashboard</div>
               </div>
               <div className="lp-preview-body">
                 <div className="lp-preview-greeting">
@@ -580,10 +580,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* =================== CAMPUSFLOW SHOWCASE =================== */}
+        {/* =================== CAMPUSONE SHOWCASE =================== */}
         <section className="lp-section lp-section-alt" id="product">
           <Reveal className="lp-section-header">
-            <span className="lp-tag">CampusFlow</span>
+            <span className="lp-tag">CampusOne</span>
             <h2>Everything about your campus, handled.</h2>
             <p>AI Chat, notices, mess menu, deadlines, schedule, and your campus community — all in one place.</p>
           </Reveal>
@@ -653,7 +653,7 @@ export default function LandingPage() {
           <Reveal className="lp-section-header">
             <span className="lp-tag">One Assistant</span>
             <h2>Two halves. One brain.</h2>
-            <p>CampusFlow and PocketBuddy aren&apos;t separate apps with separate logins — they&apos;re one assistant that understands your schedule AND your spending AND your stress levels, together.</p>
+            <p>CampusOne and PocketBuddy aren&apos;t separate apps with separate logins — they&apos;re one assistant that understands your schedule AND your spending AND your stress levels, together.</p>
           </Reveal>
           <Reveal className="lp-steps">
             <div className="lp-step-card">
@@ -688,7 +688,7 @@ export default function LandingPage() {
         <section className="lp-cta-section">
           <div className="lp-cta-inner">
             <h2>Stop juggling fifteen apps.</h2>
-            <p>CampusFlow and PocketBuddy, together, free to start.</p>
+            <p>CampusOne and PocketBuddy, together, free to start.</p>
             <Link href="/dashboard" className="lp-btn lp-btn-light">Get Started Free</Link>
             <div className="lp-note">No credit card needed.</div>
           </div>
@@ -698,8 +698,8 @@ export default function LandingPage() {
         <footer className="lp-footer">
           <div className="lp-footer-grid">
             <div className="lp-footer-brand">
-              <Link href="/" className="lp-brand"><span className="lp-mark"><SparkleIcon size={16} /></span> CampusFlow</Link>
-              <p>AI operating system for student life.</p>
+              <Link href="/" className="lp-brand"><span className="lp-mark"><SparkleIcon size={16} /></span> CampusOne</Link>
+              <p>Everything Campus. One Platform.</p>
             </div>
             <div className="lp-footer-col">
               <h5>Product</h5>
@@ -714,7 +714,7 @@ export default function LandingPage() {
               <a href="#">About</a><a href="#">Contact</a><a href="#">Privacy</a>
             </div>
           </div>
-          <div className="lp-footer-bottom">© 2026 CampusFlow. Built for the Amazon AWS Track 48-Hour Hackathon.</div>
+          <div className="lp-footer-bottom">© 2026 CampusOne. Built for the Amazon AWS Track 48-Hour Hackathon.</div>
         </footer>
       </div>
     </>

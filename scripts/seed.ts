@@ -531,7 +531,7 @@ async function cachedSeed(): Promise<void> {
 
 async function main() {
   console.log("╔══════════════════════════════════════════╗");
-  console.log("║   CampusFlow Smart Seed Script v2.0     ║");
+  console.log("║    CampusOne Smart Seed Script v2.0     ║");
   console.log("╚══════════════════════════════════════════╝");
 
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });

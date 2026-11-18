@@ -43,3 +43,17 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 *.db
+
+# sensitive files
+secrets/
+credentials/
+*.key
+*.secret
+
+# temporary files
+append.txt
+test_gen.ts
+
+# local databases
+*.sqlite
+*.sqlite3

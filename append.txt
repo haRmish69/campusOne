@@ -1208,7 +1208,7 @@ Sections:
    - PATCH /api/peer/profile (or a new PATCH /api/profile route)
      to update emailSyncEnabled
    - When enabling: show consent text:
-     "CampusFlow will read emails from your Gmail inbox twice daily.
+     "CampusOne will read emails from your Gmail inbox twice daily.
       Only campus-related emails are processed. Email content is never stored.
       Only extracted information (notices, deadlines, schedules) is saved."
    - Require explicit "I understand" checkbox before enabling

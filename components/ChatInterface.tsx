@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import ReactMarkdown from "react-markdown";
-import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus, Sun, Moon, ChevronLeft, ChevronRight, Copy, CheckCircle2, Sparkles, CalendarClock, Bell, Utensils, CalendarDays } from "lucide-react";
+import { Send, Mic, Volume2, VolumeX, Bot, User, Loader2, Trash2, Plus, Sun, Moon, ChevronLeft, ChevronRight, Copy, CheckCircle2, Sparkles, CalendarClock, Bell, Utensils, CalendarDays, Paperclip, FileText, X, BookOpen, Calendar, FileCheck, Brain, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +20,10 @@ interface Message {
     topic: string;
     cards: { front: string; back: string }[];
   };
+  isError?: boolean;
+  canRetry?: boolean;
+  retryQuery?: string;
+  isRetrying?: boolean;
 }
 
 // ─── FlashcardDeck Sub-Component ─────────────────────────────────────────
@@ -128,15 +132,56 @@ export function ChatInterface() {
   const [sessionId, setSessionId] = useState("");
   const [isAwaitingWellness, setIsAwaitingWellness] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    type: string;
+    base64?: string;
+    text?: string;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File exceeds 10MB limit");
+      return;
+    }
+
+    if (file.type.startsWith("text/") || file.name.endsWith(".txt") || file.name.endsWith(".md") || file.name.endsWith(".json")) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachedFile({
+          name: file.name,
+          type: file.type || "text/plain",
+          text: event.target?.result as string,
+        });
+        toast.success(`Attached "${file.name}" for Campus Brain analysis`);
+      };
+      reader.readAsText(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setAttachedFile({
+          name: file.name,
+          type: file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
+          base64: event.target?.result as string,
+        });
+        toast.success(`Attached "${file.name}" for Campus Brain analysis`);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   useEffect(() => {
     // Check local storage for session
-    let sid = localStorage.getItem("campusflow_session");
+    let sid = localStorage.getItem("campusone_session") || localStorage.getItem("campusflow_session");
     if (!sid) {
       sid = uuidv4();
-      localStorage.setItem("campusflow_session", sid);
+      localStorage.setItem("campusone_session", sid);
     }
     setSessionId(sid);
 
@@ -320,73 +365,112 @@ export function ChatInterface() {
   const sendMessage = async (e?: React.FormEvent, overrideInput?: string) => {
     if (e) e.preventDefault();
     const textToSend = overrideInput || input;
-    if (!textToSend.trim() || isLoading) return;
+    if ((!textToSend.trim() && !attachedFile) || isLoading) return;
+
+    const fileToUpload = attachedFile;
+    if (!overrideInput) {
+      setAttachedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
 
     // Route to wellness sync if we're awaiting a wellness response
     if (isAwaitingWellness) {
       return handleWellnessSync(textToSend);
     }
 
-    const userMessage: Message = { id: uuidv4(), role: "user", content: textToSend };
-    setMessages(prev => [...prev, userMessage]);
-    setInput("");
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    const displayText = fileToUpload
+      ? `${textToSend ? `${textToSend}\n\n` : ""}📎 *Attached:* \`${fileToUpload.name}\``
+      : textToSend;
+
+    if (!overrideInput) {
+      const userMessage: Message = { id: uuidv4(), role: "user", content: displayText };
+      setMessages(prev => [...prev, userMessage]);
+      setInput("");
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+    }
+
     setIsLoading(true);
 
     const assistantMessageId = uuidv4();
-    
     setMessages(prev => [...prev, { id: assistantMessageId, role: "assistant", content: "" }]);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: textToSend,
-          sessionId
-        })
-      });
+    const maxClientAttempts = 3;
+    const clientDelays = [2000, 4000, 8000];
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: `Server returned ${res.status}` }));
-        throw new Error(errorData.error || `Server error: ${res.status}`);
-      }
-
-      const data = await res.json();
-      
-      setMessages(prev => 
-        prev.map(m => 
-          m.id === assistantMessageId 
-            ? { ...m, content: data.text, videoPayload: data.videoPayload, flashcardPayload: data.flashcardPayload }
-            : m
-        )
-      );
-      
-      speak(data.text);
-      
-    } catch (error: any) {
-      let errorMsg = error.message || "An unexpected error occurred.";
+    for (let attempt = 0; attempt <= maxClientAttempts; attempt++) {
       try {
-        const parsed = JSON.parse(errorMsg);
-        if (parsed.error && parsed.error.message) errorMsg = parsed.error.message;
-      } catch (e) {}
-      
-      console.error("Chat Error:", errorMsg);
-      
-      toast.error("Chat Error", {
-        description: errorMsg,
-        style: {
-          backgroundColor: '#ef4444', 
-          color: 'white', 
-          border: '1px solid #dc2626'
-        },
-        className: "!text-white", 
-        descriptionClassName: "!text-white !opacity-100 font-bold"
-      });
-      setMessages(prev => prev.filter(m => m.id !== assistantMessageId));
-    } finally {
-      setIsLoading(false);
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: textToSend || `Analyze this college document: ${fileToUpload?.name}`,
+            sessionId,
+            document: fileToUpload || undefined,
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const isDemand = res.status === 503 || res.status === 429 || data.isHighDemand;
+          if (isDemand && attempt < maxClientAttempts) {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === assistantMessageId
+                  ? { ...m, content: "AI services are temporarily experiencing high demand. We're retrying your request.", isRetrying: true }
+                  : m
+              )
+            );
+            const delay = clientDelays[attempt];
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error(data.error || "AI analysis is temporarily unavailable. Please try again in a few moments.");
+        }
+
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === assistantMessageId 
+              ? { 
+                  ...m, 
+                  content: data.text, 
+                  videoPayload: data.videoPayload, 
+                  flashcardPayload: data.flashcardPayload,
+                  isError: false,
+                  isRetrying: false 
+                }
+              : m
+          )
+        );
+        
+        speak(data.text);
+        setIsLoading(false);
+        return;
+      } catch (error: any) {
+        if (attempt === maxClientAttempts) {
+          console.error("Chat Error after retries:", error);
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessageId
+                ? {
+                    ...m,
+                    content: "AI analysis is temporarily unavailable. Please try again in a few moments.",
+                    isError: true,
+                    canRetry: true,
+                    retryQuery: textToSend,
+                    isRetrying: false
+                  }
+                : m
+            )
+          );
+          toast.error("Service Temporarily Unavailable", {
+            description: "AI analysis is temporarily unavailable. Please try again in a few moments."
+          });
+        }
+      }
     }
+
+    setIsLoading(false);
   };
 
   const clearChat = async () => {
@@ -402,7 +486,7 @@ export function ChatInterface() {
 
   const startNewChat = () => {
     const newSid = uuidv4();
-    localStorage.setItem("campusflow_session", newSid);
+    localStorage.setItem("campusone_session", newSid);
     setSessionId(newSid);
     setMessages([]);
     setIsAwaitingWellness(false);
@@ -439,11 +523,11 @@ export function ChatInterface() {
             <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
           </div>
           <div className="flex flex-col">
-            <h2 className="text-[16px] font-semibold text-[var(--chat-text-primary)] leading-tight tracking-tight">CampusFlow Assistant</h2>
+            <h2 className="text-[16px] font-semibold text-[var(--chat-text-primary)] leading-tight tracking-tight">AI Campus Brain</h2>
             <p className="text-[12px] text-[var(--chat-text-secondary)] mt-0.5 font-medium">
               {isAwaitingWellness
                 ? "🩺 Wellness check-in active"
-                : "Ask anything about your campus"}
+                : "College document understanding, notices, deadlines & timetable"}
             </p>
           </div>
         </div>
@@ -478,27 +562,29 @@ export function ChatInterface() {
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[var(--chat-accent)] to-[#d44d24] flex items-center justify-center shadow-md mb-5">
               <Sparkles className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-[var(--chat-text-primary)] mb-2 tracking-tight">Hi, I'm your CampusFlow Assistant</h3>
-            <p className="text-[15px] text-[var(--chat-text-secondary)] mb-10 max-w-sm">
-              I can help you with your schedule, notices, mess menu, deadlines, and more.
+            <h3 className="text-2xl font-bold text-[var(--chat-text-primary)] mb-2 tracking-tight">CampusOne AI Campus Brain</h3>
+            <p className="text-[15px] text-[var(--chat-text-secondary)] mb-8 max-w-lg">
+              Understand college documents, query academic calendars and timetables, extract notices, identify deadlines, or attach any PDF or syllabus.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-2xl mb-8">
               {[
                 { label: "Today's mess menu", icon: Utensils },
-                { label: "Upcoming deadlines", icon: CalendarClock },
-                { label: "Latest notices", icon: Bell },
-                { label: "My class schedule", icon: CalendarDays }
+                { label: "Upcoming deadlines & exams", icon: CalendarClock },
+                { label: "What classes do I have today?", icon: CalendarDays },
+                { label: "Explain academic calendar & exams", icon: Calendar },
+                { label: "Search my uploaded study notes", icon: BookOpen },
+                { label: "Extract notice & deadlines from document", icon: FileCheck },
               ].map((chip) => (
                 <button
                   key={chip.label}
                   onClick={() => { setInput(chip.label); if(textareaRef.current) textareaRef.current.focus(); }}
                   className="flex items-center gap-3 p-3.5 text-left rounded-[12px] bg-[var(--chat-surface-alt)] border border-neutral-100 shadow-sm hover:shadow-md hover:-translate-y-[2px] hover:bg-[var(--chat-accent-tint)] hover:border-[var(--chat-accent-tint)] transition-all duration-200 group"
                 >
-                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-sm text-[var(--chat-accent)] group-hover:scale-110 transition-transform">
+                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-sm text-[var(--chat-accent)] group-hover:scale-110 transition-transform shrink-0">
                     <chip.icon className="w-4 h-4" />
                   </div>
-                  <span className="text-[14px] font-medium text-[var(--chat-text-primary)]">{chip.label}</span>
+                  <span className="text-[13px] font-medium text-[var(--chat-text-primary)] leading-snug">{chip.label}</span>
                 </button>
               ))}
             </div>
@@ -555,7 +641,29 @@ export function ChatInterface() {
                         ? `bg-gradient-to-br from-[var(--chat-accent)] to-[#d44d24] text-white rounded-[16px] ${isLastConsecutive ? 'rounded-br-[4px]' : ''}`
                         : `bg-[var(--chat-surface-alt)] text-[var(--chat-text-primary)] rounded-[16px] border border-neutral-100/50 ${isLastConsecutive ? 'rounded-bl-[4px]' : ''}`
                     }`}>
-                      {msg.role === "assistant" && msg.content === "" ? (
+                      {msg.role === "assistant" && msg.isRetrying ? (
+                        <div className="flex items-center gap-2 text-xs text-amber-800 py-1">
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-600 shrink-0" />
+                          <span>AI services are temporarily experiencing high demand. We&apos;re retrying your request.</span>
+                        </div>
+                      ) : msg.role === "assistant" && msg.isError ? (
+                        <div className="space-y-2 py-1">
+                          <div className="flex items-center gap-2 text-xs text-red-700">
+                            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                            <span>AI analysis is temporarily unavailable. Please try again in a few moments.</span>
+                          </div>
+                          {msg.canRetry && (
+                            <button
+                              onClick={() => sendMessage(undefined, msg.retryQuery)}
+                              disabled={isLoading}
+                              className="px-3 py-1.5 rounded-[8px] bg-[var(--chat-accent)] hover:bg-[#d44d24] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+                              <span>Retry</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : msg.role === "assistant" && msg.content === "" ? (
                         <div className="flex items-center gap-1.5 h-6 px-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-[var(--chat-accent)] animate-bounce" style={{ animationDelay: "0ms" }}></div>
                           <div className="w-1.5 h-1.5 rounded-full bg-[var(--chat-accent)] animate-bounce" style={{ animationDelay: "150ms" }}></div>
@@ -648,14 +756,51 @@ export function ChatInterface() {
           </div>
         )}
 
+        {/* Attached document badge preview */}
+        {attachedFile && (
+          <div className="max-w-4xl mx-auto mb-2 flex items-center gap-2 px-3 py-1.5 bg-[var(--chat-accent-tint)] border border-[var(--chat-accent)]/30 rounded-full w-fit text-xs text-[var(--chat-accent)] font-medium animate-in fade-in slide-in-from-bottom-1">
+            <FileText className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate max-w-[240px] font-semibold">{attachedFile.name}</span>
+            <span className="text-[10px] opacity-75 uppercase">({attachedFile.name.endsWith(".pdf") ? "PDF" : attachedFile.type.startsWith("image/") ? "IMAGE" : "DOC"})</span>
+            <button
+              type="button"
+              onClick={() => {
+                setAttachedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="ml-1 p-0.5 hover:bg-black/10 rounded-full text-neutral-600 hover:text-red-600 transition-colors"
+              title="Remove document"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         <form 
           onSubmit={sendMessage} 
           className="flex gap-2 items-end bg-[var(--chat-surface-input)] border border-transparent rounded-[24px] p-2 focus-within:ring-2 focus-within:ring-[var(--chat-accent)]/20 focus-within:border-[var(--chat-accent)] focus-within:bg-white transition-all duration-200 mx-auto max-w-4xl shadow-sm hover:shadow-md"
         >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept=".pdf,.txt,.md,.json,.png,.jpg,.jpeg"
+            className="hidden"
+          />
+
+          <button 
+            type="button" 
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0 flex items-center justify-center h-[42px] w-[42px] rounded-full transition-all duration-200 mb-0.5 ml-0.5 text-[var(--chat-text-secondary)] hover:bg-black/5 hover:text-black"
+            title="Attach college document (PDF, syllabus, notes, circular)"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
           <button 
             type="button" 
             onClick={handleVoice}
-            className={`shrink-0 flex items-center justify-center h-[42px] w-[42px] rounded-full transition-all duration-200 relative mb-0.5 ml-0.5 ${
+            className={`shrink-0 flex items-center justify-center h-[42px] w-[42px] rounded-full transition-all duration-200 relative mb-0.5 ${
               isListening 
                 ? "bg-[var(--chat-accent-tint)] text-[var(--chat-accent)]" 
                 : "bg-transparent text-[var(--chat-text-secondary)] hover:bg-black/5 hover:text-black"
@@ -678,7 +823,13 @@ export function ChatInterface() {
                 sendMessage(e as unknown as React.FormEvent);
               }
             }}
-            placeholder={isAwaitingWellness ? "How are you feeling today?" : "Message CampusFlow Assistant..."}
+            placeholder={
+              isAwaitingWellness
+                ? "How are you feeling today?"
+                : attachedFile
+                ? `Ask anything about ${attachedFile.name}...`
+                : "Ask AI Campus Brain or attach a college document..."
+            }
             disabled={isLoading || isListening}
             className="flex-1 max-h-[160px] min-h-[44px] py-3 px-2 text-[15px] bg-transparent resize-none outline-none text-[var(--chat-text-primary)] placeholder:text-[var(--chat-text-secondary)] leading-relaxed custom-scrollbar disabled:opacity-50"
             rows={1}
@@ -686,9 +837,9 @@ export function ChatInterface() {
           
           <button 
             type="submit" 
-            disabled={!input.trim() || isLoading || isListening}
+            disabled={(!input.trim() && !attachedFile) || isLoading || isListening}
             className={`shrink-0 flex items-center justify-center h-[42px] w-[42px] rounded-full transition-all duration-200 mb-0.5 mr-0.5 ${
-              input.trim() && !isLoading && !isListening
+              (input.trim() || attachedFile) && !isLoading && !isListening
                 ? "bg-[var(--chat-accent)] text-white shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-95"
                 : "bg-neutral-200 text-white/80 cursor-not-allowed"
             }`}
@@ -697,7 +848,9 @@ export function ChatInterface() {
           </button>
         </form>
         <div className="text-center mt-3">
-          <span className="text-[11px] text-[var(--chat-text-secondary)] tracking-wide">CampusFlow AI can make mistakes. Always verify important details.</span>
+          <span className="text-[11px] text-[var(--chat-text-secondary)] tracking-wide">
+            CampusOne AI Campus Brain understands college documents, notices, deadlines, academic calendars & timetables.
+          </span>
         </div>
       </div>
     </div>

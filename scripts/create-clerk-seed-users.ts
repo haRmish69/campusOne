@@ -33,7 +33,7 @@ async function main() {
       // 2. Create new user in Clerk
       const clerkUser = await clerkClient.users.createUser({
         emailAddress: [u.email],
-        password: "CampusFlow1234!",
+        password: "CampusOne1234!",
         firstName: u.first,
         lastName: u.last,
         skipPasswordChecks: true, // Crucial: forces Clerk to accept the password!

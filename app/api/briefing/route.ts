@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenAI } from "@google/genai";
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
   try {
     const body = await req.json();
@@ -182,8 +181,7 @@ INSTRUCTIONS:
    - Each question must have 3-5 'options' with a 'label' (string) and 'value' (number or string).`;
 
     // ─── 8. Generate briefing via Gemini ────────────────────────────────
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const response = await generateContentWithRetryAndFallback({
       contents: `Generate my ${type} briefing.`,
       config: {
         systemInstruction: systemPrompt,
@@ -235,7 +233,7 @@ INSTRUCTIONS:
     });
 
   } catch (error: any) {
-    console.error("Briefing API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Briefing API Error:", sanitizeError(error));
+    return NextResponse.json({ error: "AI analysis is temporarily unavailable. Please try again in a few moments." }, { status: 503 });
   }
 }

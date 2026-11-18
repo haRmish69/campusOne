@@ -35,7 +35,7 @@ export function AIFab() {
   }
 
   const placeholder =
-    routePrompts[pathname] ?? "Ask CampusFlow anything…";
+    routePrompts[pathname] ?? "Ask CampusOne anything…";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +63,7 @@ export function AIFab() {
               flex items-center justify-center
               text-white transition-transform hover:scale-105
             "
-            aria-label="Ask CampusFlow"
+            aria-label="Ask CampusOne"
           />
         }
       >
@@ -71,7 +71,7 @@ export function AIFab() {
       </SheetTrigger>
       <SheetContent side="bottom" className="rounded-t-[20px] p-6">
         <p className="text-[14px] text-[var(--color-stone)] mb-3">
-          Ask CampusFlow
+          Ask CampusOne
         </p>
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input

@@ -94,7 +94,7 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Your Profile</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your academic details to help CampusFlow personalize your experience.
+            Manage your academic details to help CampusOne personalize your experience.
           </p>
         </div>
       </div>

@@ -1,4 +1,4 @@
-# Gmail OAuth Setup for CampusFlow
+# Gmail OAuth Setup for CampusOne
 
 ## Step 1: Google Cloud Console
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
@@ -9,7 +9,7 @@
 ## Step 2: OAuth Consent Screen
 1. Go to **APIs & Services → OAuth consent screen**
 2. Select **External** → Click Create
-3. Fill in the app name (e.g., "CampusFlow")
+3. Fill in the app name (e.g., "CampusOne")
 4. Add your email as a test user
 5. Save
 

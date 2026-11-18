@@ -1,35 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash";
-
-// Reuse the withRetry wrapper logic here to ensure consistency
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      if (
-        error.status === 429 || 
-        error.status === 503 ||
-        error.status === 500 ||
-        error.message?.includes("429") ||
-        error.message?.includes("503") ||
-        error.message?.includes("high demand")
-      ) {
-        if (attempt === maxRetries) throw error;
-        const delay = 2000 * Math.pow(2, attempt);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error("Max retries exceeded");
-}
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,10 +64,12 @@ Recent expenses in these categories: ${JSON.stringify(recentProblematicExpenses)
 For any category that is 'near' or 'over' budget, suggest 2-3 specific, practical, affordable alternatives a student in India could realistically use (e.g. cheaper food options, public transport vs cabs, free/student-discount entertainment). Be concrete and encouraging, not preachy.
 Return ONLY a JSON array of objects formatted as: { "category": string, "suggestions": string[] }. No markdown or code fences.`;
 
-    const response = await withRetry(() => ai.models.generateContent({
-      model: MODEL,
+    const response = await generateContentWithRetryAndFallback({
       contents: prompt,
-    }));
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
     let rawText = response.text ?? "";
     rawText = rawText.replace(/^```[a-z]*\n?/im, "").replace(/\n?```$/im, "").trim();
@@ -110,7 +84,7 @@ Return ONLY a JSON array of objects formatted as: { "category": string, "suggest
     return NextResponse.json({ suggestions: parsedSuggestions });
 
   } catch (error) {
-    console.error("Failed to generate suggestions:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Failed to generate suggestions:", sanitizeError(error));
+    return NextResponse.json({ error: "AI analysis is temporarily unavailable. Please try again in a few moments." }, { status: 503 });
   }
 }

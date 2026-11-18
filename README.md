@@ -1,8 +1,10 @@
-# CampusFlow 🎓✨
+# CampusOne 🎓✨
 
-**CampusFlow** is a next-generation, AI-powered digital assistant built for college students. By unifying disjointed campus information into a single, intelligent platform, it transforms how students manage their schedules, deadlines, mess menus, and official notices.
+> **Everything Campus. One Platform.**
 
-Powered by a custom in-memory Retrieval-Augmented Generation (RAG) system utilizing the **Gemini API**, CampusFlow acts as your personal, proactive campus assistant.
+**CampusOne** is an AI-powered student companion that brings academic management, campus information, smart scheduling, food information, deadlines and student networking together in one unified platform. By unifying disjointed campus information into a single, intelligent platform, it transforms how students manage their schedules, deadlines, mess menus, and official notices.
+
+Powered by a custom in-memory Retrieval-Augmented Generation (RAG) system utilizing the **Gemini API**, CampusOne acts as your personal, proactive campus assistant.
 
 ---
 
@@ -54,8 +56,8 @@ Powered by a custom in-memory Retrieval-Augmented Generation (RAG) system utiliz
 
 1. **Clone the repository:**
    \`\`\`bash
-   git clone https://github.com/your-username/campusflow.git
-   cd campusflow
+   git clone https://github.com/your-username/campusone.git
+   cd campusone
    \`\`\`
 
 2. **Install dependencies:**
@@ -93,10 +95,10 @@ Powered by a custom in-memory Retrieval-Augmented Generation (RAG) system utiliz
 ---
 
 ## 🏗 Architecture Highlight: In-Memory RAG
-Instead of relying on heavy, expensive vector databases like Pinecone, CampusFlow utilizes a lightweight, extremely fast in-memory embedding search. 
+Instead of relying on heavy, expensive vector databases like Pinecone, CampusOne utilizes a lightweight, extremely fast in-memory embedding search. 
 1. When data is ingested (e.g. Mess Menu), Gemini generates a 200-dimensional vector.
 2. Prisma stores this vector as a JSON array.
-3. Upon asking a question, CampusFlow fetches all vectors into memory, calculates the Cosine Similarity instantly, and feeds the top results to the generative model.
+3. Upon asking a question, CampusOne fetches all vectors into memory, calculates the Cosine Similarity instantly, and feeds the top results to the generative model.
 
 ---
 

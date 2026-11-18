@@ -3,46 +3,13 @@ import { fetchEmailsSince } from "@/lib/gmail";
 import { embedText } from "@/lib/embeddings";
 import { addToIndex } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
-
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 import { auth } from "@clerk/nextjs/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash";
-
-// Helper for retries
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-  let attempt = 0;
-  while (attempt < maxRetries) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      if (
-        error.status === 429 || 
-        error.status === 503 ||
-        error.status === 500 ||
-        error.message?.includes("429") ||
-        error.message?.includes("503") ||
-        error.message?.includes("high demand")
-      ) {
-        if (attempt === maxRetries) throw error;
-        const baseDelay = error.status === 503 ? 3000 : 2000;
-        const delay = baseDelay * Math.pow(2, attempt);
-        console.warn(`API overloaded/rate limited. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        attempt++;
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error("Max retries exceeded");
-}
 
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-    const label = process.env.GMAIL_LABEL || "CampusFlow";
+    const label = process.env.GMAIL_LABEL || "CampusOne";
     let emails = [];
     
     try {
@@ -121,11 +88,10 @@ Email Subject: `;
       try {
         const fullPrompt = PROMPT + email.subject + "\n\nEmail Body:\n" + email.body;
         
-        const response = await withRetry(() => ai.models.generateContent({
-          model: MODEL,
+        const response = await generateContentWithRetryAndFallback({
           contents: fullPrompt,
           config: { temperature: 0.2 }
-        }));
+        });
 
         let text = response.text || "[]";
         text = text.replace(/```json/g, "").replace(/```/g, "").trim();

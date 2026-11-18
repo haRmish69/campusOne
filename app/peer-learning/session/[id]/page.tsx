@@ -283,7 +283,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
 
           <p className="text-[13px] text-[var(--color-stone)] mt-4 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[var(--color-graphite)]" />
-            We've added this to your CampusFlow schedule
+            We've added this to your CampusOne schedule
           </p>
 
           {/* Mark Complete Button (only for requester, after scheduled time) */}

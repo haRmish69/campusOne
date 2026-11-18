@@ -1,4 +1,4 @@
-# CampusFlow — Project Context
+# CampusOne — Project Context
 
 ## Tech Stack (locked, do not change)
 - Next.js 14+ App Router, TypeScript
@@ -21,7 +21,7 @@
 Help students manage monthly expenses, get affordable food/travel
 suggestions, detect burnout/stress patterns, encourage healthy routines,
 and provide personalized financial + emotional support — fully integrated
-into the existing CampusFlow nav, dashboard, and chat assistant.
+into the existing CampusOne nav, dashboard, and chat assistant.
 
 ### New Models (to be added to schema.prisma — see Phase 1B)
 Expense, Budget, WellnessLog, WellnessInsight
@@ -59,7 +59,7 @@ Build the full Peer Learning Ecosystem with passive expertise inference, smart m
 
 ## Module 5: Intelligent Integrations
 ### Goal
-Automate data ingestion from external silos (Gmail) directly into the CampusFlow brain securely, proactively handling privacy and preventing data corruption.
+Automate data ingestion from external silos (Gmail) directly into the CampusOne brain securely, proactively handling privacy and preventing data corruption.
 
 ### Phases
 - [x] Phase 15: Production Email Sync Pipeline (Schema + Gmail + Classifier + Sync Engine + APIs + Chat Tool + Cron)

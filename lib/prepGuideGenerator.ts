@@ -1,7 +1,5 @@
 import { prisma } from "./prisma";
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+import { generateContentWithRetryAndFallback } from "./gemini";
 
 export async function generatePrepGuide(companyId: string): Promise<any> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
@@ -59,8 +57,7 @@ Generate a JSON response with exactly this structure:
 
 Be specific and actionable. Reference actual patterns from the data.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+  const response = await generateContentWithRetryAndFallback({
     contents: prompt,
     config: {
       responseMimeType: "application/json",

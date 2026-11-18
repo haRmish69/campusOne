@@ -1,35 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { GoogleGenAI } from "@google/genai";
 import { auth } from "@clerk/nextjs/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash";
-
-// Reuse the withRetry wrapper logic here
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      if (
-        error.status === 429 || 
-        error.status === 503 ||
-        error.status === 500 ||
-        error.message?.includes("429") ||
-        error.message?.includes("503") ||
-        error.message?.includes("high demand")
-      ) {
-        if (attempt === maxRetries) throw error;
-        const delay = 2000 * Math.pow(2, attempt);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-  throw new Error("Max retries exceeded");
-}
+import { generateContentWithRetryAndFallback, sanitizeError } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
 
@@ -89,10 +61,12 @@ Return ONLY JSON:
 }
 No markdown formatting.`;
 
-    const response = await withRetry(() => ai.models.generateContent({
-      model: MODEL,
+    const response = await generateContentWithRetryAndFallback({
       contents: prompt,
-    }));
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
     let rawText = response.text ?? "";
     rawText = rawText.replace(/^```[a-z]*\n?/im, "").replace(/\n?```$/im, "").trim();
@@ -110,7 +84,7 @@ No markdown formatting.`;
     });
 
   } catch (error) {
-    console.error("Budget Insight error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Budget Insight error:", sanitizeError(error));
+    return NextResponse.json({ error: "AI analysis is temporarily unavailable. Please try again in a few moments." }, { status: 503 });
   }
 }

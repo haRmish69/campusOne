@@ -101,7 +101,7 @@ export default async function DashboardPage() {
         </div>
         <Link href="/chat" className="btn-primary">
           <Sparkles size={16} />
-          Ask CampusFlow
+          Ask CampusOne
         </Link>
       </div>
 

@@ -1,7 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-const MODEL = "gemini-2.5-flash";
+import { generateContentWithRetryAndFallback } from "./gemini";
 
 // ── Gate 1: Privacy Filter ──
 // Binary decision: is this email campus-relevant or private/irrelevant?
@@ -55,8 +52,7 @@ Respond with ONLY a raw JSON object (no markdown):
 }`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: MODEL,
+    const result = await generateContentWithRetryAndFallback({
       contents: prompt,
       config: { temperature: 0.1 },
     });
@@ -182,8 +178,7 @@ Rules:
 - Return ONLY raw JSON. No markdown fences. No preamble.`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: MODEL,
+    const result = await generateContentWithRetryAndFallback({
       contents: prompt,
       config: { temperature: 0.1 },
     });

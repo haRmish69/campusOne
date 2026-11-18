@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Sora, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Sidebar } from "@/components/Sidebar";
@@ -7,27 +6,9 @@ import { AIFab } from "@/components/AIFab";
 import { ClerkProvider } from "@clerk/nextjs";
 import OnboardingCheck from "@/components/OnboardingCheck";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-const sora = Sora({
-  variable: "--font-sora",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  variable: "--font-ibm-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
-
 export const metadata: Metadata = {
-  title: "CampusFlow",
-  description: "Your intelligent campus assistant.",
+  title: "CampusOne — Everything Campus. One Platform.",
+  description: "CampusOne is an AI-powered student companion that brings academic management, campus information, smart scheduling, food information, deadlines and student networking together in one unified platform.",
 };
 
 export default function RootLayout({
@@ -39,16 +20,24 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${plusJakarta.variable} ${sora.variable} ${ibmPlexMono.variable} h-full antialiased`}
+        className="h-full antialiased"
         suppressHydrationWarning
       >
+        <head>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <link
+            href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+          />
+        </head>
         <body className="h-full flex flex-col md:flex-row bg-[var(--color-canvas-white)]">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto relative pb-20 md:pb-0">
-              {children}
-            </main>
-            <AIFab />
-            <Toaster />
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto relative pb-20 md:pb-0">
+            {children}
+          </main>
+          <AIFab />
+          <Toaster />
           <OnboardingCheck />
         </body>
       </html>

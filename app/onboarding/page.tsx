@@ -131,7 +131,7 @@ export default function OnboardingPage() {
               <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-[var(--color-graphite)]' : 'bg-[var(--color-pearl)]'}`} />
             ))}
           </div>
-          <h2 className="text-[24px] font-semibold text-[var(--color-graphite)]">Welcome to CampusFlow</h2>
+          <h2 className="text-[24px] font-semibold text-[var(--color-graphite)]">Welcome to CampusOne</h2>
           <p className="text-[14px] text-[var(--color-stone)] mt-1">
             {step === 1 && "Let's start with the basics."}
             {step === 2 && "Tell us about your academics."}

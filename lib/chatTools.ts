@@ -172,6 +172,60 @@ export const toolDeclarations = [
       required: [],
     },
   },
+  {
+    name: "extract_smart_notice",
+    description: "Extract and store a structured college notice from text or document. Extracts title, category, event date, venue, and required action.",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        title: { type: "string", description: "Official notice or circular title" },
+        body: { type: "string", description: "Full or summarized notice body" },
+        category: { type: "string", description: "placement, exam, event, hostel, or general" },
+        eventDate: { type: "string", description: "Date of event/deadline in YYYY-MM-DD or ISO-8601 format if applicable (optional)" },
+        venue: { type: "string", description: "Venue, hall, lab, or platform link (optional)" },
+        actionRequired: { type: "string", description: "Clear single-sentence action the student must take (optional)" },
+      },
+      required: ["title", "body"],
+    },
+  },
+  {
+    name: "batch_extract_deadlines",
+    description: "Extract and save multiple assignments, lab submissions, or exam deadlines at once from a syllabus or document.",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        deadlines: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Assignment or exam title" },
+              subject: { type: "string", description: "Subject or course name" },
+              dueDate: { type: "string", description: "Due date in YYYY-MM-DD format" },
+              notes: { type: "string", description: "Weightage or instructions (optional)" },
+            },
+            required: ["title", "subject", "dueDate"],
+          },
+          description: "List of extracted deadlines to save",
+        },
+      },
+      required: ["deadlines"],
+    },
+  },
+  {
+    name: "save_college_document",
+    description: "Save an uploaded college document, lecture notes, or study guide into the student's personal notes library for long-term AI memory.",
+    parameters: {
+      type: "object" as const,
+      properties: {
+        title: { type: "string", description: "Document title" },
+        subject: { type: "string", description: "Course or subject (e.g. Operating Systems, DBMS)" },
+        content: { type: "string", description: "Key takeaways, notes text, or summary" },
+        fileName: { type: "string", description: "Original file name if available (optional)" },
+      },
+      required: ["title", "subject", "content"],
+    },
+  },
 ];
 
 // ─── Executor Functions ──────────────────────────────────────────────────
@@ -202,6 +256,12 @@ export async function executeTool(name: string, args: any, userId: string): Prom
       return updateWellnessLog(args, userId);
     case "import_recent_emails":
       return importRecentEmails(userId);
+    case "extract_smart_notice":
+      return extractSmartNotice(args, userId);
+    case "batch_extract_deadlines":
+      return batchExtractDeadlines(args, userId);
+    case "save_college_document":
+      return saveCollegeDocument(args, userId);
     default:
       return `Unknown tool: ${name}`;
   }
@@ -590,4 +650,96 @@ async function importRecentEmails(userId: string): Promise<string> {
     console.error("[Chat] Email sync failed:", error);
     return "Something went wrong while syncing your emails. Please try again later or check your email connection in Settings.";
   }
+}
+
+async function extractSmartNotice(
+  args: { title: string; body: string; category?: string; eventDate?: string; venue?: string; actionRequired?: string },
+  userId: string
+): Promise<string> {
+  const { title, body, category, eventDate, venue, actionRequired } = args;
+  const validCategories = ["placement", "exam", "event", "hostel", "general"];
+  const safeCategory = validCategories.includes(category?.toLowerCase() || "") ? category!.toLowerCase() : "general";
+
+  let parsedEventDate: Date | null = null;
+  if (eventDate) {
+    const d = new Date(eventDate);
+    if (!isNaN(d.getTime())) parsedEventDate = d;
+  }
+
+  const embedding = await getRealEmbedding(`[NOTICE] ${title}: ${body} ${venue || ""} ${actionRequired || ""}`);
+
+  const notice = await prisma.notice.create({
+    data: {
+      userId,
+      title,
+      body,
+      category: safeCategory,
+      eventDate: parsedEventDate,
+      venue: venue || null,
+      actionRequired: actionRequired || null,
+      source: "AI Campus Brain Extraction",
+      embedding,
+    },
+  });
+
+  await addToIndex(notice.id, `[NOTICE] ${title}: ${body}`, "Notice", userId, userId ? "private" : "global");
+
+  return `✅ Successfully extracted & saved notice: "${title}" [${safeCategory.toUpperCase()}]. Action: ${actionRequired || "None specified"}${venue ? ` at ${venue}` : ""}.`;
+}
+
+async function batchExtractDeadlines(
+  args: { deadlines: Array<{ title: string; subject: string; dueDate: string; notes?: string }> },
+  userId: string
+): Promise<string> {
+  if (!args.deadlines || !Array.isArray(args.deadlines) || args.deadlines.length === 0) {
+    return "No deadlines found to extract.";
+  }
+
+  const saved: string[] = [];
+
+  for (const item of args.deadlines) {
+    const parsedDate = new Date(item.dueDate);
+    if (isNaN(parsedDate.getTime())) continue;
+
+    const embedding = await getRealEmbedding(`[DEADLINE] ${item.title} (${item.subject}) due ${item.dueDate}. ${item.notes || ""}`);
+
+    const dl = await prisma.deadline.create({
+      data: {
+        userId,
+        title: item.title,
+        subject: item.subject,
+        dueDate: parsedDate,
+        type: item.title.toLowerCase().includes("exam") ? "exam" : item.title.toLowerCase().includes("project") ? "project" : "assignment",
+        notes: item.notes || null,
+        embedding,
+      },
+    });
+
+    await addToIndex(dl.id, `[DEADLINE] ${item.title} (${item.subject}) due ${item.dueDate}`, "Deadline", userId, "private");
+    saved.push(`• ${item.title} (${item.subject}) - due ${parsedDate.toLocaleDateString("en-IN")}`);
+  }
+
+  return `✅ Identified and saved ${saved.length} deadline(s) to your calendar:\n${saved.join("\n")}`;
+}
+
+async function saveCollegeDocument(
+  args: { title: string; subject: string; content: string; fileName?: string },
+  userId: string
+): Promise<string> {
+  const { title, subject, content, fileName } = args;
+
+  const embedding = await getRealEmbedding(`[NOTE] ${title} (${subject}): ${content}`);
+
+  await prisma.note.create({
+    data: {
+      userId,
+      title,
+      subject,
+      content,
+      fileName: fileName || "Chat Uploaded Document",
+      embedding,
+    },
+  });
+
+  return `📚 Successfully saved document "${title}" under subject "${subject}" to your Campus Brain notes library.`;
 }

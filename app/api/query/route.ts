@@ -3,7 +3,12 @@ import { getRealEmbedding } from "@/lib/embeddings";
 import { dualSearch, SearchResult } from "@/lib/vectorStore";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
-import { GoogleGenAI } from "@google/genai";
+import { 
+  generateContentWithRetryAndFallback, 
+  generateContentStreamWithRetryAndFallback, 
+  isRetryableGeminiError, 
+  sanitizeError 
+} from "@/lib/gemini";
 import { toolDeclarations, executeTool } from "@/lib/chatTools";
 
 // ─── Context Token Budget ────────────────────────────────────────────────
@@ -13,8 +18,6 @@ const TOP_K_GLOBAL = 8;
 const DIRECT_INJECT_CAP = 10; // max cab pools / transport updates injected
 
 export async function POST(req: NextRequest) {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-  
   try {
     const body = await req.json();
     const query = body.query || body.question;
@@ -152,7 +155,7 @@ export async function POST(req: NextRequest) {
       hour: "2-digit", minute: "2-digit", hour12: true
     });
 
-    const systemInstruction = `You are CampusFlow, an elite AI assistant for students.
+    const systemInstruction = `You are CampusOne, an elite AI assistant for students.
 Current Date & Time (IST): ${istDateTime}
 
 You have TWO capabilities:
@@ -200,8 +203,7 @@ ${context}`;
 
     // ─── 8. Tool-Detection Call ─────────────────────────────────────────
     console.log("⏳ Starting tool-detection call...");
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+    const response = await generateContentWithRetryAndFallback({
       contents: query,
       config: {
         systemInstruction,
@@ -224,15 +226,14 @@ ${context}`;
       const toolResult = await executeTool(toolName!, toolArgs, userId!);
       console.log(`✅ Tool result: ${toolResult}`);
 
-      const followUp = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
+      const followUp = await generateContentStreamWithRetryAndFallback({
         contents: [
           { role: "user", parts: [{ text: query }] },
           { role: "model", parts: parts },
           { role: "user", parts: [{ functionResponse: { name: toolName!, response: { result: toolResult } } }] },
         ],
         config: {
-          systemInstruction: `You are CampusFlow, a friendly AI assistant. The user asked to modify some campus data and the tool has executed. Summarize what was changed in a warm, helpful way. Keep it brief — 1-2 sentences max. Current Date & Time (IST): ${istDateTime}`,
+          systemInstruction: `You are CampusOne, a friendly AI assistant. The user asked to modify some campus data and the tool has executed. Summarize what was changed in a warm, helpful way. Keep it brief — 1-2 sentences max. Current Date & Time (IST): ${istDateTime}`,
         },
       });
 
@@ -278,8 +279,7 @@ ${context}`;
             assistantMessage = response.text!;
             controller.enqueue(encoder.encode(response.text!));
           } else {
-            const streamResponse = await ai.models.generateContentStream({
-              model: "gemini-2.5-flash",
+            const streamResponse = await generateContentStreamWithRetryAndFallback({
               contents: query,
               config: {
                 systemInstruction,
@@ -312,8 +312,21 @@ ${context}`;
     });
 
   } catch (error: any) {
-    console.error("Query API Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Query API Error]:", sanitizeError(error));
+    if (error.isHighDemand || isRetryableGeminiError(error)) {
+      return NextResponse.json(
+        { 
+          error: "AI analysis is temporarily unavailable. Please try again in a few moments.",
+          isHighDemand: true,
+          canRetry: true 
+        },
+        { status: 503 }
+      );
+    }
+    return NextResponse.json(
+      { error: "AI analysis is temporarily unavailable. Please try again in a few moments.", canRetry: true },
+      { status: 500 }
+    );
   }
 }
 
