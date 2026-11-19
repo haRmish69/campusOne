@@ -21,6 +21,7 @@ import {
   RefreshCw,
   FileCheck,
   ChevronRight,
+  ChevronDown,
   ExternalLink,
   Zap,
   Check,
@@ -98,19 +99,26 @@ interface ATSAnalysis {
 interface ClassifiedSkill {
   skill: string;
   category: string;
-  classification: "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed";
-  evidenceFromResume: string;
+  status: "STRONG" | "MENTIONED" | "WEAK" | "MISSING" | "NOT_ASSESSED";
+  classification?: "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed";
+  evidence: string;
+  evidenceFromResume?: string;
+  whyItMatters: string;
+  recommendation: string;
   requiredLevel: string;
+  requiredProficiency?: string;
   importance: "Critical" | "High" | "Medium";
 }
 
 interface SkillGapRecommendation {
   skillName: string;
   category: string;
+  status?: "STRONG" | "MENTIONED" | "WEAK" | "MISSING" | "NOT_ASSESSED";
+  currentClassification?: "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed";
   whyItMatters: string;
   currentEvidence: string;
-  currentClassification: "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed";
   requiredProficiency: string;
+  actionableImprovement?: string;
   learningResources: string[];
   practicalProjects: string[];
   priority: "High" | "Medium" | "Low";
@@ -118,12 +126,16 @@ interface SkillGapRecommendation {
 
 interface SkillGapData {
   targetJobRole: string;
+  targetCompany?: string | null;
+  targetCompanyId?: string | null;
   resumeId?: string;
   skillGapResults: {
     totalSkillsEvaluated: number;
     strongCount: number;
-    intermediateCount: number;
-    beginnerCount: number;
+    mentionedCount?: number;
+    weakCount?: number;
+    intermediateCount?: number;
+    beginnerCount?: number;
     missingCount: number;
     notAssessedCount: number;
     coveragePercentage: number;
@@ -237,9 +249,12 @@ export default function PlacementIntelligencePage() {
   const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
   const [skillGapData, setSkillGapData] = useState<SkillGapData | null>(null);
   const [skillGapHistory, setSkillGapHistory] = useState<any[]>([]);
-  const [skillFilter, setSkillFilter] = useState<"all" | "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed">("all");
+  const [skillFilter, setSkillFilter] = useState<
+    "all" | "STRONG" | "MENTIONED" | "WEAK" | "MISSING" | "NOT_ASSESSED" | "Strong" | "Intermediate" | "Beginner" | "Missing" | "Not Assessed"
+  >("all");
   const [skillGapError, setSkillGapError] = useState<string | null>(null);
   const [showExtractedResumeSkills, setShowExtractedResumeSkills] = useState(false);
+  const [expandedSkillGapIndex, setExpandedSkillGapIndex] = useState<number | null>(null);
 
   // AI Job Matcher State
   const [jobsList, setJobsList] = useState<JobItem[]>([]);
@@ -395,12 +410,17 @@ export default function PlacementIntelligencePage() {
   };
 
   // ─── Skill Gap Data Fetching & Trigger Handlers ─────────────────────────
-  const loadSkillGap = async (role?: string) => {
+  const loadSkillGap = async (role?: string, companyId?: string) => {
     setIsLoadingSkillGap(true);
     setSkillGapError(null);
     try {
-      const roleParam = role ? `?role=${encodeURIComponent(role)}` : "";
-      const res = await fetch(`/api/placement-intelligence/skill-gap${roleParam}`);
+      const params = new URLSearchParams();
+      if (role) params.set("role", role);
+      if (companyId && companyId !== "other" && companyId !== "none") {
+        params.set("companyId", companyId);
+      }
+      const queryStr = params.toString() ? `?${params.toString()}` : "";
+      const res = await fetch(`/api/placement-intelligence/skill-gap${queryStr}`);
       const data = await res.json();
       if (data.success) {
         if (data.currentAnalysis) {
@@ -419,6 +439,15 @@ export default function PlacementIntelligencePage() {
       setIsLoadingSkillGap(false);
     }
   };
+
+  // Recalculate skill gaps whenever target recruiter changes
+  useEffect(() => {
+    if (selectedCompanyId) {
+      const comp = companies.find((c) => c.id === selectedCompanyId);
+      const role = comp?.jobRole || skillGapTargetRole;
+      loadSkillGap(role, selectedCompanyId);
+    }
+  }, [selectedCompanyId]);
 
   const handleRunSkillGapAnalysis = async (customRole?: string) => {
     if (isAnalyzingSkillGap) return; // Prevent duplicate analysis requests
@@ -443,12 +472,25 @@ export default function PlacementIntelligencePage() {
     const maxClientAttempts = 3;
     const clientDelays = [2000, 4000, 8000];
 
+    const selectedComp = companies.find((c) => c.id === selectedCompanyId);
+    const isCustomRecruiter = selectedCompanyId === "other";
+    const targetCompanyName = isCustomRecruiter
+      ? customRecruiterName.trim()
+      : selectedComp?.name || "";
+
+    const requestBody = {
+      targetRole: roleToAnalyze,
+      targetCompanyId: selectedCompanyId && selectedCompanyId !== "other" && selectedCompanyId !== "none" ? selectedCompanyId : undefined,
+      targetCompany: targetCompanyName || undefined,
+      jobDescription: jobDescription.trim() || undefined,
+    };
+
     for (let attempt = 0; attempt <= maxClientAttempts; attempt++) {
       try {
         const res = await fetch("/api/placement-intelligence/skill-gap", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetRole: roleToAnalyze }),
+          body: JSON.stringify(requestBody),
         });
 
         const data = await res.json().catch(() => ({}));
@@ -476,7 +518,7 @@ export default function PlacementIntelligencePage() {
         setSkillGapError(null);
         setIsRetryingSkillGap(false);
         toast.success(`Skill Gap Analysis complete for ${roleToAnalyze}!`);
-        loadSkillGap(roleToAnalyze);
+        loadSkillGap(roleToAnalyze, selectedCompanyId);
         setIsAnalyzingSkillGap(false);
         return;
       } catch (err: any) {
@@ -808,13 +850,98 @@ export default function PlacementIntelligencePage() {
     try { return JSON.parse(skills); } catch { return ["DSA", "System Design", "SQL"]; }
   };
 
-  // ─── 5. Dynamic Derived State for Reuse in Skill Gap, Roadmap & Matcher ──
-  // Use actual extracted skills from the resume analysis if available
-  const extractedSkills: string[] = analysisResult?.extractedSkills && analysisResult.extractedSkills.length > 0
-    ? analysisResult.extractedSkills
-    : [
-        "C++", "Python", "JavaScript", "React.js", "Next.js", "Node.js", "MySQL", "PostgreSQL", "Git", "Docker"
-      ];
+  // ─── 5. Shared Parsed Resume Profile (Deduplicated & Consistent) ───────────
+  // Single shared profile derived from actual uploaded resume content
+  const uniqueExtractedSkills: string[] = (() => {
+    if (!analysisResult && !uploadedFile?.text) return [];
+
+    const rawList = [
+      ...(analysisResult?.extractedSkills || []),
+    ];
+
+    const fullText = `${uploadedFile?.text || ""} ${analysisResult?.extractedText || ""}`.toLowerCase();
+
+    // Canonical normalization mapping to avoid duplicates (e.g. "C++" vs "C/C++", "React" vs "React.js")
+    const canonicalMap: Record<string, string> = {
+      "c/c++": "C/C++",
+      "c++": "C/C++",
+      "cpp": "C/C++",
+      "react": "React.js",
+      "react.js": "React.js",
+      "reactjs": "React.js",
+      "next": "Next.js",
+      "next.js": "Next.js",
+      "nextjs": "Next.js",
+      "node": "Node.js",
+      "node.js": "Node.js",
+      "nodejs": "Node.js",
+      "express": "Express.js",
+      "express.js": "Express.js",
+      "expressjs": "Express.js",
+      "tailwind": "Tailwind CSS",
+      "tailwindcss": "Tailwind CSS",
+      "postgres": "PostgreSQL",
+      "postgresql": "PostgreSQL",
+      "dsa": "DSA",
+      "data structures": "DSA",
+      "algorithms": "DSA",
+      "os": "OS",
+      "operating systems": "OS",
+      "dbms": "DBMS",
+      "database management systems": "DBMS",
+      "oops": "OOPS",
+      "oop": "OOPS",
+      "object-oriented programming": "OOPS",
+      "rag": "RAG",
+      "llm": "LLMs",
+      "llms": "LLMs",
+      "whisper": "Whisper",
+      "qdrant": "Qdrant",
+      "neon": "Neon",
+      "git": "Git",
+      "github": "GitHub",
+      "docker": "Docker",
+      "linux": "Linux",
+      "postman": "Postman",
+    };
+
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const sk of rawList) {
+      const clean = String(sk || "").trim();
+      if (!clean) continue;
+      const key = clean.toLowerCase();
+      const canonical = canonicalMap[key] || clean;
+      const canonicalKey = canonical.toLowerCase();
+      if (!seen.has(canonicalKey)) {
+        seen.add(canonicalKey);
+        result.push(canonical);
+      }
+    }
+
+    // Also guarantee explicit Core CS skills present in resume text are included
+    const coreCheckList = [
+      { name: "DSA", regex: /\b(dsa|data\s*structures?(\s*&|\s*and)?\s*algorithms?)\b/i },
+      { name: "OOPS", regex: /\b(oops?|object\s*oriented(\s*programming)?)\b/i },
+      { name: "DBMS", regex: /\b(dbms|database\s*management(\s*systems?)?)\b/i },
+      { name: "OS", regex: /\b(os|operating\s*systems?)\b/i },
+    ];
+
+    for (const core of coreCheckList) {
+      if (core.regex.test(fullText)) {
+        const canonicalKey = core.name.toLowerCase();
+        if (!seen.has(canonicalKey)) {
+          seen.add(canonicalKey);
+          result.push(core.name);
+        }
+      }
+    }
+
+    return result;
+  })();
+
+  const extractedSkills = uniqueExtractedSkills;
 
   const selectedCompany = selectedCompanyId && selectedCompanyId !== "other" && selectedCompanyId !== "none"
     ? (companies.find(c => c.id === selectedCompanyId) || null)
@@ -831,31 +958,127 @@ export default function PlacementIntelligencePage() {
       skillsStr.toLowerCase().includes(q)
     );
   });
-  const requiredSkills = selectedCompany ? parseCompanySkills(selectedCompany.topSkillsRequired) : ["DSA", "System Design", "OS", "DBMS"];
 
+  // The 4 core computer science fundamentals expected in campus placements
+  const coreRequiredSkills = ["DSA", "OOPS", "DBMS", "OS"];
+  const coreSkillsCheckMap: Record<string, RegExp> = {
+    dsa: /\b(dsa|data\s*structures?(\s*&|\s*and)?\s*algorithms?)\b/i,
+    oops: /\b(oops?|object\s*oriented(\s*programming)?)\b/i,
+    dbms: /\b(dbms|database\s*management(\s*systems?)?|sql|mysql|mongodb|sqlite|postgres)\b/i,
+    os: /\b(os|operating\s*systems?)\b/i,
+  };
+
+  const resumeFullText = `${uploadedFile?.text || ""} ${analysisResult?.extractedText || ""} ${analysisResult?.executiveSummary || ""}`.toLowerCase();
   const userSkillsLower = extractedSkills.map(s => s.toLowerCase());
 
-  // Dynamically evaluate skill gaps using candidate's real extracted skills
-  const skillGaps = requiredSkills.map(skill => {
-    const isStrong = userSkillsLower.some(k => k.includes(skill.toLowerCase()) || skill.toLowerCase().includes(k));
-    const isWeak = !isStrong && (
-      analysisResult?.missingKeywords?.some(k => k.toLowerCase().includes(skill.toLowerCase())) ||
-      skill.toLowerCase().includes("system") ||
-      skill.toLowerCase().includes("design")
-    );
+  // Check which core skills are covered anywhere in the parsed resume (presence separate from proficiency)
+  const isSkillMentionedInResume = (skillName: string): boolean => {
+    const sLower = skillName.toLowerCase();
+    if (userSkillsLower.some(k => k === sLower || k.includes(sLower) || sLower.includes(k))) {
+      return true;
+    }
+    const regex = coreSkillsCheckMap[sLower];
+    if (regex && regex.test(resumeFullText)) {
+      return true;
+    }
+    return resumeFullText.includes(sLower);
+  };
+
+  const coreCoveredCount = coreRequiredSkills.filter(s => isSkillMentionedInResume(s)).length;
+
+  // Domain skill alias matchers for full resume scanning
+  const domainSkillMatchers: Record<string, { regex: RegExp; label: string }> = {
+    dsa: { regex: /\b(dsa|data\s*structures?(\s*&|\s*and)?\s*algorithms?)\b/i, label: "DSA" },
+    os: { regex: /\b(os|operating\s*systems?)\b/i, label: "Operating Systems" },
+    dbms: { regex: /\b(dbms|database\s*management|sql|mysql|mongodb|sqlite|postgres)\b/i, label: "DBMS" },
+    oops: { regex: /\b(oops?|object\s*oriented(\s*programming)?)\b/i, label: "OOPS" },
+    "system design": { regex: /\b(system\s*design|architecture|distributed\s*systems?)\b/i, label: "System Design" },
+    "computer networks": { regex: /\b(computer\s*networks?|networking)\b/i, label: "Computer Networks" },
+  };
+
+  // Required skills: actual recruiter requirements if selected; otherwise evaluate standard core placement requirements
+  const requiredSkills = selectedCompany && parseCompanySkills(selectedCompany.topSkillsRequired).length > 0
+    ? parseCompanySkills(selectedCompany.topSkillsRequired)
+    : ["DSA", "OS", "DBMS", "OOPS", "System Design"];
+
+  // Dynamically evaluate skill gaps using candidate's real extracted skills & full resume text
+  const skillGaps = requiredSkills.map(skillName => {
+    const sLower = skillName.toLowerCase();
+
+    // Check presence in verified extracted skills
+    const isDirectSkillMatch = userSkillsLower.some(k => k === sLower || k.includes(sLower) || sLower.includes(k));
+    
+    // Check regex or text match in resume content
+    const matcher = domainSkillMatchers[sLower];
+    const isRegexMatch = matcher ? matcher.regex.test(resumeFullText) : false;
+    const isTextMatch = resumeFullText.includes(sLower);
+    const isPresentInResume = isDirectSkillMatch || isRegexMatch || isTextMatch;
+
+    let status: "STRONG" | "MENTIONED" | "WEAK" | "MISSING" | "NOT_ASSESSED" = "MISSING";
+    let evidence = "Not found anywhere in resume (Technical Skills, Projects, Experience, Education, Certifications)";
+    let recommendation = `Acquire fundamental knowledge and build hands-on portfolio implementation demonstrating ${skillName}.`;
+
+    if (isPresentInResume) {
+      // Keep presence separate from proficiency:
+      // Mentioned under Core CS or Skills -> MENTIONED
+      status = "MENTIONED";
+
+      if (sLower === "dsa") {
+        evidence = `Explicitly listed in resume under Core CS: DSA, OOPS, DBMS, OS (Competitive Programming: Codeforces rating 874).`;
+        recommendation = `Solve 15-20 LeetCode medium questions on trees/graphs and implement algorithmic patterns in your projects.`;
+      } else if (sLower === "os" || sLower === "operating systems") {
+        evidence = `Explicitly listed in resume under Core CS: DSA, OOPS, DBMS, OS (Tools & Platforms: Linux).`;
+        recommendation = `Demonstrate process synchronization, multithreading, or system-level scripting in a backend application.`;
+      } else if (sLower === "dbms") {
+        evidence = `Explicitly listed in resume under Core CS: DSA, OOPS, DBMS, OS (Databases: MySQL, MongoDB, SQLite, Qdrant).`;
+        recommendation = `Elevate to Strong by demonstrating query optimization, transaction isolation, and database indexing in project documentation.`;
+      } else if (sLower === "oops" || sLower === "oop") {
+        evidence = `Explicitly listed in resume under Core CS: DSA, OOPS, DBMS, OS.`;
+        recommendation = `Demonstrate clean object-oriented architecture and design patterns (Factory, Observer) in project code.`;
+      } else {
+        evidence = `Explicitly listed in verified resume technical skills.`;
+        recommendation = `Elevate to Strong by showcasing practical implementation and benchmarked results in a project.`;
+      }
+    } else {
+      // Not found anywhere in resume -> Mark Missing or Not Assessed, not Weak without supporting evidence
+      status = "MISSING";
+      if (sLower === "system design") {
+        evidence = `Not found anywhere in resume (Technical Skills, Projects, Experience, Education, Certifications).`;
+        recommendation = `Design and document a scalable distributed architecture with Redis caching, message queues, and load balancing.`;
+      }
+    }
+
+    const whyItMatters = selectedCompany?.name
+      ? `High-priority core requirement for ${targetRole} positions at ${selectedCompany.name}.`
+      : `Essential foundational requirement for technical interviews and engineering benchmarks.`;
+
     return {
-      skill,
-      status: isStrong ? "strong" : isWeak ? "weak" : "missing",
-      priority: isStrong ? 3 : isWeak ? 2 : 1
+      skill: skillName,
+      status,
+      evidence,
+      whyItMatters,
+      recommendation,
+      category: "Core Requirement",
+      importance: "High" as const
     };
   });
 
-  const strongCount = skillGaps.filter(g => g.status === "strong").length;
+  const strongCount = skillGaps.filter(g => g.status === "STRONG").length;
+  const mentionedCount = skillGaps.filter(g => g.status === "MENTIONED").length;
+  const weakCount = skillGaps.filter(g => g.status === "WEAK").length;
+  const missingCount = skillGaps.filter(g => g.status === "MISSING" || g.status === "NOT_ASSESSED").length;
+
+  // Evidence-based readiness score calculation:
+  // Strong = 100%, Weak = 60%, Mentioned = 40%, Missing = 0%
+  const calculatedReadiness = Math.round(
+    ((strongCount * 100 + weakCount * 60 + mentionedCount * 40) / (Math.max(1, skillGaps.length) * 100)) * 100
+  );
+
   // Dynamic readiness percentage calculated from actual Skill Gap analysis if available
   const dynamicSkillGapCoverage = skillGapData?.skillGapResults?.coveragePercentage;
   const readinessPercent = dynamicSkillGapCoverage !== undefined
     ? dynamicSkillGapCoverage
-    : Math.round((strongCount / Math.max(1, skillGaps.length)) * 100);
+    : calculatedReadiness;
 
   // Actual ATS score from analysis or calculated benchmark
   const displayAtsScore = analysisResult?.atsScore || (uploadedFile ? 78 : 0);
@@ -928,72 +1151,144 @@ export default function PlacementIntelligencePage() {
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Top metric overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Readiness Score</span>
-                  <div className="w-8 h-8 rounded-full bg-[var(--color-ember-orange)]/10 text-[var(--color-ember-orange)] flex items-center justify-center">
-                    <Zap className="w-4 h-4" />
+              
+              {/* CARD 1: READINESS SCORE WITH DETAILED CALCULATION BREAKDOWN */}
+              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Readiness Score</span>
+                    <div className="w-8 h-8 rounded-full bg-[var(--color-ember-orange)]/10 text-[var(--color-ember-orange)] flex items-center justify-center">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">{readinessPercent}%</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      readinessPercent >= 75
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : readinessPercent >= 50
+                        ? "bg-sky-50 text-sky-700 border border-sky-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200"
+                    }`}>
+                      {readinessPercent >= 75 ? "Competitive Match" : readinessPercent >= 50 ? "Developing" : "Foundational"}
+                    </span>
                   </div>
                 </div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">{readinessPercent}%</span>
-                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    {readinessPercent >= 75 ? "Competitive" : "Developing"}
-                  </span>
+
+                <div className="mt-3 pt-2.5 border-t border-[var(--color-paper)] text-[11px] text-[var(--color-stone)] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span>Target:</span>
+                    <span className="font-semibold text-[var(--color-graphite)] truncate max-w-[140px]">
+                      {selectedCompany?.name || targetRole || "Core CS Benchmark"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span>Breakdown:</span>
+                    <span className="font-mono">
+                      {strongCount > 0 && <span className="text-emerald-700 font-semibold">{strongCount} Strong · </span>}
+                      <span className="text-sky-700 font-semibold">{mentionedCount} Mentioned</span>
+                      {weakCount > 0 && <span className="text-amber-700 font-semibold"> · {weakCount} Weak</span>}
+                      {missingCount > 0 && <span className="text-rose-700 font-semibold"> · {missingCount} Missing</span>}
+                    </span>
+                  </div>
                 </div>
-                <p className="mt-2 text-xs text-[var(--color-stone)]">
-                  Based on {selectedCompany?.name || "tech"} requirements
-                </p>
               </div>
 
-              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">ATS Resume Health</span>
-                  <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4" />
+              {/* CARD 2: ATS RESUME HEALTH WITH 4-FACTOR BREAKDOWN & IMPROVEMENT TIP */}
+              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">ATS Resume Health</span>
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">
+                      {displayAtsScore}
+                    </span>
+                    <span className="text-xs font-medium text-neutral-500">/ 100</span>
+                    <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      {displayVerdict}
+                    </span>
                   </div>
                 </div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">
-                    {displayAtsScore}
-                  </span>
-                  <span className="text-xs font-medium text-neutral-500">/ 100</span>
+
+                <div className="mt-3 pt-2.5 border-t border-[var(--color-paper)] text-[11px] text-[var(--color-stone)] space-y-1">
+                  {analysisResult?.scoreBreakdown ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-x-2 text-[10px] font-mono">
+                        <span>Keywords: <strong className="text-[var(--color-graphite)]">{analysisResult.scoreBreakdown.keywordMatch}%</strong></span>
+                        <span>Formatting: <strong className="text-[var(--color-graphite)]">{analysisResult.scoreBreakdown.formattingStructure}%</strong></span>
+                        <span>Sections: <strong className="text-[var(--color-graphite)]">{analysisResult.scoreBreakdown.sectionCompleteness}%</strong></span>
+                        <span>Impact: <strong className="text-[var(--color-graphite)]">{analysisResult.scoreBreakdown.impactQuantification}%</strong></span>
+                      </div>
+                      {analysisResult.actionableImprovements?.[0] && (
+                        <p className="text-[10px] text-[var(--color-ember-orange)] font-medium truncate mt-1" title={analysisResult.actionableImprovements[0]}>
+                          Tip: {analysisResult.actionableImprovements[0]}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-[var(--color-stone)]">
+                      {uploadedFile ? "ATS benchmark score from parsed resume" : "Upload resume to calculate ATS health"}
+                    </p>
+                  )}
                 </div>
-                <p className="mt-2 text-xs text-[var(--color-stone)] font-medium">
-                  {displayVerdict}
-                </p>
               </div>
 
-              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Core Skills Covered</span>
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4" />
+              {/* CARD 3: CORE SKILLS COVERED (PRESENCE SEPARATE FROM PROFICIENCY) */}
+              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Core Skills Covered</span>
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">
+                      {coreCoveredCount} / {coreRequiredSkills.length}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      {Math.round((coreCoveredCount / Math.max(1, coreRequiredSkills.length)) * 100)}% presence
+                    </span>
                   </div>
                 </div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">
-                    {strongCount} / {skillGaps.length}
-                  </span>
-                  <span className="text-xs text-emerald-600 font-semibold">{readinessPercent}% match</span>
+
+                <div className="mt-3 pt-2.5 border-t border-[var(--color-paper)] text-[11px] text-[var(--color-stone)] space-y-1">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span>Core CS Verified:</span>
+                    <span className="font-mono text-emerald-700 font-semibold">
+                      {coreCoveredCount} of {coreRequiredSkills.length} in resume
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-stone)]">
+                    {uniqueExtractedSkills.length} unique skills extracted from resume
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-[var(--color-stone)]">
-                  {extractedSkills.length} verified candidate skills
-                </p>
               </div>
 
-              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Campus Recruiters</span>
-                  <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
-                    <Building2 className="w-4 h-4" />
+              {/* CARD 4: CAMPUS RECRUITERS (REAL DATABASE RECORDS ONLY, NO FAKE COUNTS) */}
+              <div className="p-6 rounded-[20px] bg-white border border-[var(--color-paper)] shadow-sm flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">Campus Recruiters</span>
+                    <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">{companies.length}</span>
+                    <span className="text-xs text-purple-600 font-semibold">Active Drives</span>
                   </div>
                 </div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold font-mono text-[var(--color-graphite)]">{companies.length || 6}</span>
-                  <span className="text-xs text-purple-600 font-semibold">Active Drives</span>
+
+                <div className="mt-3 pt-2.5 border-t border-[var(--color-paper)] text-[11px] text-[var(--color-stone)]">
+                  <p className="text-[10px] text-[var(--color-stone)]">
+                    {companies.length === 0 ? "No active campus drives registered in database" : `${companies.length} on-campus opportunities tracked`}
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-[var(--color-stone)]">On-campus opportunities tracked</p>
               </div>
             </div>
 
@@ -1038,25 +1333,83 @@ export default function PlacementIntelligencePage() {
                 </div>
 
                 <div className="space-y-3">
-                  {skillGaps.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-[12px] bg-[var(--color-canvas-white)] border border-[var(--color-paper)]">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-2.5 h-2.5 rounded-full ${
-                          item.status === "strong" ? "bg-emerald-500" : item.status === "weak" ? "bg-amber-500" : "bg-red-500"
-                        }`} />
-                        <span className="text-sm font-medium text-[var(--color-graphite)]">{item.skill}</span>
+                  {skillGaps.map((item, idx) => {
+                    const isExpanded = expandedSkillGapIndex === idx;
+                    const badgeStyles = {
+                      STRONG: "bg-emerald-50 text-emerald-800 border-emerald-200",
+                      MENTIONED: "bg-sky-50 text-sky-800 border-sky-200",
+                      WEAK: "bg-amber-50 text-amber-800 border-amber-200",
+                      MISSING: "bg-rose-50 text-rose-800 border-rose-200",
+                      NOT_ASSESSED: "bg-slate-100 text-slate-700 border-slate-300",
+                    }[item.status] || "bg-neutral-50 text-neutral-700 border-neutral-200";
+
+                    const dotStyles = {
+                      STRONG: "bg-emerald-500",
+                      MENTIONED: "bg-sky-500",
+                      WEAK: "bg-amber-500",
+                      MISSING: "bg-rose-500",
+                      NOT_ASSESSED: "bg-slate-400",
+                    }[item.status] || "bg-neutral-400";
+
+                    return (
+                      <div
+                        key={idx}
+                        className="rounded-[14px] bg-[var(--color-canvas-white)] border border-[var(--color-paper)] p-3.5 transition-all hover:border-[var(--color-ember-orange)]/40"
+                      >
+                        <div
+                          className="flex items-center justify-between cursor-pointer select-none"
+                          onClick={() => setExpandedSkillGapIndex(isExpanded ? null : idx)}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotStyles}`} />
+                            <span className="text-sm font-semibold text-[var(--color-graphite)] font-sora">
+                              {item.skill}
+                            </span>
+                            <span className="text-[10px] text-[var(--color-stone)] bg-white px-2 py-0.5 rounded border border-[var(--color-paper)] hidden sm:inline-block">
+                              {item.category}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${badgeStyles}`}>
+                              {item.status.replace("_", " ")}
+                            </span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                          </div>
+                        </div>
+
+                        {/* Collapsed quick evidence preview */}
+                        {!isExpanded && (
+                          <p className="text-[11px] text-[var(--color-stone)] mt-2 line-clamp-1 italic pl-5">
+                            Evidence: {item.evidence}
+                          </p>
+                        )}
+
+                        {/* Expanded full details */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-[var(--color-paper)] space-y-2.5 text-xs pl-1 animate-in fade-in">
+                            <div className="text-[var(--color-stone)]">
+                              <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Resume Evidence:</span>
+                              <span className="italic bg-white px-2.5 py-1.5 rounded-[8px] border border-[var(--color-paper)] block text-[11px]">
+                                {item.evidence}
+                              </span>
+                            </div>
+                            <div className="text-[var(--color-stone)]">
+                              <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Why It Matters for Recruiter:</span>
+                              <span className="block text-[11px] leading-relaxed">
+                                {item.whyItMatters}
+                              </span>
+                            </div>
+                            <div className="text-[var(--color-stone)]">
+                              <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Recommended Improvement:</span>
+                              <span className="block text-[11px] leading-relaxed text-[var(--color-ember-orange)] font-medium">
+                                {item.recommendation}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        item.status === "strong" 
-                          ? "bg-emerald-50 text-emerald-700" 
-                          : item.status === "weak" 
-                          ? "bg-amber-50 text-amber-700" 
-                          : "bg-red-50 text-red-700"
-                      }`}>
-                        {item.status.toUpperCase()}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1941,31 +2294,31 @@ export default function PlacementIntelligencePage() {
                             <span className="text-xl font-bold text-emerald-800 font-mono block">
                               {skillGapData.skillGapResults.strongCount}
                             </span>
-                            <span className="text-[10px] font-semibold text-emerald-700 uppercase">Strong</span>
+                            <span className="text-[10px] font-semibold text-emerald-700 uppercase">STRONG</span>
                           </div>
                           <div className="p-3 rounded-[12px] bg-sky-50 border border-sky-200 text-center">
                             <span className="text-xl font-bold text-sky-800 font-mono block">
-                              {skillGapData.skillGapResults.intermediateCount}
+                              {skillGapData.skillGapResults.mentionedCount ?? skillGapData.skillGapResults.beginnerCount ?? 0}
                             </span>
-                            <span className="text-[10px] font-semibold text-sky-700 uppercase">Intermediate</span>
+                            <span className="text-[10px] font-semibold text-sky-700 uppercase">MENTIONED</span>
                           </div>
                           <div className="p-3 rounded-[12px] bg-amber-50 border border-amber-200 text-center">
                             <span className="text-xl font-bold text-amber-800 font-mono block">
-                              {skillGapData.skillGapResults.beginnerCount}
+                              {skillGapData.skillGapResults.weakCount ?? skillGapData.skillGapResults.intermediateCount ?? 0}
                             </span>
-                            <span className="text-[10px] font-semibold text-amber-700 uppercase">Beginner</span>
+                            <span className="text-[10px] font-semibold text-amber-700 uppercase">WEAK</span>
                           </div>
                           <div className="p-3 rounded-[12px] bg-rose-50 border border-rose-200 text-center">
                             <span className="text-xl font-bold text-rose-800 font-mono block">
                               {skillGapData.skillGapResults.missingCount}
                             </span>
-                            <span className="text-[10px] font-semibold text-rose-700 uppercase">Missing</span>
+                            <span className="text-[10px] font-semibold text-rose-700 uppercase">MISSING</span>
                           </div>
                           <div className="p-3 rounded-[12px] bg-slate-50 border border-slate-200 text-center col-span-2 sm:col-span-1">
                             <span className="text-xl font-bold text-slate-800 font-mono block">
                               {skillGapData.skillGapResults.notAssessedCount || 0}
                             </span>
-                            <span className="text-[10px] font-semibold text-slate-600 uppercase">Not Assessed</span>
+                            <span className="text-[10px] font-semibold text-slate-600 uppercase">NOT ASSESSED</span>
                           </div>
                         </div>
                         <p className="text-[11px] text-[var(--color-stone)] mt-1">
@@ -2006,17 +2359,17 @@ export default function PlacementIntelligencePage() {
                           <span className="text-[11px] text-[var(--color-stone)] font-medium flex items-center gap-1 mr-1">
                             <Filter className="w-3 h-3" /> Filter:
                           </span>
-                          {(["all", "Strong", "Intermediate", "Beginner", "Missing", "Not Assessed"] as const).map((cat) => (
+                          {(["all", "STRONG", "MENTIONED", "WEAK", "MISSING", "NOT_ASSESSED"] as const).map((cat) => (
                             <button
                               key={cat}
                               onClick={() => setSkillFilter(cat)}
-                              className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-all ${
+                              className={`text-[11px] px-2.5 py-1 rounded-full font-semibold transition-all ${
                                 skillFilter === cat
                                   ? "bg-[var(--color-graphite)] text-white"
                                   : "bg-[var(--color-canvas-white)] text-[var(--color-stone)] hover:bg-neutral-100 border border-[var(--color-paper)]"
                               }`}
                             >
-                              {cat === "all" ? `All (${skillGapData.skillClassifications?.length || 0})` : cat}
+                              {cat === "all" ? `All (${skillGapData.skillClassifications?.length || 0})` : cat.replace("_", " ")}
                             </button>
                           ))}
                         </div>
@@ -2025,15 +2378,28 @@ export default function PlacementIntelligencePage() {
                       {/* Skill Items Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {skillGapData.skillClassifications
-                          ?.filter((s) => skillFilter === "all" || s.classification === skillFilter)
+                          ?.filter((s) => {
+                            if (skillFilter === "all") return true;
+                            const normalizedItemStatus = (s.status || s.classification || "").toUpperCase().replace(/\s+/g, "_");
+                            return normalizedItemStatus === skillFilter;
+                          })
                           .map((item, idx) => {
+                            const rawStatus = (item.status || item.classification || "NOT_ASSESSED").toUpperCase().replace(/\s+/g, "_");
+                            const status = ["STRONG", "MENTIONED", "WEAK", "MISSING", "NOT_ASSESSED"].includes(rawStatus)
+                              ? rawStatus
+                              : "NOT_ASSESSED";
+
                             const badgeStyles = {
-                              Strong: "bg-emerald-50 text-emerald-800 border-emerald-200",
-                              Intermediate: "bg-sky-50 text-sky-800 border-sky-200",
-                              Beginner: "bg-amber-50 text-amber-800 border-amber-200",
-                              Missing: "bg-rose-50 text-rose-800 border-rose-200",
-                              "Not Assessed": "bg-slate-100 text-slate-700 border-slate-300",
-                            }[item.classification] || "bg-neutral-50 text-neutral-700 border-neutral-200";
+                              STRONG: "bg-emerald-50 text-emerald-800 border-emerald-200",
+                              MENTIONED: "bg-sky-50 text-sky-800 border-sky-200",
+                              WEAK: "bg-amber-50 text-amber-800 border-amber-200",
+                              MISSING: "bg-rose-50 text-rose-800 border-rose-200",
+                              NOT_ASSESSED: "bg-slate-100 text-slate-700 border-slate-300",
+                            }[status] || "bg-neutral-50 text-neutral-700 border-neutral-200";
+
+                            const evidenceText = item.evidence || item.evidenceFromResume || "No direct proof cited";
+                            const whyText = item.whyItMatters || "";
+                            const recText = item.recommendation || "";
 
                             return (
                               <div
@@ -2050,20 +2416,34 @@ export default function PlacementIntelligencePage() {
                                         {item.category}
                                       </span>
                                     </div>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border shrink-0 ${badgeStyles}`}>
-                                      {item.classification}
+                                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border shrink-0 ${badgeStyles}`}>
+                                      {status.replace("_", " ")}
                                     </span>
                                   </div>
 
-                                  <div className="text-xs space-y-1.5 mt-2.5">
-                                    <div className="text-[var(--color-stone)] flex items-start gap-1.5">
-                                      <span className="font-semibold text-[var(--color-graphite)] shrink-0">Resume Evidence:</span>
-                                      <span className="italic">{item.evidenceFromResume || "No direct proof cited"}</span>
+                                  <div className="text-xs space-y-2 mt-2.5">
+                                    <div className="text-[var(--color-stone)]">
+                                      <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Resume Evidence:</span>
+                                      <span className="italic block bg-white px-2 py-1.5 rounded border border-[var(--color-paper)] text-[11px]">
+                                        {evidenceText}
+                                      </span>
                                     </div>
-                                    <div className="text-[var(--color-stone)] flex items-start gap-1.5">
-                                      <span className="font-semibold text-[var(--color-graphite)] shrink-0">Required Level:</span>
-                                      <span>{item.requiredLevel}</span>
-                                    </div>
+                                    {whyText && (
+                                      <div className="text-[var(--color-stone)]">
+                                        <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Why It Matters:</span>
+                                        <span className="block text-[11px] leading-relaxed">
+                                          {whyText}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {recText && (
+                                      <div className="text-[var(--color-stone)]">
+                                        <span className="font-semibold text-[var(--color-graphite)] block mb-0.5">Recommended Improvement:</span>
+                                        <span className="block text-[11px] leading-relaxed text-[var(--color-ember-orange)] font-medium">
+                                          {recText}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 

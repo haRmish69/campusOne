@@ -157,8 +157,23 @@ Return a valid JSON object matching this schema:
   "missingKeywords": string[] (4-8 high-frequency ATS keywords and phrases missing from the resume),
   "formattingIssues": string[] (2-4 formatting or structural issues that could cause ATS parsing errors or recruiter drop-off),
   "actionableImprovements": string[] (4-6 specific, actionable changes to boost ATS score by 15-25 points),
-  "extractedSkills": string[] (8-16 technical languages, frameworks, databases, and tools actually found in the candidate resume),
-  "extractedExperience": string[] (2-4 key project or internship titles found in the resume),
+  "extractedSkills": string[] (Comprehensive list of ALL technical languages, frameworks, libraries, databases, developer tools, and CRITICALLY all Core Computer Science concepts such as DSA, Data Structures, Algorithms, OS, Operating Systems, DBMS, Database Management, OOP, OOPS, Object Oriented Programming, System Design, Computer Networks that are explicitly present in the candidate resume),
+  "extractedExperience": string[] (Key project or internship titles found in the resume),
+  "parsedSections": {
+    "technicalSkills": {
+      "languages": string[],
+      "frameworks": string[],
+      "databases": string[],
+      "tools": string[],
+      "coreCs": string[],
+      "aiMl": string[]
+    },
+    "projects": string[],
+    "experience": string[],
+    "education": string[],
+    "certifications": string[],
+    "achievements": string[]
+  },
   "extractedText": string (plain text summary of the resume),
   "executiveSummary": string (2-3 sentences summarizing candidate positioning and fit)
 };`;
@@ -187,6 +202,50 @@ Return a valid JSON object matching this schema:
       });
 
       const parsedAnalysis = JSON.parse(res.text || "{}");
+
+      // ─── Guarantee explicit Core CS skills are never omitted from extractedSkills ───
+      const fullTextToScan = `${parsedAnalysis.extractedText || ""} ${resumeText || ""}`;
+      const guaranteedSkills = new Set<string>(parsedAnalysis.extractedSkills || []);
+
+      const coreCsMatchers: { pattern: RegExp; skill: string }[] = [
+        { pattern: /\b(dsa|data\s*structures?(\s*&|\s*and)?\s*algorithms?)\b/i, skill: "DSA" },
+        { pattern: /\b(os|operating\s*systems?)\b/i, skill: "OS" },
+        { pattern: /\b(dbms|database\s*management(\s*systems?)?)\b/i, skill: "DBMS" },
+        { pattern: /\b(oops?|object\s*oriented(\s*programming)?)\b/i, skill: "OOPS" },
+        { pattern: /\b(cn|computer\s*networks?)\b/i, skill: "Computer Networks" },
+        { pattern: /\b(system\s*design)\b/i, skill: "System Design" },
+        { pattern: /\b(mysql)\b/i, skill: "MySQL" },
+        { pattern: /\b(mongodb)\b/i, skill: "MongoDB" },
+        { pattern: /\b(postgresql|postgres)\b/i, skill: "PostgreSQL" },
+        { pattern: /\b(sqlite)\b/i, skill: "SQLite" },
+        { pattern: /\b(qdrant)\b/i, skill: "Qdrant" },
+        { pattern: /\b(docker)\b/i, skill: "Docker" },
+        { pattern: /\b(linux)\b/i, skill: "Linux" },
+        { pattern: /\b(git)\b/i, skill: "Git" },
+        { pattern: /\b(github)\b/i, skill: "GitHub" },
+        { pattern: /\b(postman)\b/i, skill: "Postman" },
+        { pattern: /\b(c\s*\/\s*c\+\+|c\+\+|c)\b/i, skill: "C/C++" },
+        { pattern: /\b(python)\b/i, skill: "Python" },
+        { pattern: /\b(javascript)\b/i, skill: "JavaScript" },
+        { pattern: /\b(typescript)\b/i, skill: "TypeScript" },
+        { pattern: /\b(java)\b/i, skill: "Java" },
+        { pattern: /\b(react(\.js)?)\b/i, skill: "React.js" },
+        { pattern: /\b(next(\.js)?)\b/i, skill: "Next.js" },
+        { pattern: /\b(node(\.js)?)\b/i, skill: "Node.js" },
+        { pattern: /\b(express(\.js)?)\b/i, skill: "Express.js" },
+        { pattern: /\b(tailwind(\s*css)?)\b/i, skill: "Tailwind CSS" },
+        { pattern: /\b(rag)\b/i, skill: "RAG" },
+        { pattern: /\b(llms?)\b/i, skill: "LLMs" },
+        { pattern: /\b(whisper)\b/i, skill: "Whisper" },
+      ];
+
+      for (const matcher of coreCsMatchers) {
+        if (matcher.pattern.test(fullTextToScan)) {
+          guaranteedSkills.add(matcher.skill);
+        }
+      }
+
+      parsedAnalysis.extractedSkills = Array.from(guaranteedSkills);
 
       // ─── Save securely to database associated with Clerk user ───────────
       await prisma.note.deleteMany({
